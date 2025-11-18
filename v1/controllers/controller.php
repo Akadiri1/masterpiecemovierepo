@@ -1,4 +1,66 @@
 <?php
+function fetchTmdbApi(string $endpoint, array $params = [], int $cacheDuration = 86400): ?array
+{
+    $cacheDir = __DIR__ . '/../cache/tmdb/';
+    if (!is_dir($cacheDir)) {
+        mkdir($cacheDir, 0755, true);
+    }
+    $cacheKey = md5($endpoint . http_build_query($params));
+    $cacheFile = $cacheDir . $cacheKey . '.json';
+
+    if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $cacheDuration) {
+        $cachedData = file_get_contents($cacheFile);
+        return json_decode($cachedData, true);
+    }
+
+    if (!defined('TMDB_API_KEY') || TMDB_API_KEY === 'YOUR_API_KEY_GOES_HERE') {
+        error_log('TMDB API key is not defined in config.php');
+        return null;
+    }
+
+    $baseUrl = 'https://api.themoviedb.org/3/';
+    $defaultParams = ['api_key' => TMDB_API_KEY];
+    $queryParams = http_build_query(array_merge($defaultParams, $params));
+    $fullUrl = $baseUrl . $endpoint . '?' . $queryParams;
+
+    $ch = curl_init();
+    curl_setopt_array($ch, [
+        CURLOPT_URL            => $fullUrl,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT        => 10,
+        // We remove FAILONERROR to get the error body from TMDB
+        // CURLOPT_FAILONERROR    => true, 
+        CURLOPT_HTTPHEADER     => ['Accept: application/json']
+    ]);
+
+    $response = curl_exec($ch);
+
+    // Check for cURL-specific errors (e.g., couldn't connect)
+    if (curl_errno($ch)) {
+        error_log('cURL Error in fetchTmdbApi: ' . curl_error($ch));
+        curl_close($ch);
+        return null;
+    }
+
+    // Check for HTTP errors (e.g., 401 Unauthorized, 404 Not Found)
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    if ($httpCode >= 400) {
+        error_log("HTTP Error {$httpCode} for URL: {$fullUrl}. Response: {$response}");
+        curl_close($ch);
+        return null; // Return null on error
+    }
+
+    curl_close($ch);
+
+    $data = json_decode($response, true);
+    if (json_last_error() === JSON_ERROR_NONE && !empty($data)) {
+        file_put_contents($cacheFile, $response);
+        return $data;
+    }
+
+    return null;
+}
+
 
 function MCK_Clarity()
 {

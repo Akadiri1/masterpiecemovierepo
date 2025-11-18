@@ -6324,6 +6324,7 @@ body {
 .iq-main-slider::before {
     content: "";
     position: absolute;
+    height: 100vh;
     top: 0;
     left: 0;
     right: 0;

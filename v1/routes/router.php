@@ -268,6 +268,10 @@ if (count($uri) > 2) {
     break;
 
 
+    case 'movie-detail?'.$query_string:
+    include APP_PATH."/views/movie-detail.php";
+    break;
+
     case 'contact-us':
     include APP_PATH."/views/contact.php";
     break;
@@ -278,6 +282,11 @@ if (count($uri) > 2) {
 
     case 'auth':
     include APP_PATH."/views/auth.php";
+    break;
+
+    
+    case 'watch?'.$query_string:
+    include APP_PATH."/views/watch.php";
     break;
 
      case 'logout':

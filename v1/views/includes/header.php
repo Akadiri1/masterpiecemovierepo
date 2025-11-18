@@ -1,16 +1,31 @@
 <?php
 // --- 2. THEME LOGIC (with defaults) ---
 // We get these from the session. If not set, we use defaults.
-$current_plan = $_SESSION['plan_name'] ?? 'free'; // 'free', 'premium', 'pro'
-$current_profile_is_kid = $_SESSION['is_kid'] ?? 0; // 0 = no, 1 = yes
+// Default (Free User)
+$current_plan = $_SESSION['plan_name'] ?? 'pro';
 
-$themeClass = 'theme-premium'; // Default
-if ($current_plan === 'pro') {
-    $themeClass = 'theme-pro';
-}
-if ($current_profile_is_kid) {
-    $themeClass .= '-kid'; // e.g., 'theme-pro-kid'
-}
+    $btnLink  = 'pricing-plan.html';
+    $btnText  = 'Subscribe';
+    $btnIcon  = 'ph-crown';
+    // 'btn-warning-subtle' is the default yellow outline style
+    $btnClass = 'btn-warning-subtle text-warning'; 
+
+    // Premium User (Silver)
+    if ($current_plan === 'premium') {
+        $btnLink  = 'javascript:void(0)'; // Already subscribed
+        $btnText  = 'Premium';
+        $btnIcon  = 'ph-star'; // Use a star for Premium
+        // 'btn-secondary' gives a grey/silver look
+        $btnClass = 'btn-secondary text-white border-secondary'; 
+    } 
+    // Pro User (Gold)
+    elseif ($current_plan === 'pro') {
+        $btnLink  = 'javascript:void(0)'; // Already subscribed
+        $btnText  = 'Pro';
+        $btnIcon  = 'ph-crown';
+        // 'btn-warning' gives a solid gold/yellow look
+        $btnClass = 'btn-warning text-dark border-warning fw-bold'; 
+    }
 
 // --- 3. Build base URL dynamically ---
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
@@ -113,7 +128,7 @@ else if (isset($_SESSION['username'])) {
 
   <link rel="stylesheet" href="assets/vendor/streamit-font/iconly.css"></head>
 
-<body class=" <?php echo htmlspecialchars($themeClass); ?> ">
+<body class=" <?php echo htmlspecialchars($pageThemeClass); ?> ">
   <span class="screen-darken"></span>
   <!-- loader Start -->
    <!-- loader Start -->
@@ -151,240 +166,275 @@ else if (isset($_SESSION['username'])) {
                               <img class="img-fluid logo" src="assets/images/logo-hulu.webp" loading="lazy" alt="streamit" />
                           </a>
                       </div>                  
-                      <div>
-                         <a href="/pricing-plan" 
-                            class="subscribe-btn btn btn-warning-subtle py-1 py-md-2 px-2 px-ms-3">
-                            <span class="d-flex align-items-center gap-2 text-warning">
-                               <i class="ph-fill ph-crown align-middle fs-6"></i>
-                               <span class="d-xl-block d-none">Subscribe</span>
-                            </span>
-                         </a>
-                      </div>
+                     <div>
+    <?php
+    // --- DEFINE BUTTON STYLES BASED ON PLAN ---
+    
+    // Default (Free User)
+    $btnLink  = 'pricing-plan.html';
+    $btnText  = 'Subscribe';
+    $btnIcon  = 'ph-crown';
+    // 'btn-warning-subtle' is the default yellow outline style
+    $btnClass = 'btn-warning-subtle text-warning'; 
+
+    // Premium User (Silver)
+    if ($current_plan === 'premium') {
+        $btnLink  = 'javascript:void(0)'; // Already subscribed
+        $btnText  = 'Premium';
+        $btnIcon  = 'ph-star'; // Use a star for Premium
+        // 'btn-secondary' gives a grey/silver look
+        $btnClass = 'btn-secondary text-white border-secondary'; 
+    } 
+    // Pro User (Gold)
+    elseif ($current_plan === 'pro') {
+        $btnLink  = 'javascript:void(0)'; // Already subscribed
+        $btnText  = 'Pro';
+        $btnIcon  = 'ph-crown';
+        // 'btn-warning' gives a solid gold/yellow look
+        $btnClass = 'btn-warning text-dark border-warning fw-bold'; 
+    }
+    ?>
+
+    <!-- DYNAMIC BUTTON HTML -->
+    <a href="<?php echo $btnLink; ?>"
+       class="subscribe-btn btn py-1 py-md-2 px-2 px-ms-3 <?php echo $btnClass; ?>">
+        <span class="d-flex align-items-center gap-2">
+            <i class="ph-fill <?php echo $btnIcon; ?> align-middle fs-6"></i>
+            <span class="d-xl-block d-none"><?php echo $btnText; ?></span>
+        </span>
+    </a>
+</div>
                    </div>
 
+              </div>
+<nav id="navbar_main" class="offcanvas mobile-offcanvas nav navbar navbar-expand-xl hover-nav horizontal-nav mega-menu-content py-xl-0 w-100">
+    <div class="container-fluid p-lg-0">
+        <div class="offcanvas-header px-0">
+            <div class="navbar-brand ms-3">
+                <div class="logo-default">
+                    <a class="navbar-brand text-primary me-0" href="/"> <!-- Updated to root path -->
+                        <img class="img-fluid logo" src="assets/images/logo.png" loading="lazy" alt="streamit" />
+                    </a>
                 </div>
-                <nav id="navbar_main"
-                  class="offcanvas mobile-offcanvas nav navbar navbar-expand-xl hover-nav horizontal-nav mega-menu-content py-xl-0 w-100">
-                  <div class="container-fluid p-lg-0">
-                    <div class="offcanvas-header px-0">
-                      <div class="navbar-brand ms-3">
-                        <div class="logo-default">
-                            <a class="navbar-brand text-primary me-0" href="/"> <!-- Updated to root path -->
-                                <img class="img-fluid logo" src="assets/images/logo.png" loading="lazy" alt="streamit" />
-                            </a>
-                        </div>
-                        <div class="logo-hotstar">
-                            <a class="navbar-brand text-primary me-0" href="/"> <!-- Updated to root path -->
-                                <img class="img-fluid logo" src="assets/images/logo-hotstar.webp" loading="lazy" alt="streamit" />
-                            </a>
-                        </div>
-                        <div class="logo-prime">
-                            <a class="navbar-brand text-primary me-0" href="/"> <!-- Updated to root path -->
-                                <img class="img-fluid logo" src="assets/images/logo-prime.webp" loading="lazy" alt="streamit" />
-                            </a>
-                        </div>
-                        <div class="logo-hulu">
-                            <a class="navbar-brand text-primary me-0" href="/"> <!-- Updated to root path -->
-                                <img class="img-fluid logo" src="assets/images/logo-hulu.webp" loading="lazy" alt="streamit" />
-                            </a>
-                        </div>      </div>
-                      <button type="button" class="btn-close float-end px-3" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                <div class="logo-hotstar">
+                    <a class="navbar-brand text-primary me-0" href="/"> <!-- Updated to root path -->
+                        <img class="img-fluid logo" src="assets/images/logo-hotstar.webp" loading="lazy" alt="streamit" />
+                    </a>
+                </div>
+                <div class="logo-prime">
+                    <a class="navbar-brand text-primary me-0" href="/"> <!-- Updated to root path -->
+                        <img class="img-fluid logo" src="assets/images/logo-prime.webp" loading="lazy" alt="streamit" />
+                    </a>
+                </div>
+                <div class="logo-hulu">
+                    <a class="navbar-brand text-primary me-0" href="/"> <!-- Updated to root path -->
+                        <img class="img-fluid logo" src="assets/images/logo-hulu.webp" loading="lazy" alt="streamit" />
+                    </a>
+                </div>
+            </div>
+            <button type="button" class="btn-close float-end px-3" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <ul class="navbar-nav iq-nav-menu list-unstyled" id="header-menu">
+            <li class="nav-item">
+                <a class="nav-link" href="/" role="button" aria-expanded="false" aria-controls="homePages">
+                    <div class="d-flex justify-content-between">
+                        <span class="item-name">Home</span>
                     </div>
-                    <ul class="navbar-nav iq-nav-menu  list-unstyled" id="header-menu">
-                      <li class="nav-item">
-                        <a class="nav-link" href="/" role="button" aria-expanded="false"
-                          aria-controls="homePages">
-                          <div class="d-flex justify-content-between">
-                            <span class="item-name">Home</span>
-                          </div>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#movies" role="button" aria-expanded="false"
+                    aria-controls="homePages">
+                    <div class="d-flex justify-content-between">
+                        <span class="item-name">Movies</span>
+                        <span class="menu-icon">
+                            <i class="ph ph-caret-down align-middle"></i>
+                        </span>
+                    </div>
+                </a>
+                <ul class="sub-nav collapse list-unstyled" id="movies">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/movies/chinese-drama">
+                            <span>Chinese Drama</span> </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/movies/k-drama"> <span>K-Drama</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/movies/tv-series"> <span>TV Series</span></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/movies/international"> <span>International</span>
                         </a>
-                      </li>
-                      <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="collapse" href="#movies" role="button" aria-expanded="false"
-                          aria-controls="homePages">
-                          <div class="d-flex justify-content-between">
-                            <span class="item-name">Movies</span>
-                            <span class="menu-icon">
-                              <i class="ph ph-caret-down align-middle"></i>
-                            </span>
-                          </div>
-                        </a>
-                        <ul class="sub-nav collapse  list-unstyled" id="movies">
-                          <li class="nav-item">
-                            <a class="nav-link "
-                              href="/movies/chinese-drama"> 
-                              <span>Chinese Drama</span> </a>
-                          </li>
-                          <li class="nav-item">
-                            <a class="nav-link "
-                              href="/movies/k-drama"> <span>K-Drama</span></a> 
-                          </li>
-                          <li class="nav-item">
-                            <a class="nav-link"
-                              href="/movies/tv-series"> <span>TV Series</span></a> 
-                          </li>
-                          <li class="nav-item">
-                            <a class="nav-link " href="/movies/international"> <span>International</span> 
-                            </a>
-                          </li>
-                          <li class="nav-item">
-                            <a class="nav-link" data-bs-toggle="collapse" href="#blog-grid" role="button" aria-expanded="false"
-                              aria-controls="blog-grid">
-                              <div class="d-flex justify-content-between">
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="collapse" href="#blog-grid" role="button" aria-expanded="false"
+                            aria-controls="blog-grid">
+                            <div class="d-flex justify-content-between">
                                 <span class="item-name">Asian Movies</span>
                                 <span class="menu-icon">
-                                  <i class="ph ph-caret-down align-middle down-to-right"></i>
+                                    <i class="ph ph-caret-down align-middle down-to-right"></i>
                                 </span>
-                              </div>
-                            </a>
-                            <ul class="sub-nav collapse  list-unstyled" id="blog-grid">
-                              <li class="nav-item">
-                                <a class="nav-link "
-                                  href="/movies/asian/bollywood"> <span>Bollywood</span></a> 
-                              </li>
-                              <li class="nav-item">
-                                <a class="nav-link "
-                                  href="/movies/asian/korean"> <span>Korean Movies</span></a> 
-                              </li>
-                               <li class="nav-item">
-                                <a class="nav-link "
-                                  href="/movies/asian/japanese"> <span>Japanese Movies</span></a> 
-                              </li>
-                              <li class="nav-item">
-                                <a class="nav-link "
-                                  href="/movies/asian/philippine"> <span>Philippine Movies</span></a> 
-                              </li>
-                            </ul>
-                          </li>
+                            </div>
+                        </a>
+                        <ul class="sub-nav collapse list-unstyled" id="blog-grid">
+                            <li class="nav-item">
+                                <a class="nav-link" href="/movies/asian/bollywood"> <span>Bollywood</span></a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/movies/asian/korean"> <span>Korean Movies</span></a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/movies/asian/japanese"> <span>Japanese Movies</span></a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/movies/asian/philippine"> <span>Philippine Movies</span></a>
+                            </li>
                         </ul>
-                      </li>
-                    <li class="nav-item">
-                      <a class="nav-link" data-bs-toggle="collapse" href="#genre-menu" role="button" aria-expanded="false" aria-controls="genre-menu">
-                        <div class="d-flex justify-content-between">
-                          <span class="item-name">Genre</span>
-                          <span class="menu-icon">
-                            <i class="ph ph-caret-down align-middle"></i>
-                          </span>
-                        </div>
-                      </a>
-
-                      <ul class="sub-nav collapse list-unstyled" id="genre-menu">
-                        <?php
-                        // Example: You might fetch genres from a database or a configuration array
-                        $genres = ['Action', 'Comedy', 'Anime', 'Drama', 'Sci-Fi', 'Horror', 'Thriller', 'Romance', 'Animation', 'Documentary', 'Fantasy', 'Family', 'Crime'];
-                        foreach ($genres as $genre) {
-                            echo '<li class="nav-item"><a class="nav-link" href="/genre/' . htmlspecialchars(strtolower(str_replace(' ', '-', $genre))) . '">' . htmlspecialchars($genre) . '</a></li>';
-                        }
-                        ?>
-                      </ul>
                     </li>
-                    </ul>
-                  </div>
-                </nav>            <div class="css_prefix-header-right d-flex align-items-center gap-2">
-                   <ul
-                      class="list-inline d-flex align-items-center gap-3 gap-md-4 mb-0 ps-0 justify-content-md-end justify-content-between">
-                      <li class="nav-item dropdown iq-responsive-menu d-xl-block d-none">
-                         <div class="search-box">
-                            <a href="#search-drop" class="nav-link p-0 text-white" id="search-drop" data-bs-toggle="dropdown"> <!-- Changed href to a valid ID target -->
-                               <div class="btn-icon btn-sm rounded-pill btn-action">
-                                  <span class="btn-inner">
-                                     <i class="ph ph-magnifying-glass p-0"></i>
-                                  </span>
-                               </div>
-                            </a>
-                            <ul class="dropdown-menu p-0 dropdown-search m-0 iq-search-bar" style="width: 20rem;">
-                               <li class="p-0">
-                                  <div class="form-group input-group mb-0">
-                                     <input type="text" class="form-control border-0" placeholder="Search...">
-                                     <button type="submit" class="search-submit">
-                                        <i class="ph ph-magnifying-glass"></i>
-                                     </button>
-                                  </div>
-                               </li>
-                            </ul>
-                         </div>
-                      </li>
+                </ul>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="collapse" href="#genre-menu" role="button" aria-expanded="false"
+                    aria-controls="genre-menu">
+                    <div class="d-flex justify-content-between">
+                        <span class="item-name">Genre</span>
+                        <span class="menu-icon">
+                            <i class="ph ph-caret-down align-middle"></i>
+                        </span>
+                    </div>
+                </a>
 
-                      <li class="nav-item dropdown cust-itemdropdown1" id="itemdropdown1">
-                         <a class="nav-link d-flex align-items-center p-0" href="#navbarDropdown" id="navbarDropdown" role="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="st-avatar style-1">
-                               <img src="<?php echo htmlspecialchars($avatarPath); ?>" alt="Profile picture of <?php echo htmlspecialchars($displayName); ?>" 
-                                  class="img-fluid rounded-circle dropdown-user-menu-image header-user-image">
-                            </div>
-                         </a>
-                         <div class="dropdown-menu dropdown-user-menu dropdown-menu-end border border-gray-900 rounded-3"
-                            data-popper-placement="bottom-end"
-                            style="position: absolute; inset: 0px 0px auto auto; margin: 0px; transform: translate(0px, 74px);">
-                            <div class="user-dropdown-inner">
-                               <!-- User Info -->
-                               <div class="d-flex align-items-center gap-3 rounded mb-4">
-                                  <div class="image flex-shrink-0">
-                                     <img src="<?php echo htmlspecialchars($avatarPath); ?>"
-                                        class="img-fluid rounded-3 dropdown-user-menu-image" alt="Profile picture of <?php echo htmlspecialchars($displayName); ?>"> <!-- Added alt text for accessibility -->
-                                  </div>
-                                  <div class="content">
-                                     <h6 class="mb-1">
-                                    <?php echo htmlspecialchars($displayName); ?>
-                                 </h6>
-                                 <?php if (!empty($userEmail)): // Use the initialized $userEmail variable ?>
-                                    <p class="mb-0" style="font-size: 0.8rem;"><?php echo htmlspecialchars($userEmail); ?></p>
-                                 <?php endif; ?>
-                                  </div>
-                               </div>
+                <ul class="sub-nav collapse list-unstyled" id="genre-menu" style="max-height: 400px; overflow-y: auto;">
+                    <?php
+                    // API INTEGRATION START
+                    // We check if the function exists to prevent errors on pages where API isn't loaded
+                    if (function_exists('fetchTmdbApi')) {
+                        // Fetch Genres dynamically from TMDB
+                        $genreData = fetchTmdbApi('genre/movie/list');
 
-                               <!-- Menu Items -->
-                               <ul class="d-flex flex-column gap-3 list-inline m-0 p-0">
-                                  <li>
-                                     <a href="/profile" 
-                                        class="link-body-emphasis font-size-14 d-flex align-items-center gap-2">
-                                        <i class="ph ph-user"></i>
-                                        <span class="fw-medium">Profile</span>
-                                     </a>
-                                  </li>
-                                  <li>
-                                     <a href="/watchlist" 
-                                        class="link-body-emphasis font-size-14 d-flex align-items-center gap-2">
-                                        <i class="ph ph-plus"></i>
-                                        <span class="fw-medium">Watch List</span>
-                                     </a>
-                                  </li>
-                                  <li>
-                                     <a href="/playlist" 
-                                        class="link-body-emphasis font-size-14 d-flex align-items-center gap-2">
-                                        <i class="ph ph-playlist"></i>
-                                        <span class="fw-medium">Playlist</span>
-                                     </a>
-                                  </li>
-                                  <li>
-                                     <a href="/notifications" 
-                                        class="link-body-emphasis font-size-14 d-flex align-items-center gap-2">
-                                        <i class="ph ph-bell"></i>
-                                        <span class="fw-medium">Notification</span>
-                                     </a>
-                                  </li>
-                               </ul>
-                            </div>
+                        if ($genreData && !empty($genreData['genres'])) {
+                            foreach ($genreData['genres'] as $genre) {
+                                // This creates links like: /view-all?genre_id=28
+                                echo '<li class="nav-item">
+                                        <a class="nav-link" href="/view-all?genre_id=' . $genre['id'] . '">' . htmlspecialchars($genre['name']) . '</a>
+                                      </li>';
+                            }
+                        } else {
+                            // Fallback if API fails
+                            echo '<li class="nav-item"><a class="nav-link" href="#">Action</a></li>';
+                            echo '<li class="nav-item"><a class="nav-link" href="#">Comedy</a></li>';
+                        }
+                    }
+                    // API INTEGRATION END
+                    ?>
+                </ul>
+            </li>
+        </ul>
+    </div>
+</nav>
+<div class="css_prefix-header-right d-flex align-items-center gap-2">
+    <ul class="list-inline d-flex align-items-center gap-3 gap-md-4 mb-0 ps-0 justify-content-md-end justify-content-between">
+        <li class="nav-item dropdown iq-responsive-menu d-xl-block d-none">
+            <div class="search-box">
+                <a href="#search-drop" class="nav-link p-0 text-white" id="search-drop" data-bs-toggle="dropdown"> <!-- Changed href to a valid ID target -->
+                    <div class="btn-icon btn-sm rounded-pill btn-action">
+                        <span class="btn-inner">
+                            <i class="ph ph-magnifying-glass p-0"></i>
+                        </span>
+                    </div>
+                </a>
+                <ul class="dropdown-menu p-0 dropdown-search m-0 iq-search-bar" style="width: 20rem;">
+                    <li class="p-0">
+                        <div class="form-group input-group mb-0">
+                            <input type="text" class="form-control border-0" placeholder="Search...">
+                            <button type="submit" class="search-submit">
+                                <i class="ph ph-magnifying-glass"></i>
+                            </button>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </li>
 
-                            <!-- Logout -->
-                            <a href="/logout" 
-                              class="btn btn-link p-3 d-block font-size-14 text-center text-decoration-none border-top">
-                              <span class="d-flex align-items-center justify-content-center gap-2 fw-medium">
-                                 <i class="ph ph-sign-out"></i>
-                                 Logout
-                              </span>
-                           </a>
-                         </div>
-
-                      </li>
-                   </ul>
-                   <button class="navbar-toggler d-block d-xl-none text-white" type="button" data-bs-toggle="offcanvas"
-                      data-bs-target="#navbar_main" aria-controls="navbar_main">
-                      <i class="ph ph-list"></i>
-                   </button>
+        <li class="nav-item dropdown cust-itemdropdown1" id="itemdropdown1">
+            <a class="nav-link d-flex align-items-center p-0" href="#navbarDropdown" id="navbarDropdown" role="button"
+                data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="st-avatar style-1">
+                    <img src="<?php echo htmlspecialchars($avatarPath ?? 'assets/images/user/user.jpg'); ?>" alt="Profile picture"
+                        class="img-fluid rounded-circle dropdown-user-menu-image header-user-image">
                 </div>
-             </div>
-          </div>
+            </a>
+            <div class="dropdown-menu dropdown-user-menu dropdown-menu-end border border-gray-900 rounded-3"
+                data-popper-placement="bottom-end"
+                style="position: absolute; inset: 0px 0px auto auto; margin: 0px; transform: translate(0px, 74px);">
+                <div class="user-dropdown-inner">
+                    <!-- User Info -->
+                    <div class="d-flex align-items-center gap-3 rounded mb-4">
+                        <div class="image flex-shrink-0">
+                            <img src="<?php echo htmlspecialchars($avatarPath ?? 'assets/images/user/user.jpg'); ?>"
+                                class="img-fluid rounded-3 dropdown-user-menu-image" alt="Profile picture">
+                        </div>
+                        <div class="content">
+                            <h6 class="mb-1">
+                                <?php echo htmlspecialchars($displayName ?? 'Guest'); ?>
+                            </h6>
+                            <?php if (!empty($userEmail)): ?>
+                                <p class="mb-0" style="font-size: 0.8rem;"><?php echo htmlspecialchars($userEmail); ?></p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Menu Items -->
+                    <ul class="d-flex flex-column gap-3 list-inline m-0 p-0">
+                        <li>
+                            <a href="/profile"
+                                class="link-body-emphasis font-size-14 d-flex align-items-center gap-2">
+                                <i class="ph ph-user"></i>
+                                <span class="fw-medium">Profile</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/watchlist"
+                                class="link-body-emphasis font-size-14 d-flex align-items-center gap-2">
+                                <i class="ph ph-plus"></i>
+                                <span class="fw-medium">Watch List</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/playlist"
+                                class="link-body-emphasis font-size-14 d-flex align-items-center gap-2">
+                                <i class="ph ph-playlist"></i>
+                                <span class="fw-medium">Playlist</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/notifications"
+                                class="link-body-emphasis font-size-14 d-flex align-items-center gap-2">
+                                <i class="ph ph-bell"></i>
+                                <span class="fw-medium">Notification</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Logout -->
+                <a href="/logout"
+                    class="btn btn-link p-3 d-block font-size-14 text-center text-decoration-none border-top">
+                    <span class="d-flex align-items-center justify-content-center gap-2 fw-medium">
+                        <i class="ph ph-sign-out"></i>
+                        Logout
+                    </span>
+                </a>
+            </div>
+
+        </li>
+    </ul>
+    <button class="navbar-toggler d-block d-xl-none text-white" type="button" data-bs-toggle="offcanvas"
+        data-bs-target="#navbar_main" aria-controls="navbar_main">
+        <i class="ph ph-list"></i>
+    </button>
+</div>
        </nav>
     </header>
 
