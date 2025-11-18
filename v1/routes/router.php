@@ -281,7 +281,7 @@ if (count($uri) > 2) {
     break;
 
      case 'logout':
-    include APP_PATH."/views/logout.php";
+    include APP_PATH."/views/includes/ajax/logout.php";
     break;
 
      case 'user-dashboard':
@@ -300,12 +300,20 @@ if (count($uri) > 2) {
     include APP_PATH."/views/login.php";
     break;
 
+     case "remember-me":
+    include APP_PATH."/views/remember-me.php";
+    break;
+
      case "profile":
     include APP_PATH."/views/profile.php";
     break;
 
     case "login-backend":
     include APP_PATH."/views/includes/ajax/login-backend.php";
+    break;
+
+    case "update-profile":
+    include APP_PATH."/views/includes/ajax/update-profile.php";
     break;
 
     case "register-backend":

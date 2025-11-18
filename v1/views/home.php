@@ -1,11 +1,24 @@
-<?php 
+<?php
+if (!isset($_SESSION['user_id'])) {
+    header('Location: /login'); // Redirect to login
+    exit;
+}
+$current_plan = $_SESSION['plan_name'] ?? 'free'; 
+$current_profile_is_kid = $_SESSION['is_kid'] ?? 0;
 
+$pageThemeClass = 'theme-premium'; // Default
+if ($current_plan === 'pro') {
+    $pageThemeClass = 'theme-pro';
+}
+if ($current_profile_is_kid) {
+    $pageThemeClass .= '-kid'; // e.g., 'theme-pro-kid'
+}
 
-
-include 'includes/header.php'; ?>
-
-    <!--bread-crumb-->
-    <!--bread-crumb-->
+// --- 5. FETCH DATA FOR *THIS* PAGE ---
+// (Example: Get "New Release" movies)
+$newReleases = [];
+include 'includes/header.php';
+?>
 
 <section>
    <div class="overflow-hidden">
@@ -14,7 +27,7 @@ include 'includes/header.php'; ?>
          <div class="slider m-0 p-0 swiper-wrapper home-slider">
             <div class="swiper-slide slide s-bg-1 p-0">
                <div class="banner-home-swiper-image"
-                  style="background-image: url(https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/krishna.webp)">
+                  style="background-image: url(/assets/images/media/krishna.webp)">
                   <div class="container-fluid position-relative">
                      <div class="row align-items-center iq-ltr-direction h-100 slider-content-full-height">
                         <div class="col-lg-6 col-md-12 col-xl-5">
@@ -43,7 +56,7 @@ include 'includes/header.php'; ?>
                                  </ul>
                               </div>
                               <span class="d-flex align-items-center gap-1">
-                                 <span class="">5</span><img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/imdb-logo.svg"
+                                 <span class="">5</span><img src="/assets/images/pages/imdb-logo.svg"
                                     alt="imdb logo" class="img-fluid imdb-img">
                               </span>
                               <span class="badge rounded-2 text-white bg-secondary font-size-12">NC-17</span>
@@ -86,7 +99,7 @@ include 'includes/header.php'; ?>
                               </div>
                            </div>
                            <div class="RightAnimate-four">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
+                              <a href="/movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
                                   <span class="d-flex align-items-center gap-2">
                                       <span class="button-text">play
                                                             now</span>
@@ -135,7 +148,7 @@ include 'includes/header.php'; ?>
             </div>
             <div class="swiper-slide slide s-bg-1 p-0">
                <div class="banner-home-swiper-image"
-                  style="background-image: url(https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/breaking-bad.webp);">
+                  style="background-image: url(/assets/images/media/breaking-bad.webp);">
                   <div class="container-fluid position-relative ">
                      <div class="row align-items-center iq-ltr-direction h-100 slider-content-full-height">
                         <div class="col-lg-6 col-md-12 col-xl-5">
@@ -165,7 +178,7 @@ include 'includes/header.php'; ?>
                               </div>
                               <span class="d-flex align-items-center gap-1">
                                  <span class="">6</span>
-                                 <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/imdb-logo.svg" alt="imdb logo"
+                                 <img src="/assets/images/pages/imdb-logo.svg" alt="imdb logo"
                                     class="img-fluid imdb-img">
                               </span>
                               <div class="d-flex align-items-center gap-1">
@@ -212,7 +225,7 @@ include 'includes/header.php'; ?>
                               </div>
                            </div>
                            <div class="RightAnimate-four">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
+                              <a href="/movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
                                   <span class="d-flex align-items-center gap-2">
                                       <span class="button-text">play
                                                             now</span>
@@ -261,7 +274,7 @@ include 'includes/header.php'; ?>
             </div>
             <div class="swiper-slide slide s-bg-1 p-0">
                <div class="banner-home-swiper-image"
-                  style="background-image: url(https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/charlie-chaplin.webp);">
+                  style="background-image: url(/assets/images/media/charlie-chaplin.webp);">
                   <div class="container-fluid position-relative">
                      <div class="row align-items-center iq-ltr-direction h-100 slider-content-full-height">
                         <div class="col-lg-6 col-md-12 col-xl-5">
@@ -291,7 +304,7 @@ include 'includes/header.php'; ?>
                               </div>
                               <span class="d-flex align-items-center gap-1">
                                  <span class="">247</span>
-                                 <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/imdb-logo.svg" alt="imdb logo"
+                                 <img src="/assets/images/pages/imdb-logo.svg" alt="imdb logo"
                                     class="img-fluid imdb-img">
                               </span>
                               <span class="badge rounded-2 text-white bg-secondary font-size-12">80</span>
@@ -322,7 +335,7 @@ include 'includes/header.php'; ?>
                               </div>
                            </div>
                            <div class="RightAnimate-four">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
+                              <a href="/movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
                                   <span class="d-flex align-items-center gap-2">
                                       <span class="button-text">play
                                                             now</span>
@@ -398,8 +411,8 @@ include 'includes/header.php'; ?>
                   <div class="iq-watching-block">
                       <div class="block-images position-relative">
                           <div class="iq-image-box overly-images">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="d-block">
-                                  <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/gameofhero.webp" alt="movie-card"
+                              <a href="/movie-detail.html" class="d-block">
+                                  <img src="/assets/images/media/gameofhero.webp" alt="movie-card"
                                       class="w-100 d-block border-0 rounded-3 continue-image">
                               </a>
                           </div>
@@ -436,8 +449,8 @@ include 'includes/header.php'; ?>
                   <div class="iq-watching-block">
                       <div class="block-images position-relative">
                           <div class="iq-image-box overly-images">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="d-block">
-                                  <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/the-first-of-us.webp" alt="movie-card"
+                              <a href="/movie-detail.html" class="d-block">
+                                  <img src="/assets/images/media/the-first-of-us.webp" alt="movie-card"
                                       class="w-100 d-block border-0 rounded-3 continue-image">
                               </a>
                           </div>
@@ -474,8 +487,8 @@ include 'includes/header.php'; ?>
                   <div class="iq-watching-block">
                       <div class="block-images position-relative">
                           <div class="iq-image-box overly-images">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="d-block">
-                                  <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/the-co-noueriing.webp" alt="movie-card"
+                              <a href="/movie-detail.html" class="d-block">
+                                  <img src="/assets/images/media/the-co-noueriing.webp" alt="movie-card"
                                       class="w-100 d-block border-0 rounded-3 continue-image">
                               </a>
                           </div>
@@ -512,8 +525,8 @@ include 'includes/header.php'; ?>
                   <div class="iq-watching-block">
                       <div class="block-images position-relative">
                           <div class="iq-image-box overly-images">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="d-block">
-                                  <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/giirek.webp" alt="movie-card"
+                              <a href="/movie-detail.html" class="d-block">
+                                  <img src="/assets/images/media/giirek.webp" alt="movie-card"
                                       class="w-100 d-block border-0 rounded-3 continue-image">
                               </a>
                           </div>
@@ -550,8 +563,8 @@ include 'includes/header.php'; ?>
                   <div class="iq-watching-block">
                       <div class="block-images position-relative">
                           <div class="iq-image-box overly-images">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="d-block">
-                                  <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/rabbit.webp" alt="movie-card"
+                              <a href="/movie-detail.html" class="d-block">
+                                  <img src="/assets/images/media/rabbit.webp" alt="movie-card"
                                       class="w-100 d-block border-0 rounded-3 continue-image">
                               </a>
                           </div>
@@ -588,8 +601,8 @@ include 'includes/header.php'; ?>
                   <div class="iq-watching-block">
                       <div class="block-images position-relative">
                           <div class="iq-image-box overly-images">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="d-block">
-                                  <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/jumanjj.webp" alt="movie-card"
+                              <a href="/movie-detail.html" class="d-block">
+                                  <img src="/assets/images/media/jumanjj.webp" alt="movie-card"
                                       class="w-100 d-block border-0 rounded-3 continue-image">
                               </a>
                           </div>
@@ -626,8 +639,8 @@ include 'includes/header.php'; ?>
                   <div class="iq-watching-block">
                       <div class="block-images position-relative">
                           <div class="iq-image-box overly-images">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="d-block">
-                                  <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/chosfies.webp" alt="movie-card"
+                              <a href="/movie-detail.html" class="d-block">
+                                  <img src="/assets/images/media/chosfies.webp" alt="movie-card"
                                       class="w-100 d-block border-0 rounded-3 continue-image">
                               </a>
                           </div>
@@ -664,8 +677,8 @@ include 'includes/header.php'; ?>
                   <div class="iq-watching-block">
                       <div class="block-images position-relative">
                           <div class="iq-image-box overly-images">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="d-block">
-                                  <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/john-wick.webp" alt="movie-card"
+                              <a href="/movie-detail.html" class="d-block">
+                                  <img src="/assets/images/media/john-wick.webp" alt="movie-card"
                                       class="w-100 d-block border-0 rounded-3 continue-image">
                               </a>
                           </div>
@@ -702,8 +715,8 @@ include 'includes/header.php'; ?>
                   <div class="iq-watching-block">
                       <div class="block-images position-relative">
                           <div class="iq-image-box overly-images">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="d-block">
-                                  <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/fast-furious.webp" alt="movie-card"
+                              <a href="/movie-detail.html" class="d-block">
+                                  <img src="/assets/images/media/fast-furious.webp" alt="movie-card"
                                       class="w-100 d-block border-0 rounded-3 continue-image">
                               </a>
                           </div>
@@ -740,8 +753,8 @@ include 'includes/header.php'; ?>
                   <div class="iq-watching-block">
                       <div class="block-images position-relative">
                           <div class="iq-image-box overly-images">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="d-block">
-                                  <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/venom.webp" alt="movie-card"
+                              <a href="/movie-detail.html" class="d-block">
+                                  <img src="/assets/images/media/venom.webp" alt="movie-card"
                                       class="w-100 d-block border-0 rounded-3 continue-image">
                               </a>
                           </div>
@@ -778,8 +791,8 @@ include 'includes/header.php'; ?>
                   <div class="iq-watching-block">
                       <div class="block-images position-relative">
                           <div class="iq-image-box overly-images">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="d-block">
-                                  <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/krishna.webp" alt="movie-card"
+                              <a href="/movie-detail.html" class="d-block">
+                                  <img src="/assets/images/media/krishna.webp" alt="movie-card"
                                       class="w-100 d-block border-0 rounded-3 continue-image">
                               </a>
                           </div>
@@ -816,8 +829,8 @@ include 'includes/header.php'; ?>
                   <div class="iq-watching-block">
                       <div class="block-images position-relative">
                           <div class="iq-image-box overly-images">
-                              <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="d-block">
-                                  <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/deadpool.webp" alt="movie-card"
+                              <a href="/movie-detail.html" class="d-block">
+                                  <img src="/assets/images/media/deadpool.webp" alt="movie-card"
                                       class="w-100 d-block border-0 rounded-3 continue-image">
                               </a>
                           </div>
@@ -871,8 +884,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/the-first-of-us-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/the-first-of-us-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -886,7 +899,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">The First of Us</a>
+                                 <a href="/movie-detail.html">The First of Us</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -904,7 +917,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -922,8 +935,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/the-co-noueriing-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/the-co-noueriing-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -937,7 +950,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">The Co-noueriing</a>
+                                 <a href="/movie-detail.html">The Co-noueriing</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -955,7 +968,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -969,8 +982,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/giirek-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/giirek-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -984,7 +997,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Giirek</a>
+                                 <a href="/movie-detail.html">Giirek</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -1002,7 +1015,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -1020,8 +1033,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/another-danger-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/another-danger-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1035,7 +1048,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Another Danger</a>
+                                 <a href="/movie-detail.html">Another Danger</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -1053,7 +1066,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -1067,8 +1080,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/kung-fu-panda-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/kung-fu-panda-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1082,7 +1095,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Kung fu
+                                 <a href="/movie-detail.html">Kung fu
                                           Panda</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
@@ -1101,7 +1114,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -1115,8 +1128,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/john-wick-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/john-wick-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1130,7 +1143,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">John Wick</a>
+                                 <a href="/movie-detail.html">John Wick</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -1148,7 +1161,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -1166,8 +1179,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/spiderman-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/spiderman-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1181,7 +1194,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Spiderman</a>
+                                 <a href="/movie-detail.html">Spiderman</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -1199,7 +1212,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -1233,8 +1246,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover landscape-card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/migration-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/migration-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1248,7 +1261,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize mb-0">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Migration</a>
+                                 <a href="/movie-detail.html">Migration</a>
                                </h5>
                              </div>
                            </div>
@@ -1260,7 +1273,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now</a>
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now</a>
                              </div>
                            </div>
                      
@@ -1277,8 +1290,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover landscape-card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/giirek.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/giirek.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1292,7 +1305,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize mb-0">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Giirek</a>
+                                 <a href="/movie-detail.html">Giirek</a>
                                </h5>
                              </div>
                            </div>
@@ -1304,7 +1317,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now</a>
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now</a>
                              </div>
                            </div>
                      
@@ -1317,8 +1330,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover landscape-card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/john-wick.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/john-wick.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1332,7 +1345,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize mb-0">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">John Wick</a>
+                                 <a href="/movie-detail.html">John Wick</a>
                                </h5>
                              </div>
                            </div>
@@ -1344,7 +1357,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now</a>
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now</a>
                              </div>
                            </div>
                      
@@ -1361,8 +1374,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover landscape-card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/war-for-the-planet.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/war-for-the-planet.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1376,7 +1389,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize mb-0">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">War for the Planet</a>
+                                 <a href="/movie-detail.html">War for the Planet</a>
                                </h5>
                              </div>
                            </div>
@@ -1388,7 +1401,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now</a>
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now</a>
                              </div>
                            </div>
                      
@@ -1401,8 +1414,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover landscape-card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/dinoosaur.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/dinoosaur.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1416,7 +1429,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize mb-0">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Dinoosaur</a>
+                                 <a href="/movie-detail.html">Dinoosaur</a>
                                </h5>
                              </div>
                            </div>
@@ -1428,7 +1441,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now</a>
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now</a>
                              </div>
                            </div>
                      
@@ -1441,8 +1454,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover landscape-card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/Bumblebee.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/Bumblebee.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1456,7 +1469,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize mb-0">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Bumblebee</a>
+                                 <a href="/movie-detail.html">Bumblebee</a>
                                </h5>
                              </div>
                            </div>
@@ -1468,7 +1481,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now</a>
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now</a>
                              </div>
                            </div>
                      
@@ -1497,8 +1510,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/deadpool-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/deadpool-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1512,7 +1525,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Deadpool</a>
+                                 <a href="/movie-detail.html">Deadpool</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -1530,7 +1543,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -1544,8 +1557,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/the-hunter-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/the-hunter-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1559,7 +1572,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">The
+                                 <a href="/movie-detail.html">The
                                           Hunter</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
@@ -1578,7 +1591,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -1592,8 +1605,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/gameofhero-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/gameofhero-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1607,7 +1620,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Game of
+                                 <a href="/movie-detail.html">Game of
                                           Hero</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
@@ -1626,7 +1639,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -1640,8 +1653,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/the-first-of-us-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/the-first-of-us-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1655,7 +1668,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">ariivaal</a>
+                                 <a href="/movie-detail.html">ariivaal</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -1673,7 +1686,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -1687,8 +1700,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/rabbit-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/rabbit-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1702,7 +1715,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Rabbit</a>
+                                 <a href="/movie-detail.html">Rabbit</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -1720,7 +1733,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -1734,8 +1747,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/migration-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/migration-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1749,7 +1762,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Migration</a>
+                                 <a href="/movie-detail.html">Migration</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -1767,7 +1780,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -1781,8 +1794,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/chosfies-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/chosfies-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -1796,7 +1809,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Chosfies</a>
+                                 <a href="/movie-detail.html">Chosfies</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -1814,7 +1827,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -1846,7 +1859,7 @@ include 'includes/header.php'; ?>
                      <div class="swiper-slide swiper-bg">
                         <div class="block-images position-relative ">
                            <div class="img-box slider--image">
-                              <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/the-first-of-us.webp" class="w-100 rounded-3" alt="img"
+                              <img src="/assets/images/media/the-first-of-us.webp" class="w-100 rounded-3" alt="img"
                                  loading="lazy">
                            </div>
                            <div class="block-description">
@@ -1863,7 +1876,7 @@ include 'includes/header.php'; ?>
                      <div class="swiper-slide swiper-bg">
                         <div class="block-images position-relative">
                            <div class="img-box slider--image">
-                              <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/gameofhero.webp" class="w-100 rounded-3" alt="img"
+                              <img src="/assets/images/media/gameofhero.webp" class="w-100 rounded-3" alt="img"
                                  loading="lazy">
                            </div>
                            <div class="block-description">
@@ -1880,7 +1893,7 @@ include 'includes/header.php'; ?>
                      <div class="swiper-slide swiper-bg">
                         <div class="block-images position-relative ">
                            <div class="img-box slider--image">
-                              <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/venom.webp" class="w-100 rounded-3" alt="img"
+                              <img src="/assets/images/media/venom.webp" class="w-100 rounded-3" alt="img"
                                  loading="lazy">
                            </div>
                            <div class="block-description">
@@ -1897,7 +1910,7 @@ include 'includes/header.php'; ?>
                      <div class="swiper-slide swiper-bg">
                         <div class="block-images position-relative">
                            <div class="img-box slider--image">
-                              <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/rabbit.webp" class="w-100 rounded-3" alt="img"
+                              <img src="/assets/images/media/rabbit.webp" class="w-100 rounded-3" alt="img"
                                  loading="lazy">
                            </div>
                            <div class="block-description">
@@ -1914,7 +1927,7 @@ include 'includes/header.php'; ?>
                      <div class="swiper-slide swiper-bg">
                         <div class="block-images position-relative">
                            <div class="img-box slider--image">
-                              <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/krishna.webp" class="w-100 rounded-3" alt="img"
+                              <img src="/assets/images/media/krishna.webp" class="w-100 rounded-3" alt="img"
                                  loading="lazy">
                            </div>
                            <div class="block-description">
@@ -1937,7 +1950,7 @@ include 'includes/header.php'; ?>
             <div class="swiper-container " data-swiper="slider-images-inner">
                <div class="swiper-wrapper ">
                   <div class="swiper-slide">
-                     <div class="slider--image block-images"><img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/the-first-of-us.webp"
+                     <div class="slider--image block-images"><img src="/assets/images/media/the-first-of-us.webp"
                            loading="lazy" alt="img" /></div>
                      <div class="description">
                         <div class="block-description">
@@ -1959,7 +1972,7 @@ include 'includes/header.php'; ?>
                                  <a href="view-all-movie.html" class="text-decoration-none">Mystery</a>
                               </li>
                            </ul>
-                           <h2 class="iq-title m-0 line-count-2"><a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html">The First Of
+                           <h2 class="iq-title m-0 line-count-2"><a href="/tv-show-detail.html">The First Of
                                  Us</a></h2>
                            <div
                               class="d-flex align-items-center gap-3 py-2 justify-content-center justify-content-lg-start flex-wrap">
@@ -1985,7 +1998,7 @@ include 'includes/header.php'; ?>
                               </div>
                               <div class="d-flex align-items-center gap-1">
                                  <p class="mb-0">9 </p>
-                                 <img class="imdb-img" alt="imdb-logo" src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/imdb-logo.svg">
+                                 <img class="imdb-img" alt="imdb-logo" src="/assets/images/pages/imdb-logo.svg">
                               </div>
                               <div class="d-flex align-items-center gap-1">
                                  <i class="ph ph-clock font-size-14"></i>
@@ -1996,7 +2009,7 @@ include 'includes/header.php'; ?>
                               group of survivors uncovers the origins of humanity’s downfall. As they journey through a
                               dangerous, desolate landscape, they realize they may hold the key to rebuilding
                               civilization—or ensuring its final extinction.</p>
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
+                           <a href="/movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
                                <span class="d-flex align-items-center gap-2">
                                    <span class="button-text">play now</span>
                                    <i class="ph-fill ph-play fs-6"></i>
@@ -2006,7 +2019,7 @@ include 'includes/header.php'; ?>
                      </div>
                   </div>
                   <div class="swiper-slide">
-                     <div class="slider--image block-images"><img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/gameofhero.webp"
+                     <div class="slider--image block-images"><img src="/assets/images/media/gameofhero.webp"
                            loading="lazy" alt="img" /></div>
                      <div class="description">
                         <div class="block-description">
@@ -2028,7 +2041,7 @@ include 'includes/header.php'; ?>
                                  <a href="view-all-movie.html" class="text-decoration-none">Mystery</a>
                               </li>
                            </ul>
-                           <h2 class="iq-title m-0 line-count-2"><a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html">Game of Heros</a>
+                           <h2 class="iq-title m-0 line-count-2"><a href="/tv-show-detail.html">Game of Heros</a>
                            </h2>
                            <div
                               class="d-flex align-items-center gap-3 py-2 justify-content-center justify-content-lg-start flex-wrap">
@@ -2054,7 +2067,7 @@ include 'includes/header.php'; ?>
                               </div>
                               <div class="d-flex align-items-center gap-1">
                                  <p class="mb-0">10 </p>
-                                 <img class="imdb-img" alt="imdb-logo" src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/imdb-logo.svg">
+                                 <img class="imdb-img" alt="imdb-logo" src="/assets/images/pages/imdb-logo.svg">
                               </div>
                               <div class="d-flex align-items-center gap-1">
                                  <i class="ph ph-clock font-size-14"></i>
@@ -2066,7 +2079,7 @@ include 'includes/header.php'; ?>
                               foretells an all-out war between the greatest heroes of all realms, champions from
                               different eras and dimensions are summoned to fight for ultimate supremacy. Each warrior
                               possesses unique abilities, weapons, and a past that drives them to victory—or doom.</p>
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
+                           <a href="/movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
                                <span class="d-flex align-items-center gap-2">
                                    <span class="button-text">play now</span>
                                    <i class="ph-fill ph-play fs-6"></i>
@@ -2076,7 +2089,7 @@ include 'includes/header.php'; ?>
                      </div>
                   </div>
                   <div class="swiper-slide">
-                     <div class="slider--image block-images"><img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/venom.webp"
+                     <div class="slider--image block-images"><img src="/assets/images/media/venom.webp"
                            loading="lazy" alt="img" /></div>
                      <div class="description">
                         <div class="block-description">
@@ -2095,7 +2108,7 @@ include 'includes/header.php'; ?>
                                  <a href="view-all-movie.html" class="text-decoration-none">Mystery</a>
                               </li>
                            </ul>
-                           <h2 class="iq-title m-0 line-count-2"><a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Venom</a>
+                           <h2 class="iq-title m-0 line-count-2"><a href="/movie-detail.html">Venom</a>
                            </h2>
                            <div
                               class="d-flex align-items-center gap-3 py-2 justify-content-center justify-content-lg-start flex-wrap">
@@ -2121,7 +2134,7 @@ include 'includes/header.php'; ?>
                               </div>
                               <div class="d-flex align-items-center gap-1">
                                  <p class="mb-0">5</p>
-                                 <img class="imdb-img" alt="imdb-logo" src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/imdb-logo.svg">
+                                 <img class="imdb-img" alt="imdb-logo" src="/assets/images/pages/imdb-logo.svg">
                               </div>
                               <div class="d-flex align-items-center gap-1">
                                  <i class="ph ph-clock font-size-14"></i>
@@ -2133,7 +2146,7 @@ include 'includes/header.php'; ?>
                               an investigative journalist whose life takes a wild turn when he bonds with the mysterious
                               entity known as Venom. As Eddie struggles to control the powerful, chaotic force within
                               him, a new threat emerges: a rival symbiote with an insatiable thirst for destruction.</p>
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
+                           <a href="/movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
                                <span class="d-flex align-items-center gap-2">
                                    <span class="button-text">play now</span>
                                    <i class="ph-fill ph-play fs-6"></i>
@@ -2143,7 +2156,7 @@ include 'includes/header.php'; ?>
                      </div>
                   </div>
                   <div class="swiper-slide">
-                     <div class="slider--image block-images"><img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/rabbit.webp"
+                     <div class="slider--image block-images"><img src="/assets/images/media/rabbit.webp"
                            loading="lazy" alt="img" /></div>
                      <div class="description">
                         <div class="block-description">
@@ -2159,7 +2172,7 @@ include 'includes/header.php'; ?>
                                  <a href="view-all-movie.html" class="text-decoration-none">Horror</a>
                               </li>
                            </ul>
-                           <h2 class="iq-title m-0 line-count-2"><a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html">Rabbit</a>
+                           <h2 class="iq-title m-0 line-count-2"><a href="/tv-show-detail.html">Rabbit</a>
                            </h2>
                            <div
                               class="d-flex align-items-center gap-3 py-2 justify-content-center justify-content-lg-start flex-wrap">
@@ -2185,7 +2198,7 @@ include 'includes/header.php'; ?>
                               </div>
                               <div class="d-flex align-items-center gap-1">
                                  <p class="mb-0">8</p>
-                                 <img class="imdb-img" alt="imdb-logo" src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/imdb-logo.svg">
+                                 <img class="imdb-img" alt="imdb-logo" src="/assets/images/pages/imdb-logo.svg">
                               </div>
                               <div class="d-flex align-items-center gap-1">
                                  <i class="ph ph-clock font-size-14"></i>
@@ -2197,7 +2210,7 @@ include 'includes/header.php'; ?>
                               Snook's performance but noted the film's reliance on familiar horror tropes, comparing it
                               to The Babadook and Hereditary. Despite mixed reviews, Run Rabbit Run stands out for its
                               exploration of motherhood, grief, and the psychological toll of buried memories.</p>
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
+                           <a href="/movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
                                <span class="d-flex align-items-center gap-2">
                                    <span class="button-text">play now</span>
                                    <i class="ph-fill ph-play fs-6"></i>
@@ -2207,7 +2220,7 @@ include 'includes/header.php'; ?>
                      </div>
                   </div>
                   <div class="swiper-slide">
-                     <div class="slider--image block-images"><img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/krishna.webp"
+                     <div class="slider--image block-images"><img src="/assets/images/media/krishna.webp"
                            loading="lazy" alt="img" /></div>
                      <div class="description">
                         <div class="block-description">
@@ -2229,7 +2242,7 @@ include 'includes/header.php'; ?>
                                  <a href="view-all-movie.html" class="text-decoration-none">Mystery</a>
                               </li>
                            </ul>
-                           <h2 class="iq-title m-0 line-count-2"><a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html">Krishna</a></h2>
+                           <h2 class="iq-title m-0 line-count-2"><a href="/tv-show-detail.html">Krishna</a></h2>
                            <div
                               class="d-flex align-items-center gap-3 py-2 justify-content-center justify-content-lg-start flex-wrap">
                               <div class="slider-ratting d-flex align-items-center gap-1">
@@ -2254,7 +2267,7 @@ include 'includes/header.php'; ?>
                               </div>
                               <div class="d-flex align-items-center gap-1">
                                  <p class="mb-0">8</p>
-                                 <img class="imdb-img" alt="imdb-logo" src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/imdb-logo.svg">
+                                 <img class="imdb-img" alt="imdb-logo" src="/assets/images/pages/imdb-logo.svg">
                               </div>
                               <div class="d-flex align-items-center gap-1">
                                  <i class="ph ph-clock font-size-14"></i>
@@ -2266,7 +2279,7 @@ include 'includes/header.php'; ?>
                               beloved divine figures. Through a series of rich, interwoven tales, the film captures
                               Krishna's journey—from his mischievous childhood as a cowherd to his profound role as a
                               spiritual guide and warrior.</p>
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
+                           <a href="/movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
                                <span class="d-flex align-items-center gap-2">
                                    <span class="button-text">play now</span>
                                    <i class="ph-fill ph-play fs-6"></i>
@@ -2301,8 +2314,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/giirek-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/giirek-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -2316,7 +2329,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Giikre</a>
+                                 <a href="/movie-detail.html">Giikre</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -2334,7 +2347,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -2352,8 +2365,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/another-danger-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/another-danger-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -2367,7 +2380,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Another Danger</a>
+                                 <a href="/movie-detail.html">Another Danger</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -2385,7 +2398,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -2403,8 +2416,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/revenge-of-the-sith-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/revenge-of-the-sith-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -2418,7 +2431,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Revenge of the Sith</a>
+                                 <a href="/movie-detail.html">Revenge of the Sith</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -2436,7 +2449,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -2454,8 +2467,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/fast-furious-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/fast-furious-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -2469,7 +2482,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Fast
+                                 <a href="/movie-detail.html">Fast
                                           Furious</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
@@ -2488,7 +2501,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -2502,8 +2515,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/dinoosaur-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/dinoosaur-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -2517,7 +2530,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Dinoosaur</a>
+                                 <a href="/movie-detail.html">Dinoosaur</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -2535,7 +2548,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -2549,8 +2562,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/bumblebee-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/bumblebee-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -2564,7 +2577,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Bumblebee</a>
+                                 <a href="/movie-detail.html">Bumblebee</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -2582,7 +2595,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -2600,8 +2613,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/arrival-portrait.webp" alt="movie-card"
+                           <a href="/movie-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/arrival-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -2615,7 +2628,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">Arrival</a>
+                                 <a href="/movie-detail.html">Arrival</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -2633,7 +2646,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/movie-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -2655,7 +2668,7 @@ include 'includes/header.php'; ?>
 </div>
 
 <section id="parallex" class="parallax-window bg-attachment-fixed"
-   style="background:url(https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/Movieof-the-year.webp) fixed;">
+   style="background:url(/assets/images/pages/Movieof-the-year.webp) fixed;">
    <div class="container-fluid h-100">
       <div
          class="row align-items-center justify-content-center h-100 parallaxt-details flex-column-reverse flex-lg-row gap-4 gap-lg-0">
@@ -2687,7 +2700,7 @@ include 'includes/header.php'; ?>
                   <div class="d-flex gap-2 align-items-center">
                      <span>5
                      </span>
-                     <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/imdb-logo.svg" alt="imdb logo" class="img-fluid">
+                     <img src="/assets/images/pages/imdb-logo.svg" alt="imdb logo" class="img-fluid">
                   </div>
                   <div class="d-flex align-items-center gap-1">
                      <i class="ph ph-clock"></i>
@@ -2703,7 +2716,7 @@ include 'includes/header.php'; ?>
                   Mallusk, Northern Ireland.
                </p>
                <div class="parallax-buttons">
-                  <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
+                  <a href="/movie-detail.html" class="btn btn-primary text-capitalize position-relative rounded-3">
                       <span class="d-flex align-items-center gap-2">
                           <span class="button-text">play now</span>
                           <i class="ph-fill ph-play fs-6"></i>
@@ -2714,8 +2727,8 @@ include 'includes/header.php'; ?>
          </div>
          <div class="col-xl-6 col-lg-6 col-md-12 mt-0 mt-lg-5 mt-xl-0">
             <div class="parallax-img">
-               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//movie-detail.html">
-                  <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/Movieof-the-year.webp" class="img-fluid w-100" loading="lazy"
+               <a href="/movie-detail.html">
+                  <img src="/assets/images/pages/Movieof-the-year.webp" class="img-fluid w-100" loading="lazy"
                      alt="bailey">
                </a>
             </div>
@@ -2738,42 +2751,42 @@ include 'includes/header.php'; ?>
                      <li class="swiper-slide">
                         <a href="javascript:void(0);">
                            <div class="movie-swiper position-relative">
-                              <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/pirates-ofdayones-orignal.webp" alt="img" />
+                              <img src="/assets/images/media/pirates-ofdayones-orignal.webp" alt="img" />
                            </div>
                         </a>
                      </li>
                      <li class="swiper-slide">
                         <a href="javascript:void(0);">
                            <div class="movie-swiper position-relative">
-                              <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/the-hunter.webp" alt="img" />
+                              <img src="/assets/images/media/the-hunter.webp" alt="img" />
                            </div>
                         </a>
                      </li>
                      <li class="swiper-slide">
                         <a href="javascript:void(0);">
                            <div class="movie-swiper position-relative">
-                              <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/lost-in-space.webp" alt="img" />
+                              <img src="/assets/images/media/lost-in-space.webp" alt="img" />
                            </div>
                         </a>
                      </li>
                      <li class="swiper-slide">
                         <a href="javascript:void(0);">
                            <div class="movie-swiper position-relative">
-                              <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/castle-rock.webp" alt="img" />
+                              <img src="/assets/images/media/castle-rock.webp" alt="img" />
                            </div>
                         </a>
                      </li>
                      <li class="swiper-slide">
                         <a href="javascript:void(0);" tabindex="0">
                            <div class="movie-swiper position-relative">
-                              <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/assassins-creed.webp" alt="img" />
+                              <img src="/assets/images/media/assassins-creed.webp" alt="img" />
                            </div>
                         </a>
                      </li>
                      <li class="swiper-slide">
                         <a href="javascript:void(0);" tabindex="0">
                            <div class="movie-swiper position-relative">
-                              <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/vikings.webp" alt="img" />
+                              <img src="/assets/images/media/vikings.webp" alt="img" />
                            </div>
                         </a>
                      </li>
@@ -2784,7 +2797,7 @@ include 'includes/header.php'; ?>
                   <ul class="swiper-wrapper list-inline p-0 m-0 d-flex trending-slider">
                      <li class="swiper-slide slider-big-img-6">
                         <div class="trending-tab-slider-image">
-                           <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/pirates-ofdayones-orignal.webp"
+                           <img src="/assets/images/media/pirates-ofdayones-orignal.webp"
                               alt="trending-tab-slider-image">
                         </div>
                         <div class="tranding-block position-relative">
@@ -2832,7 +2845,7 @@ include 'includes/header.php'; ?>
                                        </div>
                                        <div class="d-flex align-items-center flex-wrap series mb-4 gap-3">
                                           <a href="javascript:void(0);"><img
-                                                src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/trending-label.webp"
+                                                src="/assets/images/pages/trending-label.webp"
                                                 class="img-fluid trending-label-img  rounded-3" alt="img"></a>
                                           <span class="fw-bold">#1 in Series Today</span>
                                        </div>
@@ -2847,7 +2860,7 @@ include 'includes/header.php'; ?>
                                           reshape the world.</p>
                                        <div class="p-btns">
                                           <div class="iq-button">
-                                             <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html"
+                                             <a href="/tv-show-detail.html"
                                                 class="btn btn-primary text-uppercase position-relative rounded-3">
                                                 <div class="d-flex align-items-center gap-2">
                                                    <span class="button-text">Play Now</span>
@@ -2891,8 +2904,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e4-island-of-secrets.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e4-island-of-secrets.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -2913,8 +2926,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e3-rivals-and-revelations.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e3-rivals-and-revelations.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -2935,8 +2948,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e2-hidden-allies.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e2-hidden-allies.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -2956,8 +2969,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e1-setting-sail.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e1-setting-sail.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -2990,10 +3003,10 @@ include 'includes/header.php'; ?>
                                           <div
                                              class="tab-watch-trailer-container d-inline-block rounded-3 overflow-hidden">
                                              <div class="tab-watch-trailer position-relative rounded-3 overflow-hidden">
-                                                <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/video/trailer-poster.webp"
+                                                <img src="/assets/images/video/trailer-poster.webp"
                                                    class="trailer-image" alt="trailer-image">
                                                 <a data-fslightbox="html5-video"
-                                                   href="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/video/trailer.mp4"
+                                                   href="/assets/images/video/trailer.mp4"
                                                    class="video-open playbtn text-decoration-none" tabindex="0">
                                                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg"
                                                       xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -3028,8 +3041,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s2e4-tides-of-betrayal.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s2e4-tides-of-betrayal.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3049,8 +3062,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e5-Lost-Souls.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e5-Lost-Souls.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3070,8 +3083,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s3e3-cursed-waters.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s3e3-cursed-waters.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3091,8 +3104,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s3e1-betrayals-and-bonds.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s3e1-betrayals-and-bonds.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3119,7 +3132,7 @@ include 'includes/header.php'; ?>
                      </li>
                      <li class="swiper-slide slider-big-img-1 p-0">
                         <div class="trending-tab-slider-image">
-                           <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/the-hunter.webp" alt="trending-tab-slider-image">
+                           <img src="/assets/images/media/the-hunter.webp" alt="trending-tab-slider-image">
                         </div>
                         <div class="tranding-block position-relative">
                            <div class="trending-custom-tab">
@@ -3164,7 +3177,7 @@ include 'includes/header.php'; ?>
                                        </div>
                                        <div class="d-flex align-items-center flex-wrap series mb-4 gap-3">
                                           <a href="javascript:void(0);"><img
-                                                src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/trending-label.webp"
+                                                src="/assets/images/pages/trending-label.webp"
                                                 class="img-fluid trending-label-img  rounded-3" alt="img"></a>
                                           <span class="fw-bold">#2 in Series Today</span>
                                        </div>
@@ -3180,7 +3193,7 @@ include 'includes/header.php'; ?>
                                           call home.</p>
                                        <div class="p-btns">
                                           <div class="iq-button">
-                                             <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html"
+                                             <a href="/tv-show-detail.html"
                                                 class="btn text-uppercase position-relative btn-primary rounded-3">
                                                 <div class="d-flex align-items-center gap-2">
                                                    <span class="button-text">Play Now</span>
@@ -3223,8 +3236,8 @@ include 'includes/header.php'; ?>
                                            <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s2e2-forged-alliances.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s2e2-forged-alliances.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3247,8 +3260,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s2e1-dragons-reckoning.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s2e1-dragons-reckoning.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3271,8 +3284,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e3-fire-and-bloodlines.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e3-fire-and-bloodlines.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3295,8 +3308,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e2-kings-and-conspiracies.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e2-kings-and-conspiracies.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3319,8 +3332,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e1-awakening-of-the-drakes.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e1-awakening-of-the-drakes.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3356,10 +3369,10 @@ include 'includes/header.php'; ?>
                                           <div
                                              class="tab-watch-trailer-container d-inline-block rounded-3 overflow-hidden">
                                              <div class="tab-watch-trailer position-relative rounded-3 overflow-hidden">
-                                                <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/video/trailer-poster.webp"
+                                                <img src="/assets/images/video/trailer-poster.webp"
                                                    class="trailer-image" alt="trailer-image">
                                                 <a data-fslightbox="html5-video"
-                                                   href="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/video/trailer.mp4"
+                                                   href="/assets/images/video/trailer.mp4"
                                                    class="video-open playbtn text-decoration-none" tabindex="0">
                                                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg"
                                                       xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -3394,8 +3407,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s4e1-rebirth-of-the-realm.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s4e1-rebirth-of-the-realm.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3417,8 +3430,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s2e3-the-dragons-redemption.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s2e3-the-dragons-redemption.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3438,8 +3451,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s4e3-the-final-dawn.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s4e3-the-final-dawn.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3459,8 +3472,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s4e2-echoes-of-legends.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s4e2-echoes-of-legends.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3488,7 +3501,7 @@ include 'includes/header.php'; ?>
                      </li>
                      <li class="swiper-slide slider-big-img-4">
                         <div class="trending-tab-slider-image">
-                           <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/lost-in-space.webp" alt="trending-tab-slider-image">
+                           <img src="/assets/images/media/lost-in-space.webp" alt="trending-tab-slider-image">
                         </div>
                         <div class="tranding-block position-relative">
                            <div class="trending-custom-tab">
@@ -3534,7 +3547,7 @@ include 'includes/header.php'; ?>
                                        </div>
                                        <div class="d-flex align-items-center flex-wrap series mb-4 gap-3">
                                           <a href="javascript:void(0);"><img
-                                                src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/trending-label.webp"
+                                                src="/assets/images/pages/trending-label.webp"
                                                 class="img-fluid trending-label-img  rounded-3" alt="img"></a>
                                           <span class="fw-bold">#3 in Series Today</span>
                                        </div>
@@ -3548,7 +3561,7 @@ include 'includes/header.php'; ?>
                                           mission.</p>
                                        <div class="p-btns">
                                           <div class="iq-button">
-                                             <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html"
+                                             <a href="/tv-show-detail.html"
                                                 class="btn btn-primary text-uppercase position-relative rounded-3">
                                                 <div class="d-flex align-items-center gap-2">
                                                    <span class="button-text">Play Now</span>
@@ -3590,8 +3603,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s3e1-contact.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s3e1-contact.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3614,8 +3627,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e3-shipwrecked.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e3-shipwrecked.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3637,8 +3650,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e2-the-new-guy.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e2-the-new-guy.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3660,8 +3673,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e1-trust.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e1-trust.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3695,10 +3708,10 @@ include 'includes/header.php'; ?>
                                           <div
                                              class="tab-watch-trailer-container d-inline-block rounded-3 overflow-hidden">
                                              <div class="tab-watch-trailer position-relative rounded-3 overflow-hidden">
-                                                <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/video/trailer-poster.webp"
+                                                <img src="/assets/images/video/trailer-poster.webp"
                                                    class="trailer-image" alt="trailer-image">
                                                 <a data-fslightbox="html5-video"
-                                                   href="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/video/trailer.mp4"
+                                                   href="/assets/images/video/trailer.mp4"
                                                    class="video-open playbtn text-decoration-none" tabindex="0">
                                                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg"
                                                       xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -3733,8 +3746,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/kung-fu-panda.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/kung-fu-panda.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3756,8 +3769,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/dinoosaur.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/dinoosaur.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3780,8 +3793,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/arrival.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/arrival.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3805,8 +3818,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/venom.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/venom.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3834,7 +3847,7 @@ include 'includes/header.php'; ?>
                      </li>
                      <li class="swiper-slide slider-big-img-2">
                         <div class="trending-tab-slider-image">
-                           <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/castle-rock.webp" alt="trending-tab-slider-image">
+                           <img src="/assets/images/media/castle-rock.webp" alt="trending-tab-slider-image">
                         </div>
                         <div class="tranding-block position-relative">
                            <div class="trending-custom-tab">
@@ -3879,7 +3892,7 @@ include 'includes/header.php'; ?>
                                        </div>
                                        <div class="d-flex align-items-center flex-wrap series mb-4 gap-3">
                                           <a href="javascript:void(0);"><img
-                                                src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/trending-label.webp"
+                                                src="/assets/images/pages/trending-label.webp"
                                                 class="img-fluid trending-label-img  rounded-3" alt="img"></a>
                                           <span class="fw-bold">#4 in Series Today</span>
                                        </div>
@@ -3893,7 +3906,7 @@ include 'includes/header.php'; ?>
                                           twists and perspectives on his classic themes.</p>
                                        <div class="p-btns">
                                           <div class="iq-button">
-                                             <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html"
+                                             <a href="/tv-show-detail.html"
                                                 class="btn btn-primary text-uppercase position-relative rounded-3">
                                                 <div class="d-flex align-items-center gap-2">
                                                    <span class="button-text">Play Now</span>
@@ -3934,8 +3947,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e4-the-box.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e4-the-box.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3957,8 +3970,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e3-local-color.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e3-local-color.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -3980,8 +3993,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e2-habeas-corpus.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e2-habeas-corpus.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4004,8 +4017,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e1-recap-severance.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e1-recap-severance.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4039,10 +4052,10 @@ include 'includes/header.php'; ?>
                                           <div
                                              class="tab-watch-trailer-container d-inline-block rounded-3 overflow-hidden">
                                              <div class="tab-watch-trailer position-relative rounded-3 overflow-hidden">
-                                                <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/video/trailer-poster.webp"
+                                                <img src="/assets/images/video/trailer-poster.webp"
                                                    class="trailer-image" alt="trailer-image">
                                                 <a data-fslightbox="html5-video"
-                                                   href="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/video/trailer.mp4"
+                                                   href="/assets/images/video/trailer.mp4"
                                                    class="video-open playbtn text-decoration-none" tabindex="0">
                                                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg"
                                                       xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -4077,8 +4090,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s2e2-filter.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s2e2-filter.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4098,8 +4111,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s3e1-sunset.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s3e1-sunset.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4120,8 +4133,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s2e1-the-harvest.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s2e1-the-harvest.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4143,8 +4156,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e3-local-color.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e3-local-color.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4173,7 +4186,7 @@ include 'includes/header.php'; ?>
                      </li>
                      <li class="swiper-slide slider-big-img-3">
                         <div class="trending-tab-slider-image">
-                           <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/assassins-creed.webp" alt="trending-tab-slider-image">
+                           <img src="/assets/images/media/assassins-creed.webp" alt="trending-tab-slider-image">
                         </div>
                         <div class="tranding-block position-relative">
                            <div class="trending-custom-tab">
@@ -4219,7 +4232,7 @@ include 'includes/header.php'; ?>
                                        </div>
                                        <div class="d-flex align-items-center flex-wrap series mb-4 gap-3">
                                           <a href="javascript:void(0);"><img
-                                                src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/trending-label.webp"
+                                                src="/assets/images/pages/trending-label.webp"
                                                 class="img-fluid trending-label-img  rounded-3" alt="img"></a>
                                           <span class="fw-bold">#5 in Series Today</span>
                                        </div>
@@ -4232,7 +4245,7 @@ include 'includes/header.php'; ?>
                                           eaters will eat it.</p>
                                        <div class="p-btns">
                                           <div class="iq-button">
-                                             <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html"
+                                             <a href="/tv-show-detail.html"
                                                 class="btn btn-primary text-uppercase position-relative rounded-3">
                                                 <div class="d-flex align-items-center gap-2">
                                                    <span class="button-text">Play Now</span>
@@ -4274,8 +4287,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e3-rivals-and-revelations.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e3-rivals-and-revelations.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4296,8 +4309,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e2-hidden-allies.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e2-hidden-allies.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4317,8 +4330,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e1-setting-sail.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e1-setting-sail.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4339,8 +4352,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e1-setting-sail.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e1-setting-sail.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4373,10 +4386,10 @@ include 'includes/header.php'; ?>
                                           <div
                                              class="tab-watch-trailer-container d-inline-block rounded-3 overflow-hidden">
                                              <div class="tab-watch-trailer position-relative rounded-3 overflow-hidden">
-                                                <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/video/trailer-poster.webp"
+                                                <img src="/assets/images/video/trailer-poster.webp"
                                                    class="trailer-image" alt="trailer-image">
                                                 <a data-fslightbox="html5-video"
-                                                   href="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/video/trailer.mp4"
+                                                   href="/assets/images/video/trailer.mp4"
                                                    class="video-open playbtn text-decoration-none" tabindex="0">
                                                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg"
                                                       xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -4411,8 +4424,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e3-rivals-and-revelations.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e3-rivals-and-revelations.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4434,8 +4447,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e2-hidden-allies.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e2-hidden-allies.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4456,8 +4469,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e1-setting-sail.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e1-setting-sail.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4479,8 +4492,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e3-rivals-and-revelations.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e3-rivals-and-revelations.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4509,7 +4522,7 @@ include 'includes/header.php'; ?>
                      </li>
                      <li class="swiper-slide slider-big-img-5">
                         <div class="trending-tab-slider-image">
-                           <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/vikings.webp" alt="trending-tab-slider-image">
+                           <img src="/assets/images/media/vikings.webp" alt="trending-tab-slider-image">
                         </div>
                         <div class="tranding-block position-relative">
                            <div class="trending-custom-tab">
@@ -4555,7 +4568,7 @@ include 'includes/header.php'; ?>
                                        </div>
                                        <div class="d-flex align-items-center flex-wrap series mb-4 gap-3">
                                           <a href="javascript:void(0);"><img
-                                                src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/pages/trending-label.webp"
+                                                src="/assets/images/pages/trending-label.webp"
                                                 class="img-fluid trending-label-img  rounded-3" alt="img"></a>
                                           <span class="fw-bold">#6 in Series Today</span>
                                        </div>
@@ -4565,7 +4578,7 @@ include 'includes/header.php'; ?>
                                           king.</p>
                                        <div class="p-btns">
                                           <div class="iq-button">
-                                             <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html"
+                                             <a href="/tv-show-detail.html"
                                                 class="btn btn-primary text-uppercase position-relative rounded-3">
                                                 <div class="d-flex align-items-center gap-2">
                                                    <span class="button-text">Play Now</span>
@@ -4606,8 +4619,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e5-Lost-Souls.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e5-Lost-Souls.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4629,8 +4642,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e4-the-signal.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e4-the-signal.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4652,8 +4665,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e3-All-Change.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e3-All-Change.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4675,8 +4688,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s1e2-king-of-kings.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s1e2-king-of-kings.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4710,10 +4723,10 @@ include 'includes/header.php'; ?>
                                           <div
                                              class="tab-watch-trailer-container d-inline-block rounded-3 overflow-hidden">
                                              <div class="tab-watch-trailer position-relative rounded-3 overflow-hidden">
-                                                <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/video/trailer-poster.webp"
+                                                <img src="/assets/images/video/trailer-poster.webp"
                                                    class="trailer-image" alt="trailer-image">
                                                 <a data-fslightbox="html5-video"
-                                                   href="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/video/trailer.mp4"
+                                                   href="/assets/images/video/trailer.mp4"
                                                    class="video-open playbtn text-decoration-none" tabindex="0">
                                                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg"
                                                       xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
@@ -4748,8 +4761,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s2e3-the-raft-of-the-medusa.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s2e3-the-raft-of-the-medusa.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4768,8 +4781,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s2e2-its-only-magic.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s2e2-its-only-magic.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4788,8 +4801,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s2e1-the-signal.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s2e1-the-signal.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4810,8 +4823,8 @@ include 'includes/header.php'; ?>
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                     <div class="block-image position-relative z-1">
-                                                        <a href="https://templates.iqonic.design/streamit-dist/frontend/html//episode.html">
-                                                            <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/episode/s2e2-its-only-magic.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
+                                                        <a href="/episode.html">
+                                                            <img src="/assets/images/media/episode/s2e2-its-only-magic.webp" class="img-fluid img-zoom" alt="showImg-" loading="lazy">
                                                         </a>
                                                     </div>
                                                 
@@ -4862,8 +4875,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/pirates-ofdayones-orignal.webp" alt="movie-card"
+                           <a href="/tv-show-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/pirates-ofdayones-orignal.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -4877,7 +4890,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html">Pirates ofdayones Orignal</a>
+                                 <a href="/tv-show-detail.html">Pirates ofdayones Orignal</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -4895,7 +4908,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/tv-show-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -4909,8 +4922,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/the-hunter-portrait.webp" alt="movie-card"
+                           <a href="/tv-show-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/the-hunter-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -4924,7 +4937,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html">The
+                                 <a href="/tv-show-detail.html">The
                                           Hunter</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
@@ -4943,7 +4956,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/tv-show-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -4957,8 +4970,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/lost-in-space-portrait.webp" alt="movie-card"
+                           <a href="/tv-show-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/lost-in-space-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -4972,7 +4985,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html">Lost in
+                                 <a href="/tv-show-detail.html">Lost in
                                           Space</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
@@ -4991,7 +5004,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/tv-show-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -5009,8 +5022,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/castle-rock-portrait.webp" alt="movie-card"
+                           <a href="/tv-show-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/castle-rock-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -5024,7 +5037,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html">Castle
+                                 <a href="/tv-show-detail.html">Castle
                                           Rock</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
@@ -5043,7 +5056,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/tv-show-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -5057,8 +5070,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/breaking-bad-portrait.webp" alt="movie-card"
+                           <a href="/tv-show-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/breaking-bad-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -5072,7 +5085,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html">Breaking
+                                 <a href="/tv-show-detail.html">Breaking
                                           Bad</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
@@ -5091,7 +5104,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/tv-show-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -5105,8 +5118,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/assassins-creed-portrait.webp" alt="movie-card"
+                           <a href="/tv-show-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/assassins-creed-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -5120,7 +5133,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html">Assassins Creed</a>
+                                 <a href="/tv-show-detail.html">Assassins Creed</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -5138,7 +5151,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/tv-show-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>
@@ -5152,8 +5165,8 @@ include 'includes/header.php'; ?>
                      <div class="iq-card card-hover">
                        <div class="block-images position-relative w-100">
                          <div class="img-box w-100">
-                           <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
-                             <img src="https://templates.iqonic.design/streamit-dist/frontend/html//assets/images/media/vikings-portrait.webp" alt="movie-card"
+                           <a href="/tv-show-detail.html" class="position-relative top-0 bottom-0 start-0 end-0">
+                             <img src="/assets/images/media/vikings-portrait.webp" alt="movie-card"
                                class="img-fluid object-cover w-100 d-block border-0 rounded-3">
                            </a>
                          </div>
@@ -5167,7 +5180,7 @@ include 'includes/header.php'; ?>
                            <div class="cart-content">
                              <div class="content-left">
                                <h5 class="iq-title text-capitalize">
-                                 <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html">Vikings</a>
+                                 <a href="/tv-show-detail.html">Vikings</a>
                                </h5>
                                <div class="d-flex align-items-center gap-3">
                                  <div class="d-flex align-items-center gap-2">
@@ -5185,7 +5198,7 @@ include 'includes/header.php'; ?>
                                <i class="ph ph-plus font-size-18"></i>
                              </a>
                              <div class="iq-play-button iq-button">
-                               <a href="https://templates.iqonic.design/streamit-dist/frontend/html//tv-show-detail.html" class="btn btn-primary w-100">Play Now
+                               <a href="/tv-show-detail.html" class="btn btn-primary w-100">Play Now
                                </a>
                              </div>
                            </div>

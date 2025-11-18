@@ -1,13 +1,7 @@
 <?php
-$cookie_name = 'cart_token';
-$thirty_days = time() + (86400 * 30);
-if (!isset($_COOKIE[$cookie_name])) {
-    $token = bin2hex(random_bytes(32)); 
-    setcookie($cookie_name, $token, [ 'expires' => $thirty_days, 'path' => '/', 'secure' => isset($_SERVER['HTTPS']), 'httponly' => true, 'samesite' => 'Lax' ]);
-    $cartToken = $token;
-} else {
-    $cartToken = $_COOKIE[$cookie_name];
-}
+ini_set('session.gc_maxlifetime', 3600);
+session_set_cookie_params(3600);
+
 header('P3P: CP="CAO PSA OUR"');
 // --- END OF CART TOKEN LOGIC ---
 

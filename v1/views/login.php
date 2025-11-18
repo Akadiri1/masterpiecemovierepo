@@ -122,7 +122,7 @@
 
                     <div class="d-flex justify-content-center align-items-center gap-2 links my-3">
                       If You are new?
-                      <a href="register.html" class="st-sub-card setting-dropdown">
+                      <a href="/register" class="st-sub-card setting-dropdown">
                         <h6 class="m-0 text-primary">
                           Sign Up </h6>
                       </a>
@@ -304,6 +304,9 @@
   const identityInput = document.querySelector("#login-identity");
   const passwordInput = document.querySelector("#login-password");
   const togglePassword = document.querySelector("#togglePassword");
+  
+  // === ADDED THIS LINE ===
+  const rememberMeInput = document.querySelector("#remember-me");
 
   // === 2. Helper functions ===
 
@@ -387,13 +390,16 @@
 
     setButtonLoading(true);
 
+    // === MODIFIED THIS OBJECT ===
     const formData = {
       identity: identityInput.value.trim(),
-      password: passwordInput.value.trim()
+      password: passwordInput.value.trim(),
+      rememberMe: rememberMeInput.checked // <-- ADDED THIS PROPERTY
     };
 
     try {
-      const response = await fetch('/login-backend', {
+      // Make sure this URL is correct for your backend
+      const response = await fetch('/login-backend', { 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
