@@ -76,6 +76,10 @@ if (count($uri) > 2) {
     include APP_PATH."/views/index.php";
     break;
 
+     case '?i=1':
+    include APP_PATH."/views/index.php";
+    break;
+
     case 'home':
     include APP_PATH."/views/home.php";
     break;
@@ -155,9 +159,51 @@ if (count($uri) > 2) {
       include APP_PATH."/views/cart.php";
       break;
 
-      case 'checkout':
+      case 'checkout?'.$query_string:
       include APP_PATH."/views/checkout.php";
       break;
+
+      case 'process-payment?'.$query_string:
+      include APP_PATH."/views/process-payment.php";
+      break;
+
+// ... inside switch($uri[1]) ...
+
+    case 'zen-ai':
+        include APP_PATH . "/views/zen-ai.php";
+        break;
+
+      case 'switch-mode':
+        include APP_PATH."/views/switch-mode.php";
+      break;
+      case 'set-parental-pin':
+        include APP_PATH."/views/set-parental-pin.php";
+        break;
+
+       case 'remove-history':
+      include APP_PATH."/views/remove-history.php";
+      break;
+
+       case 'update-history':
+      include APP_PATH."/views/update-history.php";
+      break;
+
+       case 'process-payment':
+      include APP_PATH."/views/process-payment.php";
+      break;
+
+      case 'add-watchlist':
+      include APP_PATH."/views/add-watchlist.php";
+      break;
+
+       case 'add-watchlist?'.$query_string:
+      include APP_PATH."/views/add-watchlist.php";
+      break;
+
+      case 'social-backend':
+      include APP_PATH."/views/includes/ajax/social-backend.php";
+      break;
+
 
        case 'compressor':
       include APP_PATH."/views/compressor.php";
@@ -280,6 +326,10 @@ if (count($uri) > 2) {
     include APP_PATH."/views/about.php";
     break;
 
+     case 'pricing-plan':
+    include APP_PATH."/views/pricing-plan.php";
+    break;
+
     case 'auth':
     include APP_PATH."/views/auth.php";
     break;
@@ -291,6 +341,26 @@ if (count($uri) > 2) {
 
      case 'logout':
     include APP_PATH."/views/includes/ajax/logout.php";
+    break;
+
+      case 'ask':
+        include APP_PATH . "/views/ask-ai.php";
+        break;
+
+     case 'view-all?'.$query_string:
+    include APP_PATH."/views/includes/ajax/view-all.php";
+    break;
+
+     case 'person-detail?'.$query_string:
+    include APP_PATH."/views/person-detail.php";
+    break;
+
+     case 'process-reviews':
+    include APP_PATH."/views/includes/ajax/reviews.php";
+    break;
+
+     case 'zen-history':
+    include APP_PATH."/views/includes/ajax/zen-history.php";
     break;
 
      case 'user-dashboard':

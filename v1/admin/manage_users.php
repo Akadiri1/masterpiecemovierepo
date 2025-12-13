@@ -59,6 +59,7 @@ $content = selectContent($conn,'users',$where);
                         <thead>
                           <tr>
                             <th>Info</th>
+                            <th>Kids Mode</th>
                             <!-- <th>Set Level</th> -->
                             <th>suspend/verify</th>
                             <th>Delete</th>
@@ -75,6 +76,12 @@ $content = selectContent($conn,'users',$where);
                                 Email: <?php echo $value['email']?> <br>
 
                                </td>
+                              <td style="vertical-align: middle; text-align:center;">
+                                <?php $kidFlag = isset($value['is_kids_mode']) && $value['is_kids_mode'] == 1 ? 1 : 0; ?>
+                                <div class="form-check form-switch d-inline-block">
+                                  <input class="form-check-input admin-kids-mode-toggle" type="checkbox" id="kids_mode_<?php echo $value['id']; ?>" data-user-id="<?php echo $value['id']; ?>" <?php echo $kidFlag ? 'checked' : ''; ?> />
+                                </div>
+                              </td>
                               <!-- <td> <p><?php echo "Current Level: ". $value['level']; ?></p>
                                 <br>
                                 <a href="/updateContent.php?id=<?php echo $value['id'] ?>&level=3&data=admin"><button type="button" class="btn btn-primary btn-sm"><i class="feather icon-user"></i>3</button></a>
@@ -101,6 +108,7 @@ $content = selectContent($conn,'users',$where);
                         <tfoot>
                           <tr>
                             <th>Info</th>
+                            <th>Kids Mode</th>
                             <!-- <th>Set Level</th> -->
                             <th>Suspend/Verify</th>
                             <th>Delete</th>
@@ -326,6 +334,38 @@ $content = selectContent($conn,'users',$where);
   <!--  -->
   <script type="text/javascript" src="/map/getmap.js"></script>
   <script src="/da/assets/js/analytics.js"></script>
+
+  <script>
+  // Admin Kids Mode toggle handler
+  (function(){
+    function showToast(msg){ alert(msg); }
+
+    document.querySelectorAll('.admin-kids-mode-toggle').forEach(function(el){
+      el.addEventListener('change', function(e){
+        var userId = this.dataset.userId;
+        var value = this.checked ? 1 : 0;
+
+        fetch('/admin/includes/ajax/admin_toggle_kids_mode.php', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId, value: value })
+        }).then(function(res){ return res.json(); }).then(function(json){
+          if(json.success){
+            showToast('Updated Kids Mode for user ' + userId + ': ' + (value ? 'ON' : 'OFF'));
+          } else {
+            showToast('Error: ' + (json.message || 'Unknown'));
+            // rollback UI toggle on error
+            el.checked = !value;
+          }
+        }).catch(function(err){
+          showToast('Network error');
+          el.checked = !value;
+        });
+      });
+    });
+  })();
+  </script>
 
 </body>
 

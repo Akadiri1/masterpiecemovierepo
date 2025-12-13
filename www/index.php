@@ -1,10 +1,4 @@
 <?php
-ini_set('session.gc_maxlifetime', 3600);
-session_set_cookie_params(3600);
-
-header('P3P: CP="CAO PSA OUR"');
-// --- END OF CART TOKEN LOGIC ---
-
 ob_start();
 
 session_start();

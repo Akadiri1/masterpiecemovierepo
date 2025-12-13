@@ -123,7 +123,7 @@ if ($upcomingData && !empty($upcomingData['results'])) {
             'title'        => $details['title'],
             'poster_url'   => isset($details['poster_path']) 
                               ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
-                              : '/assets/images/media/placeholder-portrait.webp', 
+                              : '/assets/images/media/robert.jpg', 
             'genre'        => $details['genres'][0]['name'] ?? 'Movie', 
             'language'     => isset($details['original_language']) 
                               ? locale_get_display_language($details['original_language'], 'en') 
@@ -603,13 +603,49 @@ include 'includes/header.php';
                                 </div>
                             </div>
                             
-                            <div class="close-icon-section">
-                                <div class="position-absolute d-flex align-items-center justify-content-center iq-watching-close-icon"
-                                     data-bs-toggle="tooltip" data-bs-placement="left" 
-                                     aria-label="Remove from list" data-bs-original-title="Remove from list">
-                                    <i class="ph ph-x font-size-14 fw-bold align-middle"></i>
-                                </div>
-                            </div>
+                           <div class="close-icon-section">
+    <div class="position-absolute d-flex align-items-center justify-content-center iq-watching-close-icon"
+         onclick="removeFromHistory(this, <?php echo $item['id']; ?>)"
+         style="cursor: pointer;"
+         data-bs-toggle="tooltip" data-bs-placement="left" 
+         aria-label="Remove from list" data-bs-original-title="Remove from list">
+         <i class="ph ph-x font-size-14 fw-bold align-middle"></i>
+    </div>
+</div>
+
+<script>
+function removeFromHistory(element, mediaId) {
+    if(!confirm("Remove this from Continue Watching?")) return;
+
+    const formData = new FormData();
+    formData.append('media_id', mediaId);
+
+    fetch('/remove-history', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Remove the slide from the DOM smoothly
+            const slide = element.closest('.swiper-slide');
+            slide.style.transition = "0.3s ease";
+            slide.style.opacity = "0";
+            slide.style.transform = "scale(0.8)";
+            
+            setTimeout(() => {
+                slide.remove();
+                // Optional: Update swiper if needed, though removing the DOM element usually suffices for visual purposes
+            }, 300);
+
+            Toastify({ text: "Removed from History", style: { background: "#e50914" } }).showToast();
+        } else {
+            Toastify({ text: data.message, style: { background: "#e50914" } }).showToast();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+</script>
                             
                         </div>
                     </div>
@@ -1430,36 +1466,6 @@ include 'includes/header.php';
          </div>
       </div>
    </div>
-</div>
-
-<div class="streamit-mobile-footer-menu" aria-label="Mobile Footer Navigation">
-    <ul class="footer-menu list-inline d-flex align-items-center justify-content-between m-0">
-        <li class="footer-menu-item">
-            <a href="/movie-detail" class="menu-link font-size-12">
-                <i class="ph ph-film-reel d-block  text-center "></i>
-                Movies </a>
-        </li>
-        <li class="footer-menu-item">
-            <a href="/movie-detail" class="menu-link font-size-12">
-                <i class="ph ph-monitor-play d-block  text-center "></i>
-                Videos </a>
-        </li>
-        <li class="footer-menu-item">
-            <a href="/movie-detail" class="menu- font-size-12">
-                <i class="ph ph-magnifying-glass d-block  text-center "></i>
-                Search </a>
-        </li>
-        <li class="footer-menu-item">
-            <a href="/movie-detail" class="menu-link font-size-12">
-                <i class="ph ph-television d-block  text-center "></i>
-                TV Shows </a>
-        </li>
-        <li class="footer-menu-item">
-            <a href="profile-marvin.html" class="menu-link font-size-12">
-                <i class="ph ph-user d-block  text-center "></i>
-                Profile </a>
-        </li>
-    </ul>
 </div>
   </main>
 <?php include 'includes/footer.php'; ?>

@@ -1,0 +1,4 @@
+[22-Nov-2025 12:33:16 UTC] [2025-11-22 12:33:16] --- Payment Process Started ---
+[22-Nov-2025 12:33:16 UTC] [2025-11-22 12:33:16] User ID: 1 | Plan ID: 2 | Ref: PSTK_796324138
+[22-Nov-2025 12:33:17 UTC] [2025-11-22 12:33:17] Paystack Response Status: unknown
+[22-Nov-2025 12:33:17 UTC] [2025-11-22 12:33:17] Verification Failed: {"status":false,"message":"Invalid key","meta":{"nextStep":"Ensure that you provide the correct authorization key for the request"},"type":"validation_error","code":"invalid_Key"}

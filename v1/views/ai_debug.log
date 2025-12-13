@@ -1,0 +1,24 @@
+[2025-11-22 16:02:35] Array
+(
+    [error] => Array
+        (
+            [code] => 404
+            [message] => models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+            [status] => NOT_FOUND
+        )
+
+)
+
+[2025-11-22 16:02:35] Gemini Error: Invalid response structure.
+[2025-11-22 16:03:19] Array
+(
+    [error] => Array
+        (
+            [code] => 404
+            [message] => models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+            [status] => NOT_FOUND
+        )
+
+)
+
+[2025-11-22 16:03:19] Gemini Error: Invalid response structure.

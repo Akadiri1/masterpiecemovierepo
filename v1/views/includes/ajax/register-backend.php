@@ -76,7 +76,9 @@ try {
     http_response_code(201); // 201 Created
     echo json_encode([
         'message' => 'Registration successful! Redirecting to login...',
-        'redirect' => '/login' // === ADDED THIS LINE ===
+        'redirect' => '/login', // canonical next-step
+        // Suggest that the client prompt the user to set a Parental PIN after they login.
+        'suggested_next' => '/set-parental-pin'
     ]);
 
 } catch (PDOException $e) {

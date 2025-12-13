@@ -11,6 +11,47 @@ if (!function_exists('formatRuntime')) {
     }
 }
 
+// Helper: Decide whether a TMDB details block is kid-safe
+if (!function_exists('isSafeForKids')) {
+    function isSafeForKids(array $details): bool {
+        // If TMDB reports 'adult' => treat as NOT safe
+        if (!empty($details['adult'])) return false;
+
+        // 1) Movie -> check release_dates -> certification
+        if (!empty($details['release_dates']['results'])) {
+            foreach ($details['release_dates']['results'] as $result) {
+                // prefer US-specific certification if present
+                if (!empty($result['iso_3166_1']) && $result['iso_3166_1'] === 'US') {
+                    foreach ($result['release_dates'] as $r) {
+                        $cert = trim((string)($r['certification'] ?? ''));
+                        if ($cert === '') continue;
+                        // If certification contains 18 or 21, or NC-17 / R treat as not safe
+                        if (preg_match('/\b(18|21)\b|NC-17|R/i', $cert)) return false;
+                    }
+                }
+            }
+        }
+
+        // 2) TV -> content_ratings
+        if (!empty($details['content_ratings']['results'])) {
+            foreach ($details['content_ratings']['results'] as $result) {
+                if (!empty($result['iso_3166_1']) && $result['iso_3166_1'] === 'US') {
+                    $rating = strtoupper(trim((string)($result['rating'] ?? '')));
+                    // Treat TV-MA and 18+ as not allowed
+                    if ($rating === 'TV-MA' || preg_match('/\b(18|18\+|ADULT)\b/i', $rating)) return false;
+                }
+            }
+        }
+
+        // Nothing explicitly adult found — consider safe
+        return true;
+    }
+}
+
+// Check current session for Kids Mode.
+if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+$isKidsModeActive = !empty($_SESSION['is_kids_mode']) && $_SESSION['is_kids_mode'];
+
 // ==========================================
 // 2. DATA FETCHING LOGIC
 // ==========================================
@@ -23,7 +64,7 @@ if ($heroData && !empty($heroData['results'])) {
     // LIMIT TO 5 ITEMS to prevent page timeout/crashing
     $list = array_slice($heroData['results'], 0, 50);
 
-    foreach ($list as $item) {
+        foreach ($list as $item) {
         $mediaType = $item['media_type']; // 'movie' or 'tv'
         $itemId = $item['id'];
 
@@ -34,6 +75,36 @@ if ($heroData && !empty($heroData['results'])) {
         ]);
 
         if (!$details) continue;
+
+        if (!empty($isKidsModeActive) && !isSafeForKids($details)) {
+            continue;
+        }
+
+        if (!empty($isKidsModeActive) && !isSafeForKids($details)) {
+            continue;
+        }
+
+        // Hide TV shows that are not kid-safe when Kids Mode is enabled
+        if (!empty($isKidsModeActive) && !isSafeForKids($details)) {
+            continue;
+        }
+
+        if (!empty($isKidsModeActive) && !isSafeForKids($details)) {
+            continue;
+        }
+
+        if (!empty($isKidsModeActive) && !isSafeForKids($details)) {
+            continue;
+        }
+
+        if (!empty($isKidsModeActive) && !isSafeForKids($details)) {
+            continue;
+        }
+
+        // If Kids Mode is active, skip anything not considered kid-safe
+        if (!empty($isKidsModeActive) && !isSafeForKids($details)) {
+            continue;
+        }
 
         // A. Calculate Duration
         $duration = '';
@@ -103,85 +174,93 @@ if ($heroData && !empty($heroData['results'])) {
     }
 }
 
-// --- 7. FETCH DATA FOR "CONTINUE WATCHING" ---
 $continueWatching = [];
 
-// A. TRY FETCHING FROM DATABASE (Real Data)
 if (isset($_SESSION['user_id']) && isset($conn)) {
     try {
         $userId = $_SESSION['user_id'];
         
-        // Fetch last 6 watched items from DB
-        $sql = "SELECT * FROM watch_history WHERE user_id = :uid ORDER BY last_watched DESC LIMIT 6";
+        // 1. Fetch from DB using YOUR column names
+        // We fetch 20 items to allow buffer for filtering duplicates
+        $sql = "SELECT * FROM watch_history 
+                WHERE user_id = :uid 
+                ORDER BY last_watched DESC LIMIT 20";
+                
         $stmt = $conn->prepare($sql);
         $stmt->execute([':uid' => $userId]);
         $historyList = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        $addedIds = []; // To track duplicates
+        $limit = 6;     // Max items to show
+        $count = 0;
+
         foreach ($historyList as $row) {
-            $details = fetchTmdbApi("movie/" . $row['tmdb_movie_id']);
+            if ($count >= $limit) break;
+
+            // 2. Use YOUR database column name: tmdb_movie_id
+            $tmdbId = $row['tmdb_movie_id'];
+
+            // 3. Skip if we already added this movie to the list
+            if (in_array($tmdbId, $addedIds)) continue;
+
+            $details = fetchTmdbApi("movie/" . $tmdbId, ['append_to_response' => 'release_dates,content_ratings']);
             if (!$details) continue;
 
-            // Calculate Progress
-            $watched = $row['current_time']; 
-            $total   = $row['total_duration'];
+            if (!empty($isKidsModeActive) && !isSafeForKids($details)) {
+                // if the user's continue-watching item is not kid-safe, skip it in Kids Mode
+                continue;
+            }
+
+            // Mark as added
+            $addedIds[] = $tmdbId;
+            $count++;
+
+            // 4. Calculate Stats (using YOUR column names: current_time, total_duration)
+            $watched = floatval($row['current_time']);
+            $total   = floatval($row['total_duration']);
             
+            // Avoid division by zero
             $percentage = ($total > 0) ? floor(($watched / $total) * 100) : 0;
-            $timeLeft   = max(0, $total - $watched);
+            
+            // Assuming time is in Seconds. If your DB stores Minutes, remove the (/ 60).
+            $minutesLeft = floor(max(0, $total - $watched) / 60); 
 
             $continueWatching[] = [
-                'id'           => $details['id'],
-                'title'        => $details['title'],
-                'image_url'    => isset($details['backdrop_path']) 
-                                  ? 'https://image.tmdb.org/t/p/w780' . $details['backdrop_path'] 
-                                  : '/assets/images/media/placeholder.webp',
-                'time_left'    => $timeLeft . ' m Left',
-                'percent'      => $percentage,
-                'last_viewed'  => date('M-Y', strtotime($row['last_watched'])),
+                'id'          => $details['id'],
+                'title'       => $details['title'],
+                'image_url'   => isset($details['backdrop_path']) 
+                                 ? 'https://image.tmdb.org/t/p/w780' . $details['backdrop_path'] 
+                                 : '/assets/images/media/placeholder.webp',
+                'time_left'   => $minutesLeft . 'm Left',
+                'percent'     => $percentage,
+                'last_viewed' => date('M d', strtotime($row['last_watched'])),
             ];
         }
     } catch (Exception $e) {
-        // Database table might not exist yet
+        // Table doesn't exist or connection failed
     }
 }
-
-// B. FALLBACK SIMULATION (Optional: Remove this block when you have real data)
-// This ensures the section isn't empty while you are testing the design.
-if (empty($continueWatching)) {
-    $simData = fetchTmdbApi('movie/popular', ['page' => 2]);
-    if ($simData) {
-        foreach (array_slice($simData['results'], 0, 5) as $sim) {
-            $continueWatching[] = [
-                'id' => $sim['id'],
-                'title' => $sim['title'],
-                'image_url' => 'https://image.tmdb.org/t/p/w780' . $sim['backdrop_path'],
-                'time_left' => rand(10, 90) . ' m Left',
-                'percent' => rand(10, 90), // Random progress bar
-                'last_viewed' => date('M-Y')
-            ];
-        }
-    }
-}
-
 // --- 16. FETCH DATA FOR "TOP 10 MOVIES" BLOCK ---
 $topTenList = [];
 // Fetch Trending Movies for the day
 $topTenData = fetchTmdbApi('trending/movie/day');
 
 if ($topTenData && !empty($topTenData['results'])) {
-    // Strictly limit to 10 items
-    $list = array_slice($topTenData['results'], 0, 10);
+    // Strictly fill up to 10 items, skipping adult-rated content when Kids Mode is on
     $rank = 1; // Initialize counter
+    foreach ($topTenData['results'] as $item) {
+        if ($rank > 10) break;
 
-    foreach ($list as $item) {
-        // We don't need full details here, just the ID and Poster
+        // If Kids Mode active, skip if base item marks adult
+        if (!empty($isKidsModeActive) && !empty($item['adult'])) {
+            continue;
+        }
+
         $topTenList[] = [
             'id'           => $item['id'],
-            'title'        => $item['title'],
-            // Using w780 for very sharp vertical posters (High HD)
-            'poster_url'   => isset($item['poster_path']) 
-                              ? 'https://image.tmdb.org/t/p/w780' . $item['poster_path'] 
-                              : '/assets/images/media/placeholder-portrait.webp',
-            'rank'         => $rank++ // 1, 2, 3... 10
+            'title'        => $item['title'] ?? ($item['name'] ?? ''),
+            'poster_url'   => isset($item['poster_path']) ? 'https://image.tmdb.org/t/p/w780' . $item['poster_path'] : '/assets/images/media/placeholder-portrait.webp',
+            'rank'         => $rank++
         ];
     }
 }
@@ -196,7 +275,7 @@ if ($exclusiveData && !empty($exclusiveData['results'])) {
     $list = array_slice($exclusiveData['results'], 0, 10);
 
     foreach ($list as $baseMovie) {
-        $details = fetchTmdbApi("movie/{$baseMovie['id']}");
+        $details = fetchTmdbApi("movie/{$baseMovie['id']}", ['append_to_response' => 'release_dates,content_ratings']);
 
         if (!$details) continue;
 
@@ -225,7 +304,7 @@ if ($freshData && !empty($freshData['results'])) {
     $list = array_slice($freshData['results'], 0, 10);
 
     foreach ($list as $baseMovie) {
-        $details = fetchTmdbApi("movie/{$baseMovie['id']}");
+        $details = fetchTmdbApi("movie/{$baseMovie['id']}", ['append_to_response' => 'release_dates,content_ratings']);
 
         if (!$details) continue;
 
@@ -272,8 +351,12 @@ if ($upcomingData && !empty($upcomingData['results'])) {
         }
 
         // Fetch details for runtime and genres
-        $details = fetchTmdbApi("movie/{$baseMovie['id']}");
+        $details = fetchTmdbApi("movie/{$baseMovie['id']}", ['append_to_response' => 'release_dates,content_ratings']);
         if (!$details) continue;
+
+        if (!empty($isKidsModeActive) && !isSafeForKids($details)) {
+            continue;
+        }
 
         $upcomingMovies[] = [
             'id'           => $details['id'],
@@ -307,7 +390,7 @@ if ($verticalData && !empty($verticalData['results'])) {
     $list = array_slice($verticalData['results'], 0, 6);
 
     foreach ($list as $baseMovie) {
-        $details = fetchTmdbApi("movie/{$baseMovie['id']}");
+        $details = fetchTmdbApi("movie/{$baseMovie['id']}", ['append_to_response' => 'release_dates,content_ratings']);
 
         if (!$details) continue;
 
@@ -338,7 +421,7 @@ $popularPeople = [];
 $peopleData = fetchTmdbApi('person/popular', ['page' => 1]);
 
 // Define a default placeholder image (Make sure this file exists in your folder!)
-$defaultCastImage = 'assets/images/media/cast-placeholder.webp'; 
+$defaultCastImage = 'assets/images/media/robert.jpg'; 
 
 if ($peopleData && !empty($peopleData['results'])) {
     $list = array_slice($peopleData['results'], 0, 11);
@@ -366,6 +449,8 @@ if ($peopleData && !empty($peopleData['results'])) {
              $popData = fetchTmdbApi('movie/popular', ['page' => 2]); // Page 2 to differentiate from Top 10
              if ($popData) {
                  foreach (array_slice($popData['results'], 0, 10) as $pm) {
+                     // Skip adult-marked items in Kids Mode
+                     if (!empty($isKidsModeActive) && !empty($pm['adult'])) continue;
                      $popMoviesList[] = [
                          'id' => $pm['id'],
                          'title' => $pm['title'],
@@ -391,7 +476,7 @@ if ($ottData && !empty($ottData['results'])) {
         $tvId = $item['id'];
         
         // Get Show Details
-        $details = fetchTmdbApi("tv/{$tvId}");
+        $details = fetchTmdbApi("tv/{$tvId}", ['append_to_response' => 'content_ratings,credits']);
         if (!$details) continue;
 
         $seasonsData = [];
@@ -437,7 +522,7 @@ if ($recData && !empty($recData['results'])) {
     $list = array_slice($recData['results'], 0, 10);
 
     foreach ($list as $baseMovie) {
-        $details = fetchTmdbApi("movie/{$baseMovie['id']}");
+        $details = fetchTmdbApi("movie/{$baseMovie['id']}", ['append_to_response' => 'release_dates,content_ratings']);
 
         if (!$details) continue;
 
@@ -466,7 +551,7 @@ if ($picksData && !empty($picksData['results'])) {
     $list = array_slice($picksData['results'], 0, 10);
 
     foreach ($list as $baseMovie) {
-        $details = fetchTmdbApi("movie/{$baseMovie['id']}");
+        $details = fetchTmdbApi("movie/{$baseMovie['id']}", ['append_to_response' => 'release_dates,content_ratings']);
 
         if (!$details) continue;
 
@@ -685,14 +770,105 @@ include ("includes/header.php");
                                 </div>
                             </div>
                             
-                            <!-- Close/Remove Icon (Optional functionality) -->
-                            <div class="close-icon-section">
-                                <div class="position-absolute d-flex align-items-center justify-content-center iq-watching-close-icon"
-                                     data-bs-toggle="tooltip" data-bs-placement="left" 
-                                     aria-label="Remove from list" data-bs-original-title="Remove from list">
-                                    <i class="ph ph-x font-size-14 fw-bold align-middle"></i>
-                                </div>
-                            </div>
+<!-- Close/Remove Icon with Click Event -->
+<div class="close-icon-section">
+    <div class="position-absolute d-flex align-items-center justify-content-center iq-watching-close-icon"
+         onclick="removeFromHistory(this, <?php echo $item['id']; ?>)"
+         style="cursor: pointer;"
+         data-bs-toggle="tooltip" data-bs-placement="left" 
+         aria-label="Remove from list" data-bs-original-title="Remove from list">
+         <i class="ph ph-x font-size-14 fw-bold align-middle"></i>
+    </div>
+</div>
+
+<script>
+function removeFromHistory(element, mediaId) {
+    if(!confirm("Remove this from Continue Watching?")) return;
+
+    const formData = new FormData();
+    formData.append('media_id', mediaId);
+
+    fetch('/remove-history', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Remove the slide from the DOM smoothly
+            const slide = element.closest('.swiper-slide');
+            slide.style.transition = "0.3s ease";
+            slide.style.opacity = "0";
+            slide.style.transform = "scale(0.8)";
+            
+            setTimeout(() => {
+                slide.remove();
+                // Optional: Update swiper if needed, though removing the DOM element usually suffices for visual purposes
+            }, 300);
+
+            Toastify({ text: "Removed from History", style: { background: "#e50914" } }).showToast();
+        } else {
+            Toastify({ text: data.message, style: { background: "#e50914" } }).showToast();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const video = document.getElementById('main-video');
+
+    if (!video) {
+        console.warn('Video Tracker: No video element with id "main-video" found.');
+        return;
+    }
+
+    const mediaId = video.getAttribute('data-media-id');
+    let lastUpdateCall = 0;
+    const UPDATE_INTERVAL = 10000; // Update database every 10 seconds
+
+    // 1. Listen for time updates
+    video.addEventListener('timeupdate', function() {
+        const now = Date.now();
+        
+        // Throttle: Only send data if 10 seconds have passed since last send
+        if (now - lastUpdateCall > UPDATE_INTERVAL) {
+            updateHistory(mediaId, video.currentTime, video.duration);
+            lastUpdateCall = now;
+        }
+    });
+
+    // 2. Update immediately when paused or window closed
+    video.addEventListener('pause', () => updateHistory(mediaId, video.currentTime, video.duration));
+    window.addEventListener('beforeunload', () => updateHistory(mediaId, video.currentTime, video.duration));
+
+    function updateHistory(id, currentTime, duration) {
+        if (!id || duration <= 0) return;
+
+        // Calculate percentage (0 to 100)
+        const percent = Math.round((currentTime / duration) * 100);
+        
+        // Prepare data
+        const formData = new FormData();
+        formData.append('media_id', id);
+        formData.append('current_time', currentTime);
+        formData.append('duration', duration);
+        formData.append('percent', percent);
+
+        // Send to Backend
+        // Use 'navigator.sendBeacon' for reliability on page close, or fallback to fetch
+        const url = '/update-history'; // Make sure this path matches Step 2
+
+        if (navigator.sendBeacon) {
+            navigator.sendBeacon(url, formData);
+        } else {
+            fetch(url, {
+                method: 'POST',
+                body: formData
+            }).catch(err => console.error('History Error:', err));
+        }
+    }
+});
+</script>
                             
                         </div>
                     </div>
@@ -760,8 +936,8 @@ include ("includes/header.php");
 
       <div class="streamit-block section-wraper">
     <div class="d-flex align-items-center justify-content-between px-1 mb-4">
-        <h4 class="main-title text-capitalize mb-0 fw-medium">Only on Streamit</h4>
-        <a href="view-all.php?type=exclusive" class="text-primary iq-view-all text-decoration-none flex-none">View All</a>
+        <h4 class="main-title text-capitalize mb-0 fw-medium">Only on ZEN</h4>
+        <a href="view-all?type=exclusive" class="text-primary iq-view-all text-decoration-none flex-none">View All</a>
     </div>
     
     <div class="card-style-slider">
@@ -856,7 +1032,7 @@ include ("includes/header.php");
 <div class="streamit-card-height-block">
     <div class="d-flex align-items-center justify-content-between px-1 mb-4">
         <h4 class="main-title text-capitalize mb-0 fw-medium">Fresh Picks Just For You</h4>
-        <a href="view-all.php?type=fresh" class="text-primary iq-view-all text-decoration-none flex-none">View All</a>
+        <a href="view-all?type=fresh" class="text-primary iq-view-all text-decoration-none flex-none">View All</a>
     </div>
     
     <div class="card-style-slider">
@@ -945,7 +1121,7 @@ include ("includes/header.php");
      <div class="upcomimg-block section-wraper">
     <div class="d-flex align-items-center justify-content-between px-1 mb-2 pb-1 mb-md-4 pb-md-0">
         <h4 class="main-title text-capitalize mb-0 fw-medium">Upcoming Movies</h4>
-        <a href="view-all.php?type=upcoming" class="text-primary iq-view-all text-decoration-none flex-none">View All</a>
+        <a href="view-all?type=upcoming" class="text-primary iq-view-all text-decoration-none flex-none">View All</a>
     </div>
     
     <div class="card-style-slider">
@@ -1034,6 +1210,57 @@ include ("includes/header.php");
 </div>
    </div>
 </div>
+
+<!-- Scoped styles: make the vertical slider previous/next buttons smaller and horizontally centered -->
+<style>
+    /* target only the vertical slider on the homepage to avoid global overrides */
+    .verticle-slider .slider--col { position: relative; }
+    .verticle-slider .slider--col .vertical-slider-prev,
+    .verticle-slider .slider--col .vertical-slider-next {
+        position: absolute;
+        left: 50%; /* center horizontally */
+        transform: translateX(-50%);
+        width: 36px;
+        height: 36px;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.06);
+        color: #ffffff;
+        cursor: pointer;
+        box-shadow: none;
+        transition: transform 120ms ease, background 120ms ease, opacity 120ms ease;
+        z-index: 20;
+    }
+
+    /* keep one near the top and one near the bottom, but tightened up */
+    .verticle-slider .slider--col .vertical-slider-prev { top: 8px; }
+    .verticle-slider .slider--col .vertical-slider-next { bottom: 8px; }
+
+    /* icon sizing inside button */
+    .verticle-slider .slider--col .vertical-slider-prev i,
+    .verticle-slider .slider--col .vertical-slider-next i {
+        font-size: 16px;
+        line-height: 1;
+    }
+
+    /* stronger hover affordance */
+    .verticle-slider .slider--col .vertical-slider-prev:hover,
+    .verticle-slider .slider--col .vertical-slider-next:hover {
+        transform: translateX(-50%) scale(1.06);
+        background: rgba(255,255,255,0.12);
+        opacity: 1;
+    }
+
+    /* smaller footprint on very small devices */
+    @media (max-width: 576px) {
+        .verticle-slider .slider--col .vertical-slider-prev,
+        .verticle-slider .slider--col .vertical-slider-next {
+            width: 32px; height: 32px; font-size: 14px;
+        }
+    }
+</style>
 
 <div class="verticle-slider section-padding-bottom">
    <div class="slider">
@@ -1163,7 +1390,7 @@ include ("includes/header.php");
      <div class="favourite-person-block section-wraper">
     <div class="d-flex align-items-center justify-content-between px-1 mb-2 pb-1 mb-md-4 pb-md-0">
         <h4 class="main-title text-capitalize mb-0 fw-medium">Your Favourite Personality</h4>
-        <a href="view-all.php?type=person" class="text-primary iq-view-all text-decoration-none">View All</a>
+        <a href="view-all?type=person" class="text-primary iq-view-all text-decoration-none">View All</a>
     </div>
     
     <div class="position-relative swiper swiper-card" data-slide="11" data-laptop="11" data-tab="4" data-mobile="2"
@@ -1174,7 +1401,7 @@ include ("includes/header.php");
           <?php if (!empty($popularPeople)): ?>
               <?php foreach ($popularPeople as $person): ?>
               <li class="swiper-slide">
-                 <a href="person-detail.php?id=<?php echo $person['id']; ?>">
+                 <a href="person-detail?id=<?php echo $person['id']; ?>">
                      <!-- ADDED: onerror event to handle broken images -->
                      <img src="<?php echo $person['profile_url']; ?>" 
                           alt="<?php echo htmlspecialchars($person['name']); ?>" 
@@ -1210,7 +1437,7 @@ include ("includes/header.php");
       <div class="popular-movies-block section-wraper">
          <div class="d-flex align-items-center justify-content-between px-1 mb-2 pb-1 mb-md-4 pb-md-0">
             <h4 class="main-title text-capitalize mb-0 fw-medium">Popular Movies</h4>
-            <a href="view-all.php?type=popular" class="text-primary iq-view-all text-decoration-none flex-none">View All</a>
+            <a href="view-all?type=popular" class="text-primary iq-view-all text-decoration-none flex-none">View All</a>
          </div>
          <div class="card-style-slider">
             <div class="position-relative swiper swiper-card" data-slide="6" data-laptop="6" data-tab="3"
@@ -1409,7 +1636,7 @@ include ("includes/header.php");
      <div class="recommended-block section-wraper">
     <div class="d-flex align-items-center justify-content-between px-1 mb-2 pb-1 mb-md-4 pb-md-0">
         <h4 class="main-title text-capitalize mb-0 fw-medium">Recommended For You</h4>
-        <a href="view-all.php?type=recommended" class="text-primary iq-view-all text-decoration-none flex-none">View All</a>
+        <a href="view-all?type=recommended" class="text-primary iq-view-all text-decoration-none flex-none">View All</a>
     </div>
     
     <div class="card-style-slider">
@@ -1504,7 +1731,7 @@ include ("includes/header.php");
 <div class="top-pics-block section-wraper">
     <div class="d-flex align-items-center justify-content-between px-1 mb-2 pb-1 mb-md-4 pb-md-0">
         <h4 class="main-title text-capitalize mb-0 fw-medium">Top Picks For You</h4>
-        <a href="view-all.php?type=toppicks" class="text-primary iq-view-all text-decoration-none flex-none">View All</a>
+        <a href="view-all?type=toppicks" class="text-primary iq-view-all text-decoration-none flex-none">View All</a>
     </div>
     
     <div class="card-style-slider">
@@ -1595,35 +1822,5 @@ include ("includes/header.php");
         </div>
     </div>
 </div>
-
-<div class="streamit-mobile-footer-menu" aria-label="Mobile Footer Navigation">
-    <ul class="footer-menu list-inline d-flex align-items-center justify-content-between m-0">
-        <li class="footer-menu-item">
-            <a href="/movie-detail" class="menu-link font-size-12">
-                <i class="ph ph-film-reel d-block  text-center "></i>
-                Movies </a>
-        </li>
-        <li class="footer-menu-item">
-            <a href="/movie-detail" class="menu-link font-size-12">
-                <i class="ph ph-monitor-play d-block  text-center "></i>
-                Videos </a>
-        </li>
-        <li class="footer-menu-item">
-            <a href="/movie-detail" class="menu- font-size-12">
-                <i class="ph ph-magnifying-glass d-block  text-center "></i>
-                Search </a>
-        </li>
-        <li class="footer-menu-item">
-            <a href="/movie-detail" class="menu-link font-size-12">
-                <i class="ph ph-television d-block  text-center "></i>
-                TV Shows </a>
-        </li>
-        <li class="footer-menu-item">
-            <a href="profile-marvin.html" class="menu-link font-size-12">
-                <i class="ph ph-user d-block  text-center "></i>
-                Profile </a>
-        </li>
-    </ul>
-</div> 
 </main>
 <?php include 'includes/footer.php'; ?>
