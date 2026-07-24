@@ -198,12 +198,11 @@ if(!in_array($adminDetails[0]['level'],$level_check)){
 					<li class="nav-item menu-caption">
 						<label>Users Management</label>
 					</li>
-          <li data-username="widget statistic data chart" class="nav-item hasmenu">
+          <li data-username="registration dashboard users" class="nav-item hasmenu">
             <a href="#!" class="nav-link"><span class="micon"><i class="feather icon-users"></i></span><span class="mtext">Users</span></a>
             <ul class="submenu">
-              <li class=""><a href="widget-statistic.html" class="">Statistic</a></li>
-              <li class=""><a href="widget-data.html" class="">Data</a></li>
-              <li class=""><a href="widget-chart.html" class="">Chart</a></li>
+              <li class=""><a href="/admin/registration_dashboard.php" class="">Registration Dashboard</a></li>
+              <li class=""><a href="/admin/manage_users.php" class="">Manage Users</a></li>
             </ul>
           </li>
 

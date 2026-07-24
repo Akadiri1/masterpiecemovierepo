@@ -232,3 +232,105 @@ $stmt->execute($data);
 }
 
 }
+
+/**
+ * Send email notification to admin when a new user registers
+ * @param PDO $dbconn Database connection
+ * @param array $userData Array containing user data (firstname, lastname, email, phone_number)
+ * @param string $site_name Site name for email
+ * @param string $site_email Site email address
+ */
+function sendAdminRegistrationNotification($dbconn, $userData, $site_name, $site_email) {
+  try {
+    // Get admin email(s) - get all MASTER level admins
+    $stmt = $dbconn->prepare("SELECT email, firstname FROM admin WHERE level = 'MASTER' LIMIT 5");
+    $stmt->execute();
+    $admins = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    if (count($admins) == 0) {
+      return; // No admins to notify
+    }
+    
+    $firstname = htmlspecialchars($userData['firstname']);
+    $lastname = htmlspecialchars($userData['lastname']);
+    $email = htmlspecialchars($userData['email']);
+    $phone = htmlspecialchars($userData['phone_number'] ?? 'Not provided');
+    $date = date('F j, Y \a\t g:i A');
+    
+    $subject = "New User Registration - " . $site_name;
+    
+    $emailBody = '
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(45deg, #4285f4, #34a853); padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .header h1 { color: white; margin: 0; font-size: 24px; }
+        .content { background: #f9f9f9; padding: 30px; border: 1px solid #eee; }
+        .user-info { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .user-info p { margin: 10px 0; }
+        .label { font-weight: bold; color: #555; }
+        .footer { text-align: center; padding: 20px; color: #888; font-size: 12px; }
+        .btn { display: inline-block; padding: 12px 24px; background: #4285f4; color: white; text-decoration: none; border-radius: 5px; margin-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎉 New User Registration</h1>
+        </div>
+        <div class="content">
+          <p>Hello Admin,</p>
+          <p>A new user has just registered on <strong>' . $site_name . '</strong>.</p>
+          
+          <div class="user-info">
+            <p><span class="label">Name:</span> ' . $firstname . ' ' . $lastname . '</p>
+            <p><span class="label">Email:</span> ' . $email . '</p>
+            <p><span class="label">Phone:</span> ' . $phone . '</p>
+            <p><span class="label">Registered:</span> ' . $date . '</p>
+          </div>
+          
+          <p>You can view and manage this user from the admin dashboard.</p>
+          
+          <center>
+            <a href="https://' . $_SERVER['HTTP_HOST'] . '/admin/registration_dashboard.php" class="btn">View Dashboard</a>
+          </center>
+        </div>
+        <div class="footer">
+          <p>This is an automated notification from ' . $site_name . '</p>
+        </div>
+      </div>
+    </body>
+    </html>';
+    
+    // Send to each admin
+    require_once APP_PATH . '/phpm/PHPMailerAutoload.php';
+    
+    foreach ($admins as $admin) {
+      $mail = new PHPMailer;
+      $mail->isSMTP();
+      $mail->setFrom($site_email, $site_name);
+      $mail->addAddress($admin['email'], $admin['firstname']);
+      $mail->Username = $site_email;
+      $mail->Password = getenv("EMAIL_PASSWORD");
+      $mail->Host = 'smtp.gmail.com';
+      $mail->Subject = $subject;
+      $mail->Body = $emailBody;
+      $mail->SMTPAuth = true;
+      $mail->SMTPSecure = 'tls';
+      $mail->Port = 587;
+      $mail->isHTML(true);
+      $mail->AltBody = "New user registered: $firstname $lastname ($email)";
+      
+      @$mail->send(); // Suppress errors - don't block registration if email fails
+    }
+    
+  } catch (Exception $e) {
+    // Log error but don't block registration
+    error_log("Admin notification email failed: " . $e->getMessage());
+  }
+}
+

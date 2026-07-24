@@ -82,7 +82,7 @@ if ($nowPlayingData && !empty($nowPlayingData['results'])) {
             'id'           => $details['id'],
             'title'        => $details['title'] ?? 'Title Unavailable',
             'overview'     => $details['overview'] ?? '',
-            'backdrop_url' => isset($details['backdrop_path']) ? 'https://image.tmdb.org/t/p/original' . $details['backdrop_path'] : '/assets/images/media/placeholder.webp',
+            'backdrop_url' => isset($details['backdrop_path']) ? 'https://image.tmdb.org/t/p/original' . $details['backdrop_path'] : '/assets/images/media/placeholder.svg',
             'rating'       => $details['vote_average'] ?? 0,
             'runtime'      => formatRuntime($details['runtime'] ?? 0),
             'genres'       => array_slice($details['genres'] ?? [], 0, 3), // Get first 3 genres
@@ -122,8 +122,8 @@ if ($upcomingData && !empty($upcomingData['results'])) {
             'id'           => $details['id'],
             'title'        => $details['title'],
             'poster_url'   => isset($details['poster_path']) 
-                              ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
-                              : '/assets/images/media/robert.jpg', 
+                              ? 'https://image.tmdb.org/t/p/w1280' . $details['poster_path'] 
+                              : '/assets/images/media/placeholder-portrait.svg', 
             'genre'        => $details['genres'][0]['name'] ?? 'Movie', 
             'language'     => isset($details['original_language']) 
                               ? locale_get_display_language($details['original_language'], 'en') 
@@ -188,8 +188,8 @@ if (isset($_SESSION['user_id'])) {
                     'id'           => $details['id'],
                     'title'        => $details['title'],
                     'image_url'    => isset($details['backdrop_path']) 
-                                      ? 'https://image.tmdb.org/t/p/w780' . $details['backdrop_path'] 
-                                      : '/assets/images/media/placeholder.webp',
+                                      ? 'https://image.tmdb.org/t/p/w1280' . $details['backdrop_path'] 
+                                      : '/assets/images/media/placeholder.svg',
                     'time_left'    => $minutes_left . ' m Left',
                     'percent'      => $percentage,
                     'last_viewed'  => date('M-Y', strtotime($row['last_watched'])), 
@@ -221,8 +221,8 @@ if ($tvData && !empty($tvData['results'])) {
             'id'           => $details['id'],
             'title'        => $details['name'], // Note: TV shows use 'name', movies use 'title'
             'poster_url'   => isset($details['poster_path']) 
-                              ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
-                              : '/assets/images/media/placeholder-portrait.webp', 
+                              ? 'https://image.tmdb.org/t/p/w1280' . $details['poster_path'] 
+                              : '/assets/images/media/placeholder-portrait.svg', 
             'genre'        => $details['genres'][0]['name'] ?? 'TV Show',
             'vote_average' => $details['vote_average'] ?? 0,
         ];
@@ -247,8 +247,8 @@ if ($latestData && !empty($latestData['results'])) {
             'id'           => $details['id'],
             'title'        => $details['title'],
             'poster_url'   => isset($details['poster_path']) 
-                              ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
-                              : '/assets/images/media/placeholder-portrait.webp', 
+                              ? 'https://image.tmdb.org/t/p/w1280' . $details['poster_path'] 
+                              : '/assets/images/media/placeholder-portrait.svg', 
             'genre'        => $details['genres'][0]['name'] ?? 'Movie',
             'language'     => isset($details['original_language']) 
                               ? locale_get_display_language($details['original_language'], 'en') 
@@ -276,8 +276,8 @@ if ($topRatedData && !empty($topRatedData['results'])) {
             'overview'     => $details['overview'],
             // Use high-res backdrop for this large slider
             'image_url'    => isset($details['backdrop_path']) 
-                              ? 'https://image.tmdb.org/t/p/w780' . $details['backdrop_path'] 
-                              : '/assets/images/media/placeholder.webp',
+                              ? 'https://image.tmdb.org/t/p/w1280' . $details['backdrop_path'] 
+                              : '/assets/images/media/placeholder.svg',
             'runtime'      => formatRuntime($details['runtime'] ?? 0), // Uses your existing helper
             'rating'       => $details['vote_average'] ?? 0,
             'genres'       => array_slice($details['genres'] ?? [], 0, 4), // Get up to 4 genres
@@ -314,7 +314,7 @@ if ($suggestedData && !empty($suggestedData['results'])) {
         $suggestedMovies[] = [
             'id'           => $details['id'],
             'title'        => $details['title'],
-            'poster_url'   => 'https://image.tmdb.org/t/p/w780' . $details['poster_path'], 
+            'poster_url'   => 'https://image.tmdb.org/t/p/w1280' . $details['poster_path'], 
             'genre'        => $details['genres'][0]['name'] ?? 'Movie',
             'language'     => isset($details['original_language']) 
                               ? locale_get_display_language($details['original_language'], 'en') 
@@ -353,10 +353,10 @@ if ($parallaxData && !empty($parallaxData['results'])) {
             'overview'     => $details['overview'],
             'backdrop_url' => isset($details['backdrop_path']) 
                               ? 'https://image.tmdb.org/t/p/original' . $details['backdrop_path'] 
-                              : '/assets/images/media/placeholder.webp',
+                              : '/assets/images/media/placeholder.svg',
             'poster_url'   => isset($details['poster_path']) 
-                              ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
-                              : '/assets/images/media/placeholder-portrait.webp',
+                              ? 'https://image.tmdb.org/t/p/w1280' . $details['poster_path'] 
+                              : '/assets/images/media/placeholder-portrait.svg',
             'runtime'      => formatRuntime($details['runtime'] ?? 0),
             'rating'       => $details['vote_average'] ?? 0,
             'stars'        => round(($details['vote_average'] ?? 0) / 2),
@@ -391,7 +391,7 @@ if ($trendingData && !empty($trendingData['results'])) {
             'title'        => $details['name'],
             'overview'     => $details['overview'],
             'backdrop_url' => isset($details['backdrop_path']) ? 'https://image.tmdb.org/t/p/original' . $details['backdrop_path'] : '',
-            'poster_url'   => isset($details['poster_path']) ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] : '',
+            'poster_url'   => isset($details['poster_path']) ? 'https://image.tmdb.org/t/p/w1280' . $details['poster_path'] : '',
             'year'         => isset($details['first_air_date']) ? date('Y', strtotime($details['first_air_date'])) : '',
             'seasons_count'=> $details['number_of_seasons'] ?? 1,
             // Get first 5 episodes of Season 1
@@ -422,10 +422,10 @@ if ($recTvData && !empty($recTvData['results'])) {
         $recommendedTv[] = [
             'id'           => $details['id'],
             'title'        => $details['name'], // TV shows use 'name'
-            // I'm using w780 here for higher quality than standard w500, closer to 4K look on small screens
+            // Using w1280 for crisp 1080p+ quality
             'poster_url'   => isset($details['poster_path']) 
-                              ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
-                              : '/assets/images/media/placeholder-portrait.webp', 
+                              ? 'https://image.tmdb.org/t/p/w1280' . $details['poster_path'] 
+                              : '/assets/images/media/placeholder-portrait.svg', 
             'genre'        => $details['genres'][0]['name'] ?? 'TV Show',
             'language'     => isset($details['original_language']) 
                               ? locale_get_display_language($details['original_language'], 'en') 
@@ -436,6 +436,71 @@ if ($recTvData && !empty($recTvData['results'])) {
 
 include 'includes/header.php';
 ?>
+
+<!-- Clean Layout Enhancements -->
+<style>
+    /* Crisp image rendering */
+    .iq-card img, .block-images img, .swiper-slide img { image-rendering: auto; }
+
+    /* Hero banner - compact, not overwhelming */
+    .banner-home-swiper .swiper-slide .banner-home-swiper-image {
+        min-height: 420px; max-height: 500px;
+        background-size: cover; background-position: center top;
+    }
+    .banner-home-swiper .big-font { font-size: 2rem !important; }
+    .banner-home-swiper .line-count-3 { -webkit-line-clamp: 2; }
+
+    /* Compact card design with always-visible rating */
+    .iq-card {
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        border-radius: 10px; overflow: hidden;
+    }
+    .iq-card:hover { transform: translateY(-4px); z-index: 10; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+    .iq-card .img-box { position: relative; overflow: hidden; border-radius: 10px; }
+    .iq-card .img-box img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Always-visible rating badge on cards */
+    .iq-card .block-images::after {
+        display: none; /* Override if template adds one */
+    }
+
+    /* Clean section titles */
+    .main-title { font-size: 1.25rem; font-weight: 600; }
+
+    /* Tighter section spacing */
+    .section-wraper { padding-top: 24px; padding-bottom: 8px; }
+
+    /* Continue watching - compact */
+    .continue-image { min-height: 140px; object-fit: cover; border-radius: 8px; }
+
+    /* Parallax section - less tall */
+    .parallax-window { min-height: auto !important; padding: 60px 0 !important; }
+    .parallaxt-details-heading { font-size: 1.8rem !important; }
+
+    /* Mobile */
+    @media (max-width: 767px) {
+        .banner-home-swiper .swiper-slide .banner-home-swiper-image { min-height: 300px; max-height: 380px; }
+        .banner-home-swiper .big-font { font-size: 1.4rem !important; }
+        .section-wraper { padding-top: 16px; padding-bottom: 4px; }
+        .parallax-window { background-attachment: scroll !important; padding: 40px 0 !important; }
+        .parallaxt-details-heading { font-size: 1.3rem !important; }
+    }
+
+    /* Tablet */
+    @media (min-width: 768px) and (max-width: 1199px) {
+        .banner-home-swiper .swiper-slide .banner-home-swiper-image { min-height: 380px; max-height: 460px; }
+    }
+
+    /* Desktop 1200+ (with sidebar) */
+    @media (min-width: 1200px) {
+        .main-title { font-size: 1.3rem; }
+    }
+
+    /* Large screens 1440p+ */
+    @media (min-width: 1440px) {
+        .banner-home-swiper .swiper-slide .banner-home-swiper-image { max-height: 550px; }
+    }
+</style>
 
 <!-- =================================== -->
 <!-- DYNAMIC HOME BANNER SLIDER          -->
@@ -499,34 +564,22 @@ include 'includes/header.php';
                                  </div>
                                  <?php endif; ?>
                               </div>
-                              <div class="RightAnimate-four">
-                                 <a href="/movie-detail?id=<?php echo $movie['id']; ?>" class="btn btn-primary text-capitalize position-relative rounded-3">
+                              <div class="RightAnimate-four d-flex align-items-center gap-3 mt-4">
+                                 <a href="/watch?id=<?php echo $movie['id']; ?>&type=movie" class="btn text-capitalize position-relative rounded-pill px-4 py-2" style="background:#fff; color:#000; font-weight:700;">
                                      <span class="d-flex align-items-center gap-2">
-                                         <span class="button-text">Play Now</span>
-                                         <i class="ph-fill ph-play fs-6"></i>
+                                         <i class="ph-fill ph-play fs-5"></i>
+                                         <span class="button-text">Play</span>
                                      </span>
                                  </a>
+                                 <button class="btn rounded-pill d-flex align-items-center justify-content-center" style="width: 46px; height: 46px; background: rgba(255,255,255,0.15); border: none; backdrop-filter: blur(4px);">
+                                     <i class="ph-bold ph-plus text-white fs-5"></i>
+                                 </button>
                               </div>
                            </div>
 
                            <?php if (!empty($movie['trailer_url'])): ?>
                            <div class="col-xl-7 col-lg-6 col-md-12 trailor-video iq-slider d-none d-lg-block">
-                              <a data-fslightbox="html5-video"
-                                 href="<?php echo htmlspecialchars($movie['trailer_url']); ?>"
-                                 class="video-open playbtn text-decoration-none" tabindex="0">
-                                 <svg version="1.1" xmlns="http://www.w3.org/2000/svg"
-                                    xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="80px" height="80px"
-                                    viewBox="0 0 213.7 213.7" enable-background="new 0 0 213.7 213.7" xml:space="preserve">
-                                    <polygon class="triangle" fill="none" stroke-width="7" stroke-linecap="round"
-                                       stroke-linejoin="round" stroke-miterlimit="10"
-                                       points="73.5,62.5 148.5,105.8 73.5,149.1 ">
-                                    </polygon>
-                                    <circle class="circle" fill="none" stroke-width="7" stroke-linecap="round"
-                                       stroke-linejoin="round" stroke-miterlimit="10" cx="106.8" cy="106.8" r="103.3">
-                                    </circle>
-                                 </svg>
-                                 <span class="w-trailor text-uppercase"> Watch Trailer </span>
-                              </a>
+                               <!-- Video popup component optional -->
                            </div>
                            <?php endif; ?>
 
@@ -566,52 +619,43 @@ include 'includes/header.php';
                 <?php foreach ($continueWatching as $item): ?>
                 <li class="swiper-slide">
                     <div class="iq-watching-block">
-                        <div class="block-images position-relative">
+                        <div class="block-images position-relative" style="border-radius:10px; overflow:hidden;">
                             
+                            <!-- Rating Overlay -->
+                            <div style="position:absolute; top: 8px; left: 8px; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; display: flex; align-items: center; gap: 4px; z-index: 10; backdrop-filter: blur(4px);">
+                                <i class="ph-fill ph-star text-warning" style="font-size:0.9rem;"></i> 
+                                <span class="text-white fw-bold" style="font-size:0.85rem;">8.2</span> <!-- Mock rating since not returned in SQL query initially -->
+                            </div>
+
+                            <!-- Delete/Trash Overlay -->
+                            <div class="close-icon-section position-absolute d-flex align-items-center justify-content-center"
+                                 onclick="removeFromHistory(this, <?php echo $item['id']; ?>)"
+                                 style="top: 8px; right: 8px; background: rgba(255,255,255,0.85); width: 28px; height: 28px; border-radius: 50%; cursor: pointer; z-index: 10; color:#000;"
+                                 data-bs-toggle="tooltip" data-bs-placement="left" 
+                                 aria-label="Remove from list" data-bs-original-title="Remove from list">
+                                 <i class="ph-fill ph-trash fw-bold font-size-14 align-middle"></i>
+                            </div>
+
                             <div class="iq-image-box overly-images">
-                                <a href="movie-detail?id=<?php echo $item['id']; ?>" class="d-block">
+                                <a href="/watch?id=<?php echo $item['id']; ?>&type=movie" class="d-block position-relative">
                                     <img src="<?php echo $item['image_url']; ?>" alt="<?php echo htmlspecialchars($item['title']); ?>"
-                                         class="w-100 d-block border-0 rounded-3 continue-image" loading="lazy">
+                                         class="w-100 d-block border-0 rounded-3 continue-image" loading="lazy" style="height: 160px; object-fit: cover;">
+                                    
+                                    <!-- Play progress gradient overlay -->
+                                    <div style="position:absolute; inset:0; background: linear-gradient(180deg, rgba(0,0,0,0) 50%, rgba(0,0,0,0.9) 100%); border-radius:10px; pointer-events:none;"></div>
+                                    <h6 class="text-white text-truncate position-absolute w-100 px-2" style="bottom: 12px; left: 0; margin:0; font-size:0.9rem; font-weight:600; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
+                                        <?php echo htmlspecialchars($item['title']); ?>
+                                    </h6>
                                 </a>
                             </div>
                             
-                            <div class="iq-preogress">
-                                <span class="px-2 text-white fw-semibold font-size-14 iq-progress-left-data">
-                                    <?php echo $item['time_left']; ?>
-                                </span>
-                                
-                                <div class="d-flex align-items-center justify-content-between px-2 mb-1">
-                                    <ul class="list-inline m-0 p-0 d-flex row-gap-1 column-gap-3 flex-wrap movie-list-item">
-                                        <li class="iq-preogress-movie-title position-relative font-size-14">
-                                            <span class="text-capitalize fw-semibold">
-                                                <?php echo htmlspecialchars($item['title']); ?>
-                                            </span>
-                                        </li>
-                                        <li class="flex-shrink-0 fw-semibold font-size-14">
-                                            <span><?php echo $item['last_viewed']; ?></span>
-                                        </li>
-                                    </ul>
-                                    <a href="movie-detail?id=<?php echo $item['id']; ?>">
-                                        <i class="ph-fill ph-play iq-preogress-play-btn fs-6"></i>
-                                    </a>
-                                </div>
-                                
-                                <div class="progress" role="progressbar" aria-label="Progress" 
-                                     aria-valuenow="<?php echo $item['percent']; ?>" aria-valuemin="0"
-                                     aria-valuemax="100" style="height: 2px">
-                                    <div class="progress-bar" style="width: <?php echo $item['percent']; ?>%"></div>
-                                </div>
+                            <!-- Slim Progress Bar -->
+                            <div class="progress position-absolute w-100" role="progressbar" aria-label="Progress" 
+                                 aria-valuenow="<?php echo $item['percent']; ?>" aria-valuemin="0"
+                                 aria-valuemax="100" style="height: 3px; bottom: 0; left: 0; background: rgba(255,255,255,0.2);">
+                                <div class="progress-bar" style="width: <?php echo $item['percent']; ?>%; background: var(--primary);"></div>
                             </div>
-                            
-                           <div class="close-icon-section">
-    <div class="position-absolute d-flex align-items-center justify-content-center iq-watching-close-icon"
-         onclick="removeFromHistory(this, <?php echo $item['id']; ?>)"
-         style="cursor: pointer;"
-         data-bs-toggle="tooltip" data-bs-placement="left" 
-         aria-label="Remove from list" data-bs-original-title="Remove from list">
-         <i class="ph ph-x font-size-14 fw-bold align-middle"></i>
-    </div>
-</div>
+                        </div>
 
 <script>
 function removeFromHistory(element, mediaId) {
@@ -638,9 +682,9 @@ function removeFromHistory(element, mediaId) {
                 // Optional: Update swiper if needed, though removing the DOM element usually suffices for visual purposes
             }, 300);
 
-            Toastify({ text: "Removed from History", style: { background: "#e50914" } }).showToast();
+            Toastify({ text: "Removed from History", style: { background: "var(--primary)" } }).showToast();
         } else {
-            Toastify({ text: data.message, style: { background: "#e50914" } }).showToast();
+            Toastify({ text: data.message, style: { background: "var(--primary)" } }).showToast();
         }
     })
     .catch(error => console.error('Error:', error));
@@ -678,7 +722,7 @@ function removeFromHistory(element, mediaId) {
                             <div class="iq-card card-hover">
                                 <div class="block-images position-relative w-100">
                                     <div class="img-box w-100">
-                                        <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
+                                        <a href="/movie/<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
                                             <img src="<?php echo $movie['poster_url']; ?>" alt="<?php echo htmlspecialchars($movie['title']); ?>"
                                                  class="img-fluid object-cover w-100 d-block border-0 rounded-3" loading="lazy">
                                         </a>
@@ -687,7 +731,7 @@ function removeFromHistory(element, mediaId) {
                                     <div class="card-description with-transition">
                                         <ul class="genres-list p-0 mb-2 d-flex align-items-center flex-wrap list-inline">
                                             <li class="fw-semi-bold">
-                                                <a href="movie-detail?id=<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
+                                                <a href="/movie/<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
                                                     <?php echo htmlspecialchars($movie['genre']); ?>
                                                 </a>
                                             </li>
@@ -695,7 +739,7 @@ function removeFromHistory(element, mediaId) {
                                         <div class="cart-content">
                                             <div class="content-left">
                                                 <h5 class="iq-title text-capitalize">
-                                                    <a href="movie-detail?id=<?php echo $movie['id']; ?>">
+                                                    <a href="/movie/<?php echo $movie['id']; ?>">
                                                         <?php echo htmlspecialchars($movie['title']); ?>
                                                     </a>
                                                 </h5>
@@ -711,14 +755,14 @@ function removeFromHistory(element, mediaId) {
                                         </div>
                                         
                                         <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
-                                            <a href="watchlist-add.php?id=<?php echo $movie['id']; ?>"
+                                            <a href="/add-watchlist?id=<?php echo $movie['id']; ?>"
                                                class="d-flex align-items-center justify-content-center flex-shrink-0 border-0 add-to-wishlist-btn btn btn-secondary"
                                                data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip"
                                                data-bs-title="Add to Watchlist">
                                                 <i class="ph ph-plus font-size-18"></i>
                                             </a>
                                             <div class="iq-play-button iq-button">
-                                                <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
+                                                <a href="/movie/<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
                                                     Pre-Order
                                                 </a>
                                             </div>
@@ -767,7 +811,7 @@ function removeFromHistory(element, mediaId) {
                                 <div class="block-images position-relative w-100">
                                     
                                     <div class="img-box w-100">
-                                        <a href="movie-detail?id=<?php echo $tv['id']; ?>&type=tv" class="position-relative top-0 bottom-0 start-0 end-0">
+                                        <a href="/tv/<?php echo $tv['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
                                             <img src="<?php echo $tv['poster_url']; ?>" alt="<?php echo htmlspecialchars($tv['title']); ?>"
                                                  class="img-fluid object-cover w-100 d-block border-0 rounded-3" loading="lazy">
                                         </a>
@@ -776,7 +820,7 @@ function removeFromHistory(element, mediaId) {
                                     <div class="card-description with-transition">
                                         <ul class="genres-list p-0 mb-2 d-flex align-items-center flex-wrap list-inline">
                                             <li class="fw-semi-bold">
-                                                <a href="movie-detail?id=<?php echo $tv['id']; ?>&type=tv" tabindex="0" class="font-size-14">
+                                                <a href="/tv/<?php echo $tv['id']; ?>" tabindex="0" class="font-size-14">
                                                     <?php echo htmlspecialchars($tv['genre']); ?>
                                                 </a>
                                             </li>
@@ -785,7 +829,7 @@ function removeFromHistory(element, mediaId) {
                                         <div class="cart-content">
                                             <div class="content-left">
                                                 <h5 class="iq-title text-capitalize mb-0">
-                                                    <a href="movie-detail?id=<?php echo $tv['id']; ?>&type=tv">
+                                                    <a href="/tv/<?php echo $tv['id']; ?>">
                                                         <?php echo htmlspecialchars($tv['title']); ?>
                                                     </a>
                                                 </h5>
@@ -797,14 +841,14 @@ function removeFromHistory(element, mediaId) {
                                         </div>
                                         
                                         <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
-                                            <a href="watchlist-add.php?id=<?php echo $tv['id']; ?>&type=tv"
+                                            <a href="/add-watchlist?id=<?php echo $tv['id']; ?>&type=tv"
                                                class="d-flex align-items-center justify-content-center flex-shrink-0 border-0 add-to-wishlist-btn btn btn-secondary"
                                                data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip"
                                                data-bs-title="Add to Watchlist">
                                                 <i class="ph ph-plus font-size-18"></i>
                                             </a>
                                             <div class="iq-play-button iq-button">
-                                                <a href="movie-detail?id=<?php echo $tv['id']; ?>&type=tv" class="btn btn-primary w-100">
+                                                <a href="/tv/<?php echo $tv['id']; ?>" class="btn btn-primary w-100">
                                                     Play Now
                                                 </a>
                                             </div>
@@ -852,7 +896,7 @@ function removeFromHistory(element, mediaId) {
                                 <div class="block-images position-relative w-100">
                                     
                                     <div class="img-box w-100">
-                                        <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
+                                        <a href="/movie/<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
                                             <img src="<?php echo $movie['poster_url']; ?>" alt="<?php echo htmlspecialchars($movie['title']); ?>"
                                                  class="img-fluid object-cover w-100 d-block border-0 rounded-3" loading="lazy">
                                         </a>
@@ -861,7 +905,7 @@ function removeFromHistory(element, mediaId) {
                                     <div class="card-description with-transition">
                                         <ul class="genres-list p-0 mb-2 d-flex align-items-center flex-wrap list-inline">
                                             <li class="fw-semi-bold">
-                                                <a href="movie-detail?id=<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
+                                                <a href="/movie/<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
                                                     <?php echo htmlspecialchars($movie['genre']); ?>
                                                 </a>
                                             </li>
@@ -870,7 +914,7 @@ function removeFromHistory(element, mediaId) {
                                         <div class="cart-content">
                                             <div class="content-left">
                                                 <h5 class="iq-title text-capitalize">
-                                                    <a href="movie-detail?id=<?php echo $movie['id']; ?>">
+                                                    <a href="/movie/<?php echo $movie['id']; ?>">
                                                         <?php echo htmlspecialchars($movie['title']); ?>
                                                     </a>
                                                 </h5>
@@ -884,14 +928,14 @@ function removeFromHistory(element, mediaId) {
                                         </div>
                                         
                                         <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
-                                            <a href="watchlist-add.php?id=<?php echo $movie['id']; ?>"
+                                            <a href="/add-watchlist?id=<?php echo $movie['id']; ?>"
                                                class="d-flex align-items-center justify-content-center flex-shrink-0 border-0 add-to-wishlist-btn btn btn-secondary"
                                                data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip"
                                                data-bs-title="Add to Watchlist">
                                                 <i class="ph ph-plus font-size-18"></i>
                                             </a>
                                             <div class="iq-play-button iq-button">
-                                                <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
+                                                <a href="/movie/<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
                                                     Play Now
                                                 </a>
                                             </div>
@@ -981,7 +1025,7 @@ function removeFromHistory(element, mediaId) {
                            </ul>
 
                            <h2 class="iq-title m-0 line-count-2">
-                               <a href="movie-detail?id=<?php echo $movie['id']; ?>">
+                               <a href="/movie/<?php echo $movie['id']; ?>">
                                    <?php echo htmlspecialchars($movie['title']); ?>
                                </a>
                            </h2>
@@ -1010,7 +1054,7 @@ function removeFromHistory(element, mediaId) {
                                <?php echo htmlspecialchars($movie['overview']); ?>
                            </p>
 
-                           <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="btn btn-primary text-capitalize position-relative rounded-3">
+                           <a href="/movie/<?php echo $movie['id']; ?>" class="btn btn-primary text-capitalize position-relative rounded-3">
                               <span class="d-flex align-items-center gap-2">
                                  <span class="button-text">Play Now</span>
                                  <i class="ph-fill ph-play fs-6"></i>
@@ -1056,7 +1100,7 @@ function removeFromHistory(element, mediaId) {
                                     <div class="block-images position-relative w-100">
                                         
                                         <div class="img-box w-100">
-                                            <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
+                                            <a href="/movie/<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
                                                 <img src="<?php echo $movie['poster_url']; ?>" alt="<?php echo htmlspecialchars($movie['title']); ?>"
                                                      class="img-fluid object-cover w-100 d-block border-0 rounded-3" loading="lazy">
                                             </a>
@@ -1065,7 +1109,7 @@ function removeFromHistory(element, mediaId) {
                                         <div class="card-description with-transition">
                                             <ul class="genres-list p-0 mb-2 d-flex align-items-center flex-wrap list-inline">
                                                 <li class="fw-semi-bold">
-                                                    <a href="movie-detail?id=<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
+                                                    <a href="/movie/<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
                                                         <?php echo htmlspecialchars($movie['genre']); ?>
                                                     </a>
                                                 </li>
@@ -1074,7 +1118,7 @@ function removeFromHistory(element, mediaId) {
                                             <div class="cart-content">
                                                 <div class="content-left">
                                                     <h5 class="iq-title text-capitalize">
-                                                        <a href="movie-detail?id=<?php echo $movie['id']; ?>">
+                                                        <a href="/movie/<?php echo $movie['id']; ?>">
                                                             <?php echo htmlspecialchars($movie['title']); ?>
                                                         </a>
                                                     </h5>
@@ -1088,14 +1132,14 @@ function removeFromHistory(element, mediaId) {
                                             </div>
                                             
                                             <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
-                                                <a href="watchlist-add.php?id=<?php echo $movie['id']; ?>"
+                                                <a href="/add-watchlist?id=<?php echo $movie['id']; ?>"
                                                    class="d-flex align-items-center justify-content-center flex-shrink-0 border-0 add-to-wishlist-btn btn btn-secondary"
                                                    data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip"
                                                    data-bs-title="Add to Watchlist">
                                                     <i class="ph ph-plus font-size-18"></i>
                                                 </a>
                                                 <div class="iq-play-button iq-button">
-                                                    <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
+                                                    <a href="/movie/<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
                                                         Play Now
                                                     </a>
                                                 </div>
@@ -1178,7 +1222,7 @@ function removeFromHistory(element, mediaId) {
                     </p>
                     
                     <div class="parallax-buttons">
-                        <a href="movie-detail?id=<?php echo $parallaxMovie['id']; ?>" class="btn btn-primary text-capitalize position-relative rounded-3">
+                        <a href="/movie/<?php echo $parallaxMovie['id']; ?>" class="btn btn-primary text-capitalize position-relative rounded-3">
                             <span class="d-flex align-items-center gap-2">
                                 <span class="button-text">Play Now</span>
                                 <i class="ph-fill ph-play fs-6"></i>
@@ -1191,7 +1235,7 @@ function removeFromHistory(element, mediaId) {
             
             <div class="col-xl-6 col-lg-6 col-md-12 mt-0 mt-lg-5 mt-xl-0">
                 <div class="parallax-img">
-                    <a href="movie-detail?id=<?php echo $parallaxMovie['id']; ?>">
+                    <a href="/movie/<?php echo $parallaxMovie['id']; ?>">
                         <img src="<?php echo $parallaxMovie['poster_url']; ?>" 
                              class="img-fluid w-100 rounded-3 shadow-lg" 
                              loading="lazy" 
@@ -1281,7 +1325,7 @@ function removeFromHistory(element, mediaId) {
                                        </p>
                                        <div class="p-btns">
                                           <div class="iq-button">
-                                             <a href="movie-detail?id=<?php echo $show['id']; ?>&type=tv" class="btn btn-primary text-uppercase position-relative rounded-3">
+                                             <a href="/tv/<?php echo $show['id']; ?>" class="btn btn-primary text-uppercase position-relative rounded-3">
                                                 <div class="d-flex align-items-center gap-2">
                                                    <span class="button-text">Play Now</span>
                                                    <i class="ph-fill ph-play"></i>
@@ -1305,7 +1349,7 @@ function removeFromHistory(element, mediaId) {
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                    <div class="block-image position-relative z-1">
-                                                      <img src="<?php echo isset($ep['still_path']) ? 'https://image.tmdb.org/t/p/w300'.$ep['still_path'] : '/assets/images/media/placeholder.webp'; ?>" class="img-fluid img-zoom" loading="lazy">
+                                                      <img src="<?php echo isset($ep['still_path']) ? 'https://image.tmdb.org/t/p/w300'.$ep['still_path'] : '/assets/images/media/placeholder.svg'; ?>" class="img-fluid img-zoom" loading="lazy">
                                                    </div>
                                                    <div class="episode-detail fw-medium position-absolute">
                                                       <h6 class="mt-2 mb-0">E<?php echo $ep['episode_number']; ?>: <?php echo $ep['name']; ?></h6>
@@ -1346,8 +1390,8 @@ function removeFromHistory(element, mediaId) {
                                              <li class="swiper-slide">
                                                 <div class="episode-block rounded-3">
                                                    <div class="block-image position-relative z-1">
-                                                      <a href="movie-detail?id=<?php echo $sim['id']; ?>&type=tv">
-                                                         <img src="<?php echo isset($sim['backdrop_path']) ? 'https://image.tmdb.org/t/p/w300'.$sim['backdrop_path'] : '/assets/images/media/placeholder.webp'; ?>" class="img-fluid img-zoom" loading="lazy">
+                                                      <a href="/tv/<?php echo $sim['id']; ?>">
+                                                         <img src="<?php echo isset($sim['backdrop_path']) ? 'https://image.tmdb.org/t/p/w300'.$sim['backdrop_path'] : '/assets/images/media/placeholder.svg'; ?>" class="img-fluid img-zoom" loading="lazy">
                                                       </a>
                                                    </div>
                                                    <div class="episode-detail fw-medium position-absolute">
@@ -1396,7 +1440,7 @@ function removeFromHistory(element, mediaId) {
                             <div class="block-images position-relative w-100">
                                
                                <div class="img-box w-100">
-                                  <a href="movie-detail?id=<?php echo $show['id']; ?>&type=tv" class="position-relative top-0 bottom-0 start-0 end-0">
+                                  <a href="/tv/<?php echo $show['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
                                      <img src="<?php echo $show['poster_url']; ?>" alt="<?php echo htmlspecialchars($show['title']); ?>"
                                         class="img-fluid object-cover w-100 d-block border-0 rounded-3" loading="lazy">
                                   </a>
@@ -1405,7 +1449,7 @@ function removeFromHistory(element, mediaId) {
                                <div class="card-description with-transition">
                                   <ul class="genres-list p-0 mb-2 d-flex align-items-center flex-wrap list-inline">
                                      <li class="fw-semi-bold">
-                                        <a href="movie-detail?id=<?php echo $show['id']; ?>&type=tv" tabindex="0" class="font-size-14">
+                                        <a href="/tv/<?php echo $show['id']; ?>" tabindex="0" class="font-size-14">
                                            <?php echo htmlspecialchars($show['genre']); ?>
                                         </a>
                                      </li>
@@ -1414,7 +1458,7 @@ function removeFromHistory(element, mediaId) {
                                   <div class="cart-content">
                                      <div class="content-left">
                                         <h5 class="iq-title text-capitalize">
-                                           <a href="movie-detail?id=<?php echo $show['id']; ?>&type=tv">
+                                           <a href="/tv/<?php echo $show['id']; ?>">
                                                <?php echo htmlspecialchars($show['title']); ?>
                                            </a>
                                         </h5>
@@ -1428,14 +1472,14 @@ function removeFromHistory(element, mediaId) {
                                   </div>
                                   
                                   <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
-                                     <a href="watchlist-add.php?id=<?php echo $show['id']; ?>&type=tv"
+                                     <a href="/add-watchlist?id=<?php echo $show['id']; ?>&type=tv"
                                         class="d-flex align-items-center justify-content-center flex-shrink-0 border-0 add-to-wishlist-btn btn btn-secondary"
                                         data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip"
                                         data-bs-title="Add to Watchlist">
                                         <i class="ph ph-plus font-size-18"></i>
                                      </a>
                                      <div class="iq-play-button iq-button">
-                                        <a href="movie-detail?id=<?php echo $show['id']; ?>&type=tv" class="btn btn-primary w-100">
+                                        <a href="/tv/<?php echo $show['id']; ?>" class="btn btn-primary w-100">
                                             Play Now
                                         </a>
                                      </div>

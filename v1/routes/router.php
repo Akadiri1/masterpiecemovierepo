@@ -16,6 +16,15 @@ if (explode("?",$uri[1])[0] == "linkedin") {
 
 if (count($uri) > 2) {
 
+  // ==========================================
+  // CLEAN URLs: /movie/{id} and /tv/{id}
+  // ==========================================
+  if (($uri[1] === 'movie' || $uri[1] === 'tv') && isset($uri[2]) && is_numeric(explode('?', $uri[2])[0])) {
+      $_GET['id'] = (int) explode('?', $uri[2])[0];
+      $_GET['type'] = $uri[1]; // 'movie' or 'tv'
+      include APP_PATH . "/views/movie-detail.php";
+      die();
+  }
 
   if (!empty($_GET) && strpos($uri[2], "?")) {
   $query_string = explode("?",$uri[2])[1];
@@ -339,12 +348,20 @@ if (count($uri) > 2) {
     include APP_PATH."/views/watch.php";
     break;
 
+    case 'download?'.$query_string:
+    include APP_PATH."/views/download.php";
+    break;
+
      case 'logout':
     include APP_PATH."/views/includes/ajax/logout.php";
     break;
 
       case 'ask':
         include APP_PATH . "/views/ask-ai.php";
+        break;
+
+      case 'ai-hook':
+        include APP_PATH . "/views/ai-hook.php";
         break;
 
      case 'view-all?'.$query_string:

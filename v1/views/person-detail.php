@@ -291,14 +291,14 @@ foreach($allCredits as $credit) {
                            <img src="<?php echo $item['poster']; ?>" alt="poster" loading="lazy">
                            <div class="card-badge"><?php echo $item['year']; ?></div>
                            <div class="overlay-play">
-                               <a href="/movie-detail?id=<?php echo $item['id']; ?>&type=movie" class="play-circle">
+                               <a href="/movie/<?php echo $item['id']; ?>" class="play-circle">
                                    <i class="fa-solid fa-play"></i>
                                </a>
                            </div>
-                           <a href="/movie-detail?id=<?php echo $item['id']; ?>&type=movie" class="position-absolute top-0 start-0 w-100 h-100"></a>
+                           <a href="/movie/<?php echo $item['id']; ?>" class="position-absolute top-0 start-0 w-100 h-100"></a>
                         </div>
                         <div class="card-desc">
-                           <a href="/movie-detail?id=<?php echo $item['id']; ?>&type=movie" class="card-title"><?php echo htmlspecialchars($item['title']); ?></a>
+                           <a href="/movie/<?php echo $item['id']; ?>" class="card-title"><?php echo htmlspecialchars($item['title']); ?></a>
                            <div class="card-role">as <?php echo htmlspecialchars($item['character'] ?: 'Actor'); ?></div>
                         </div>
                      </div>
@@ -321,14 +321,14 @@ foreach($allCredits as $credit) {
                            <img src="<?php echo $item['poster']; ?>" alt="poster" loading="lazy">
                            <div class="card-badge"><?php echo $item['year']; ?></div>
                            <div class="overlay-play">
-                               <a href="/movie-detail?id=<?php echo $item['id']; ?>&type=tv" class="play-circle">
+                               <a href="/tv/<?php echo $item['id']; ?>" class="play-circle">
                                    <i class="fa-solid fa-play"></i>
                                </a>
                            </div>
-                           <a href="/movie-detail?id=<?php echo $item['id']; ?>&type=tv" class="position-absolute top-0 start-0 w-100 h-100"></a>
+                           <a href="/tv/<?php echo $item['id']; ?>" class="position-absolute top-0 start-0 w-100 h-100"></a>
                         </div>
                         <div class="card-desc">
-                           <a href="/movie-detail?id=<?php echo $item['id']; ?>&type=tv" class="card-title"><?php echo htmlspecialchars($item['title']); ?></a>
+                           <a href="/tv/<?php echo $item['id']; ?>" class="card-title"><?php echo htmlspecialchars($item['title']); ?></a>
                            <div class="card-role">as <?php echo htmlspecialchars($item['character'] ?: 'Actor'); ?></div>
                         </div>
                      </div>

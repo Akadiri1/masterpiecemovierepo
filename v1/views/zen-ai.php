@@ -2,8 +2,9 @@
 // Configuration Check
 $sessStarted = false;
 if (session_status() === PHP_SESSION_NONE) { session_start(); $sessStarted = true; }
+$isLoggedIn = isset($_SESSION['user_id']);
 $userPlan = $_SESSION['plan_name'] ?? 'free'; 
-$hasAccess = in_array(strtolower($userPlan), ['pro', 'premium', 'free']);
+$hasAccess = $isLoggedIn; // Must be logged in to use AI
 ?>
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -24,8 +25,8 @@ $hasAccess = in_array(strtolower($userPlan), ['pro', 'premium', 'free']);
 
     /* Floating Trigger */
     .zen-ai-float {
-        position: fixed; bottom: 30px; left: 30px; width: 60px; height: 60px;
-        z-index: 9999; cursor: pointer;
+        position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
+        z-index: 999999 !important; cursor: pointer;
         display: flex; align-items: center; justify-content: center;
         transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
@@ -278,16 +279,32 @@ $hasAccess = in_array(strtolower($userPlan), ['pro', 'premium', 'free']);
         });
     }
 
+    const isLoggedIn = <?php echo json_encode($isLoggedIn); ?>;
+
     // --- MAIN FUNCTIONS ---
 
-    function triggerZenAI() {
+    function triggerZenAI(prefilledQuery = null) {
         if (!hasAccess) {
-            Toastify({ text: "🔒 Upgrade to Pro!", style: { background: "#e50914" } }).showToast();
+            if (!isLoggedIn) {
+                Toastify({ text: "🔒 Please login or sign up to use ZEN AI!", style: { background: "#e50914" } }).showToast();
+                setTimeout(() => window.location.href = '/login', 1500);
+            } else {
+                Toastify({ text: "🔒 Upgrade to Pro!", style: { background: "#e50914" } }).showToast();
+            }
             return;
         }
         new bootstrap.Modal(document.getElementById('zenAIModal')).show();
         startNewChat(false); // Initialize a fresh ID but don't wipe UI yet
         loadSidebar();
+
+        if (prefilledQuery) {
+            // Slight delay to allow modal to open
+            setTimeout(() => {
+                const input = document.getElementById('zen-input');
+                input.value = prefilledQuery;
+                zenSubmit(new Event('submit'));
+            }, 300);
+        }
     }
 
     function toggleSidebar(e) {
@@ -485,7 +502,8 @@ $hasAccess = in_array(strtolower($userPlan), ['pro', 'premium', 'free']);
         // 4. Fetch AI Response
         const fd = new FormData();
         fd.append('query', query);
-        // Ensure '/ask' or 'ask.php' is correct
+        fd.append('conversation_id', activeChatId);
+        
         fetch('/ask', { method: 'POST', body: fd }) 
             .then(r => r.json())
             .then(data => {
@@ -493,28 +511,33 @@ $hasAccess = in_array(strtolower($userPlan), ['pro', 'premium', 'free']);
                 const loader = document.getElementById(loaderId);
 
                 if (data.status === 'success') {
-                    // Generate Movie Cards
-                    const movies = data.movies.map(m => `
-                        <div class="vod-card">
-                            <a href="/movie-detail?id=${m.id}&type=${m.type || 'movie'}">
-                                <img src="${m.poster_path || 'assets/images/media/placeholder.webp'}">
-                            </a>
-                        </div>`).join('');
+                    // AI Reply Text
+                    const replyHtml = data.reply ? `<div style="color:#ccc; line-height:1.7; margin-bottom:15px; font-size:1rem;">${data.reply}</div>` : '';
 
-                    const reasoning = (data.ai_reasoning || []).join('<br>');
+                    // Generate Movie Cards with titles
+                    let moviesHtml = '';
+                    if (data.movies && data.movies.length > 0) {
+                        const movies = data.movies.map(m => `
+                            <div class="vod-card" style="position:relative;">
+                                <a href="/${m.type || 'movie'}/${m.id}" style="text-decoration:none; color:inherit;">
+                                    <img src="${m.poster_path || 'assets/images/media/placeholder.webp'}" alt="${m.title || ''}" loading="lazy">
+                                    <div style="position:absolute; bottom:0; left:0; right:0; padding:8px 6px; background:linear-gradient(transparent, rgba(0,0,0,0.9)); font-size:0.75rem; color:#eee; font-weight:600; text-align:center; line-height:1.2;">
+                                        ${m.title || ''}
+                                        ${m.rating ? '<div style=\"color:#ffc107; font-size:0.7rem; margin-top:3px;\">⭐ ' + Number(m.rating).toFixed(1) + '</div>' : ''}
+                                    </div>
+                                </a>
+                            </div>`).join('');
+                        moviesHtml = `<div class="zen-results-grid">${movies}</div>`;
+                    }
 
-                    // Replace Loader with Result
+                    // Replace Loader with Result (Removed duplicate reply text from thinking box)
                     loader.innerHTML = `
-                        <div class="zen-thinking-box">
-                            <div class="zen-thinking-header" onclick="this.parentElement.classList.toggle('open')">
-                                <i class="ph-fill ph-sparkle text-info"></i> Thinking <i class="ph-bold ph-caret-down ms-auto"></i>
-                            </div>
-                            <div class="zen-thinking-content">${reasoning}</div>
-                        </div>
-                        <div class="zen-results-grid">${movies}</div>
+                        ${replyHtml}
+                        ${moviesHtml}
                     `;
                 } else {
-                    loader.innerHTML = `<div class="text-danger p-3">No results found for "${query}".</div>`;
+                    const errorMsg = data.message || `No results found for "${query}".`;
+                    loader.innerHTML = `<div class="text-danger p-3" style="font-weight: 500;"><i class="ph-bold ph-warning-circle"></i> ${errorMsg}</div>`;
                 }
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             })

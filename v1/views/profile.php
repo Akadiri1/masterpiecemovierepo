@@ -56,7 +56,7 @@ if (isset($conn)) {
                 
                 if ($data) {
                     $title = $data['title'] ?? $data['name'] ?? 'Unknown';
-                    $poster = !empty($data['poster_path']) ? 'https://image.tmdb.org/t/p/w500'.$data['poster_path'] : 'assets/images/media/placeholder-portrait.webp';
+                    $poster = !empty($data['poster_path']) ? 'https://image.tmdb.org/t/p/w1280'.$data['poster_path'] : '/assets/images/media/placeholder-portrait.svg';
                     $date = $data['release_date'] ?? $data['first_air_date'] ?? '';
                     $year = $date ? substr($date, 0, 4) : 'N/A';
                     $vote = $data['vote_average'] ?? 0;
@@ -109,7 +109,7 @@ include 'includes/header.php';
         --profile-bg: #141414;
         --sidebar-bg: #1a1a1a;
         --card-bg: #1f1f1f;
-        --primary: #e50914;
+        --primary: var(--primary);
         --text-muted: #a3a3a3;
         --border-color: rgba(255,255,255,0.1);
     }
@@ -201,12 +201,12 @@ include 'includes/header.php';
     
     .plan-card.premium {
         background: linear-gradient(135deg, #531214 0%, #1f1f1f 100%);
-        border-color: #e50914;
+        border-color: var(--primary);
     }
 
     .table-dark-custom th, .table-dark-custom td {
-        background: transparent;
-        color: #ccc;
+        background: transparent !important;
+        color: #fff !important;
         border-bottom: 1px solid rgba(255,255,255,0.05);
         padding: 15px;
     }
@@ -236,7 +236,7 @@ include 'includes/header.php';
         display: flex; align-items: center; justify-content: center;
         border: none; cursor: pointer; transition: 0.2s;
     }
-    .remove-btn:hover { background: #e50914; }
+    .remove-btn:hover { background: var(--primary); }
 
     /* Form Styles */
     .form-control-dark {
@@ -267,6 +267,31 @@ include 'includes/header.php';
         img { max-width: 100%; height: auto; }
         .tab-content { overflow-x: hidden; }
     }
+
+    /* Smooth page load */
+    .main-content { animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* Card hover effects */
+    .vod-card { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease; }
+    .vod-card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
+
+    /* Tab transitions */
+    .tab-pane { animation: fadeIn 0.3s ease; }
+
+    /* Poster images - 1080p quality */
+    .poster-box img { image-rendering: auto; }
+
+    /* Desktop 1080p+ */
+    @media (min-width: 1080px) {
+        .profile-cover { height: 120px; }
+        .user-avatar-lg { width: 160px; height: 150px; }
+        .section-title { font-size: 1.7rem; }
+    }
+
+    /* Plan card glow */
+    .plan-card.premium { box-shadow: 0 0 30px rgba(229, 9, 20, 0.1); }
+    .plan-card.premium:hover { box-shadow: 0 0 40px rgba(229, 9, 20, 0.2); transition: box-shadow 0.3s ease; }
 </style>
 
 <!-- ==========================================
@@ -274,29 +299,29 @@ include 'includes/header.php';
      ========================================== -->
 <div class="main-content">
     
-    <!-- 1. HERO BANNER -->
-    <div class="profile-cover"></div>
-
-    <div class="container-fluid">
-        <!-- 2. USER INFO HEADER -->
-        <div class="profile-info-card mb-5">
-            <div class="d-flex flex-wrap align-items-end gap-4">
-                <div class="position-relative">
-                    <img src="<?php echo htmlspecialchars($user['avatar_path']); ?>" alt="Profile" 
-                         class="user-avatar-lg" id="profile-header-avatar">
-                    <button class="btn btn-sm btn-dark position-absolute bottom-0 end-0 rounded-circle p-2 border border-secondary"
-                            data-bs-toggle="modal" data-bs-target="#edit-profile-modal" title="Change Avatar">
-                        <i class="fa fa-camera"></i>
-                    </button>
-                </div>
-                <div class="mb-2">
-                    <h2 class="text-white fw-bold mb-0" id="profile-header-name"><?php echo htmlspecialchars($user['fullName']); ?></h2>
-                    <p class="text-muted mb-1" id="profile-header-email"><?php echo htmlspecialchars($user['email']); ?></p>
-                    <span class="badge bg-secondary bg-opacity-25 text-light border border-secondary">
+    <div class="container-fluid" style="padding-top: 60px;">
+        <!-- 1. USER INFO HEADER (GLASSMORPHISM) -->
+        <div class="profile-info-card mb-5" style="background: rgba(20, 20, 25, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; padding: 40px; margin-top: 0; display: flex; align-items: center; gap: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+            
+            <div class="position-relative">
+                <img src="<?php echo htmlspecialchars($user['avatar_path']); ?>" alt="Profile" 
+                     class="user-avatar-lg" id="profile-header-avatar" style="border: 4px solid rgba(255,255,255,0.1); width: 150px; height: 150px; box-shadow: 0 0 30px rgba(229, 9, 20, 0.2);">
+                <button class="btn btn-primary position-absolute bottom-0 end-0 rounded-circle d-flex align-items-center justify-content-center"
+                        style="width: 40px; height: 40px; border: 2px solid #141414;"
+                        data-bs-toggle="modal" data-bs-target="#edit-profile-modal" title="Change Avatar">
+                    <i class="fa fa-camera"></i>
+                </button>
+            </div>
+            
+            <div class="d-flex flex-column text-start">
+                <h1 class="text-white fw-bold mb-1" id="profile-header-name" style="letter-spacing: -0.5px;"><?php echo htmlspecialchars($user['fullName']); ?></h1>
+                <p class="text-muted mb-3" id="profile-header-email"><?php echo htmlspecialchars($user['email']); ?></p>
+                
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge" style="background: <?php echo $isFree ? 'rgba(255,255,255,0.1)' : 'linear-gradient(45deg, var(--primary), #ff4b2b)'; ?>; color: #fff; padding: 8px 16px; font-size: 0.85rem; border-radius: 30px;">
+                        <i class="fa-solid <?php echo $isFree ? 'fa-user' : 'fa-crown'; ?> me-2"></i>
                         <?php echo $isFree ? 'Free Member' : 'Premium Member'; ?>
                     </span>
-                </div>
-                <div class="ms-auto mb-3">
                     <button class="btn btn-outline-light rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#edit-profile-modal">
                         <i class="fa fa-pencil me-2"></i> Edit Profile
                     </button>
@@ -304,10 +329,10 @@ include 'includes/header.php';
             </div>
         </div>
 
-        <div class="row">
-            <!-- 3. SIDEBAR NAVIGATION -->
-            <div class="col-lg-3 col-xl-2 mb-4">
-                <div class="profile-sidebar">
+        <div class="row g-4">
+            <!-- 2. SIDEBAR NAVIGATION -->
+            <div class="col-12 col-md-4 col-lg-3 mb-4">
+                <div class="profile-sidebar" style="background: rgba(20, 20, 25, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); overflow: hidden;">
                     <div class="nav flex-column nav-profile" id="v-pills-tab" role="tablist" aria-orientation="vertical">
                         <a class="nav-link active" id="v-pills-watchlist-tab" data-bs-toggle="pill" href="#v-pills-watchlist" role="tab">
                             <i class="fa-regular fa-bookmark"></i> Watchlist
@@ -321,15 +346,12 @@ include 'includes/header.php';
                         <a class="nav-link" id="v-pills-parental-tab" data-bs-toggle="pill" href="#v-pills-parental" role="tab">
                             <i class="fa-solid fa-shield-halved"></i> Parental Controls
                         </a>
-                        <!-- <a class="nav-link" id="v-pills-settings-tab" data-bs-toggle="pill" href="#v-pills-settings" role="tab">
-                            <i class="fa-solid fa-gear"></i> Settings
-                        </a> -->
                     </div>
                 </div>
             </div>
 
-            <!-- 4. MAIN CONTENT AREA -->
-            <div class="col-lg-9 col-xl-10 profile-content">
+            <!-- 3. MAIN CONTENT AREA -->
+            <div class="col-12 col-md-8 col-lg-9 profile-content" style="padding-top: 0;">
                 <div class="tab-content" id="v-pills-tabContent">
                     
                     <!-- TAB: WATCHLIST -->
@@ -337,11 +359,13 @@ include 'includes/header.php';
                         <h3 class="section-title">My Watchlist</h3>
                         
                         <?php if (empty($watchlistItems)): ?>
-                            <div class="text-center p-5 rounded-3 border border-secondary border-dashed bg-dark bg-opacity-50">
-                                <i class="fa-solid fa-film fs-1 text-muted mb-3" style="font-size: 3rem;"></i>
-                                <h5 class="text-white">Your watchlist is empty</h5>
-                                <p class="text-muted">Save movies and shows here to watch later.</p>
-                                <a href="/" class="btn btn-primary mt-2">Browse Content</a>
+                            <div class="text-center p-5 rounded-4" style="background: rgba(20, 20, 25, 0.4); backdrop-filter: blur(20px); border: 1px dashed rgba(255,255,255,0.2); box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+                                <div style="width: 80px; height: 80px; background: rgba(229, 9, 20, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+                                    <i class="fa-solid fa-film text-primary" style="font-size: 2.5rem; filter: drop-shadow(0 0 10px rgba(229,9,20,0.5));"></i>
+                                </div>
+                                <h4 class="text-white fw-bold mb-2">Your watchlist is empty</h4>
+                                <p class="text-muted mb-4">Save your favorite movies and shows here to watch them later.</p>
+                                <a href="/" class="btn btn-primary rounded-pill px-5 py-2 fw-bold shadow">Browse Content</a>
                             </div>
                         <?php else: ?>
                             <div class="row row-cols-2 row-cols-md-3 row-cols-xl-5 g-4">
@@ -351,7 +375,7 @@ include 'includes/header.php';
                                         <div class="poster-box">
                                             <img src="<?php echo $item['poster']; ?>" loading="lazy" alt="<?php echo htmlspecialchars($item['title']); ?>">
                                             <div class="card-overlay">
-                                                <a href="/movie-detail?id=<?php echo $item['id']; ?>&type=<?php echo $item['type']; ?>" class="btn btn-primary rounded-circle" style="width:45px; height:45px; display:flex; align-items:center; justify-content:center;">
+                                                <a href="/<?php echo $item['type']; ?>/<?php echo $item['id']; ?>" class="btn btn-primary rounded-circle" style="width:45px; height:45px; display:flex; align-items:center; justify-content:center;">
                                                     <i class="fa-solid fa-play"></i>
                                                 </a>
                                                 <button class="remove-btn watchlist-remove-btn" data-id="<?php echo $item['id']; ?>" data-type="<?php echo $item['type']; ?>" title="Remove">
@@ -381,24 +405,27 @@ include 'includes/header.php';
                         <h3 class="section-title">Membership & Billing</h3>
                         
                         <div class="row">
-                            <div class="col-md-8">
+                            <div class="col-12">
                                 <!-- Plan Card -->
-                                <div class="plan-card p-4 mb-4 <?php echo !$isFree ? 'premium' : ''; ?>">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="text-uppercase text-muted mb-0 letter-spacing-1" style="font-size: 0.85rem;">Current Plan</h5>
+                                <div class="plan-card p-4 p-md-5 mb-4 <?php echo !$isFree ? 'premium' : ''; ?>" style="background: rgba(20, 20, 25, 0.6); backdrop-filter: blur(20px); border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); position: relative; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.3);">
+                                    <!-- Decorative Glow -->
+                                    <div style="position: absolute; top: -50px; right: -50px; width: 150px; height: 150px; background: <?php echo !$isFree ? 'var(--primary)' : 'rgba(255,255,255,0.1)'; ?>; filter: blur(60px); border-radius: 50%;"></div>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mb-4 position-relative z-1">
+                                        <h5 class="text-uppercase text-muted fw-bold mb-0" style="letter-spacing: 1px; font-size: 0.85rem;">Current Plan</h5>
                                         <?php if (!$isFree): ?>
-                                            <span class="badge bg-success">Active</span>
+                                            <span class="badge bg-success bg-opacity-25 text-success border border-success rounded-pill px-3 py-2"><i class="fa fa-circle me-1" style="font-size:8px; vertical-align:middle;"></i> Active</span>
                                         <?php endif; ?>
                                     </div>
-                                    <h1 class="text-white fw-bold mb-2"><?php echo htmlspecialchars($planLabel); ?></h1>
+                                    <h1 class="text-white fw-bold mb-2 position-relative z-1" style="font-size: 2.5rem; letter-spacing:-1px;"><?php echo htmlspecialchars($planLabel); ?></h1>
                                     
                                     <?php if ($isFree): ?>
-                                        <p class="text-muted">Upgrade to Premium for 4K streaming and zero ads.</p>
-                                        <a href="/pricing-plan" class="btn btn-primary mt-2 px-4">Upgrade Now</a>
+                                        <p class="text-muted position-relative z-1 mb-4">Upgrade to Premium for 4K streaming, zero ads, and exclusive content.</p>
+                                        <a href="/pricing-plan" class="btn btn-primary rounded-pill px-4 py-2 fw-bold position-relative z-1 shadow">Upgrade to Premium</a>
                                     <?php else: ?>
-                                        <p class="text-white-50">Your plan renews on <span class="text-white fw-bold"><?php echo $planExpiry; ?></span>.</p>
-                                        <div class="d-flex gap-2 mt-3">
-                                            <!-- <button class="btn btn-outline-light btn-sm">Manage Subscription</button> -->
+                                        <p class="text-white-50 position-relative z-1 mb-4">Your plan auto-renews on <span class="text-white fw-bold border-bottom border-secondary pb-1"><?php echo $planExpiry; ?></span>.</p>
+                                        <div class="d-flex gap-2 position-relative z-1">
+                                            <!-- <button class="btn btn-outline-light rounded-pill px-4">Manage Subscription</button> -->
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -437,10 +464,10 @@ include 'includes/header.php';
                     <div class="tab-pane fade" id="v-pills-parental" role="tabpanel">
                         <h3 class="section-title">Parental Controls</h3>
                         <div class="row">
-                            <div class="col-md-7">
-                                <div class="content-card p-4">
+                            <div class="col-12">
+                                <div class="content-card p-4 p-md-5 mb-4" style="background: rgba(20, 20, 25, 0.6); backdrop-filter: blur(20px); border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 15px 35px rgba(0,0,0,0.3);">
                                     <div class="d-flex align-items-start gap-3 mb-4">
-                                        <div class="bg-dark p-3 rounded-circle border border-secondary">
+                                        <div class="bg-dark p-3 rounded-circle border border-secondary" style="background: rgba(0,0,0,0.5) !important;">
                                             <i class="fa-solid fa-lock text-primary fs-4"></i>
                                         </div>
                                         <div>

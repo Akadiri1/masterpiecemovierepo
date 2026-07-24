@@ -4,6 +4,8 @@ if (!isset($_SESSION['user_id'])) {
     die(json_encode(['status' => 'error', 'message' => 'Unauthorized']));
 }
 
+require_once '../models/model.php'; // Include DB connection
+
 $userId = $_SESSION['user_id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -23,14 +25,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         // 2. Insert or Update (Matches your specific column names)
         $sql = "INSERT INTO watch_history 
-                (user_id, tmdb_movie_id, current_time, total_duration, last_watched) 
+                (`user_id`, `tmdb_movie_id`, `current_time`, `total_duration`, `last_watched`) 
                 VALUES (:uid, :mid, :cur, :total, NOW())
                 ON DUPLICATE KEY UPDATE 
-                current_time = VALUES(current_time),
-                total_duration = VALUES(total_duration),
-                last_watched = NOW()";
+                `current_time` = VALUES(`current_time`),
+                `total_duration` = VALUES(`total_duration`),
+                `last_watched` = NOW()";
 
-        $stmt = $pdo->prepare($sql);
+        $stmt = $conn->prepare($sql);
         $stmt->execute([
             ':uid'   => $userId,
             ':mid'   => $tmdbId,
@@ -41,7 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(['status' => 'success']);
 
     } catch (PDOException $e) {
-        // Silent error
+        // Log error to a text file for debugging
+        file_put_contents('db_error.log', date('[Y-m-d H:i:s] ') . $e->getMessage() . PHP_EOL, FILE_APPEND);
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
     }
 }
 ?>

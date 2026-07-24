@@ -31,7 +31,42 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/vendor/phosphor-icons/Fonts/regular/style.css">
   
+  <script>
+    // Apply saved theme immediately
+    const savedTheme = localStorage.getItem('zen_theme');
+    if (savedTheme) { document.documentElement.setAttribute('data-theme', savedTheme); }
+  </script>
   <style>
+      :root {
+          --primary: #e50914;
+          --primary-hover: #ff2a35;
+          --primary-glow: rgba(229, 9, 20, 0.3);
+      }
+      :root[data-theme="cyberpunk"] {
+          --primary: #00f0ff;
+          --primary-hover: #00d0dd;
+          --primary-glow: rgba(0, 240, 255, 0.3);
+      }
+      :root[data-theme="gold"] {
+          --primary: #ffd700;
+          --primary-hover: #ffea00;
+          --primary-glow: rgba(255, 215, 0, 0.3);
+      }
+      :root[data-theme="emerald"] {
+          --primary: #00e676;
+          --primary-hover: #00c853;
+          --primary-glow: rgba(0, 230, 118, 0.3);
+      }
+      :root, [data-bs-theme=dark] {
+          --bs-primary: var(--primary) !important;
+          --bs-primary-rgb: 229, 22, 63;
+          --bs-primary-hover: var(--primary-hover) !important;
+      }
+      body .text-primary, body i.text-primary { color: var(--primary) !important; }
+      body .bg-primary { background-color: var(--primary) !important; }
+      body .btn-primary { background: var(--primary) !important; border-color: var(--primary) !important; color: #fff !important; }
+      body .btn-primary:hover { background: var(--primary-hover) !important; border-color: var(--primary-hover) !important; box-shadow: 0 4px 15px var(--primary-glow) !important; }
+
       /* Lock body scroll */
       body { overflow: hidden !important; height: 100vh !important; }
 
@@ -80,6 +115,37 @@
       .user-login-card::-webkit-scrollbar { width: 3px; }
       .user-login-card::-webkit-scrollbar-track { background: transparent; }
       .user-login-card::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+
+      /* Enhanced animations */
+      .user-login-card { animation: fadeSlideUp 0.5s ease-out; }
+      @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+      /* Input focus glow */
+      .form-control:focus { border-color: var(--primary) !important; box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.15) !important; }
+
+      /* Button hover */
+      .btn-primary { transition: all 0.3s ease; }
+      .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(229, 9, 20, 0.4); }
+
+      /* Social buttons */
+      .social-btn { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+      /* Mobile */
+      @media (max-width: 576px) {
+          .user-login-card { margin: 10px; padding: 20px !important; }
+          .sign-in-page { padding: 10px; }
+          h4.text-white { font-size: 1.3rem; }
+      }
+
+      /* Tablet */
+      @media (min-width: 577px) and (max-width: 991px) {
+          .col-lg-5 { max-width: 450px; margin: 0 auto; }
+      }
+
+      /* Desktop 1080p+ */
+      @media (min-width: 1080px) {
+          .user-login-card { max-width: 440px; margin: 0 auto; }
+      }
 
   </style>
 </head>
@@ -186,11 +252,11 @@
                 Toastify({ text: "Login Successful!", style: { background: "#4caf50" } }).showToast();
                 setTimeout(() => window.location.href = data.redirect || '/', 1000);
             } else {
-                Toastify({ text: "Login Failed: " + data.message, style: { background: "#e50914" } }).showToast();
+                Toastify({ text: "Login Failed: " + data.message, style: { background: "var(--primary)" } }).showToast();
             }
         } catch (error) {
             console.error('Social Login Error:', error);
-            Toastify({ text: "Server Connection Error", style: { background: "#e50914" } }).showToast();
+            Toastify({ text: "Server Connection Error", style: { background: "var(--primary)" } }).showToast();
         }
     }
 
@@ -329,7 +395,7 @@
                 }
             } catch (error) {
                 console.error('Login failed:', error);
-                Toastify({ text: 'Could not connect to the server.', style: { background: "#e50914" } }).showToast();
+                Toastify({ text: 'Could not connect to the server.', style: { background: "var(--primary)" } }).showToast();
             } finally {
                 setButtonLoading(false);
             }

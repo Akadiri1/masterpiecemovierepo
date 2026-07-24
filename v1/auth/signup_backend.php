@@ -76,6 +76,15 @@ $usn = preg_replace("/[^.a-zA-Z0-9]/","_",$usn);
   $stmt->bindParam(":usn", $usn);
   $stmt->execute();
 
+  // Send admin notification about new SSO registration
+  $notifyData = [
+    'firstname' => $_POST['firstname'],
+    'lastname' => $_POST['lastname'],
+    'email' => $_POST['email'],
+    'phone_number' => null
+  ];
+  sendAdminRegistrationNotification($conn, $notifyData, $site_name, $site_email);
+
   $res['status'] = "success";
   if($_POST['location'] !== ""){
       $res['location'] = "/secure?rd=".$_POST['location'];

@@ -13,13 +13,35 @@ header("Access-Control-Allow-Headers: Content-Type");
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
+// Authentication Check
+$userId = $_SESSION['user_id'] ?? 0;
+if (!$userId) {
+    echo json_encode(['status' => 'error', 'message' => 'Please login to use ZEN AI.']);
+    exit;
+}
+
+// Daily Limit Check
+if (isset($conn)) {
+    $limitStmt = $conn->prepare("SELECT COUNT(id) FROM zen_search_history WHERE user_id = ? AND DATE(created_at) = CURDATE()");
+    $limitStmt->execute([$userId]);
+    $dailyCount = (int) $limitStmt->fetchColumn();
+    
+    // Set Limit: 10 per day
+    if ($dailyCount >= 10) {
+        echo json_encode([
+            'status' => 'error', 
+            'message' => 'You have reached your daily limit of 10 AI requests. Please try again tomorrow!'
+        ]);
+        exit;
+    }
+}
+
 // ==========================================
 // 1. CONFIGURATION
 // ==========================================
 
 // Ensure your TMDB Key is defined
 if (!defined('TMDB_API_KEY')) define('TMDB_API_KEY', 'YOUR_TMDB_API_KEY_HERE'); 
-$geminiApiKey = "AIzaSyDE0XCHuKLjG9IVGaLsXCx0QrrYW_lgxFw"; 
 
 // ==========================================
 // 2. HELPER: TMDB API FETCH
@@ -78,47 +100,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // 2. Build History (Session Context)
+    $cid = $_POST['conversation_id'] ?? 'default_cid';
+
+    // 2. Build History (Session Context keyed by Conversation ID)
     if (!isset($_SESSION['chat_history'])) $_SESSION['chat_history'] = [];
-    $geminiHistory = [];
-    foreach ($_SESSION['chat_history'] as $turn) {
-        if (!empty($turn['user']) && !empty($turn['ai_text'])) {
-            $geminiHistory[] = ['role' => 'user', 'parts' => [['text' => $turn['user']]]];
-            $geminiHistory[] = ['role' => 'model', 'parts' => [['text' => $turn['ai_text']]]];
-        }
-    }
-    $geminiHistory[] = ['role' => 'user', 'parts' => [['text' => $userQuery]]];
+    if (!isset($_SESSION['chat_history'][$cid])) $_SESSION['chat_history'][$cid] = [];
+    $messages = [];
+    
+    // System Instruction
+    $messages[] = [
+        'role' => 'system',
+        'content' => "You are ZEN AI, the ultimate movie and TV show recommendation assistant for a streaming platform called Masterpiece Movie.
 
-    // 3. Prepare Prompt
-    $systemInstruction = "
-    You are CineBot. 
-    1. Be friendly and concise.
-    2. If the user describes a movie plot, actor, or genre, provide exactly 5 real movie/tv titles.
-    3. IMPORTANT: Output strict JSON. Do not use Markdown blocks.
-    Format:
-    {
-        \"reply\": \"Your conversational response here\",
-        \"search_candidates\": [\"Movie 1\", \"Movie 2\"]
-    }";
+RULES:
+1. Be friendly, helpful, and conversational. Keep your reply concise but engaging.
+2. When the user asks for movie or TV show recommendations by genre (e.g. \"shooting movies\", \"scary movies\", \"psychology thrillers\"), provide 5 to 8 well-known, popular, REAL titles that match.
+3. When the user describes a movie they forgot (e.g. \"a movie where a guy is stuck in a time loop\"), try to identify the exact title(s) they are thinking of.
+4. When the user says \"hello\" or makes general conversation, respond naturally. Still include 3-5 popular trending movie suggestions in search_candidates.
+5. ONLY suggest REAL movies and TV shows that actually exist. Never invent fake titles.
+6. For \"shooting\" movies, think action/gun/war films like John Wick, Heat, The Departed, Sicario etc. NOT sports shooting.
+7. Always prefer well-known English-language titles unless the user asks for a specific language.
+8. The search_candidates array should contain ONLY the exact title of the movie or show (no year, no parentheses, no extra text). Example: \"Inception\" not \"Inception (2010)\".
+9. DO NOT output your internal thought process. Provide only your final, clean answer.
 
-    $payload = [
-        "contents" => $geminiHistory,
-        "systemInstruction" => ["parts" => [["text" => $systemInstruction]]],
-        "generationConfig" => [
-            "temperature" => 0.7,
-            "maxOutputTokens" => 800,
-            "response_mime_type" => "application/json"
-        ]
+You MUST respond with valid JSON only. No markdown. No code blocks.
+{
+    \"reply\": \"Your friendly conversational response explaining your picks.\",
+    \"search_candidates\": [\"Movie Title 1\", \"Movie Title 2\", \"Movie Title 3\"]
+}"
     ];
 
-    $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" . $geminiApiKey;
+    foreach ($_SESSION['chat_history'][$cid] as $turn) {
+        if (!empty($turn['user']) && !empty($turn['ai_text'])) {
+            $messages[] = ['role' => 'user', 'content' => $turn['user']];
+            $messages[] = ['role' => 'assistant', 'content' => $turn['ai_text']];
+        }
+    }
+    $messages[] = ['role' => 'user', 'content' => $userQuery];
+
+    // 3. Prepare Prompt for Groq
+    $groqApiKey = defined('GROQ_API_KEY') ? GROQ_API_KEY : '';
+    
+    $payload = [
+        "model" => "llama-3.3-70b-versatile",
+        "messages" => $messages,
+        "temperature" => 0.7,
+        "max_tokens" => 800
+    ];
+
+    $url = "https://api.groq.com/openai/v1/chat/completions";
 
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => json_encode($payload),
-        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'Authorization: Bearer ' . $groqApiKey
+        ],
         CURLOPT_SSL_VERIFYPEER => false,
         CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4
     ]);
@@ -132,31 +172,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $suggestions = [];
     $aiFailed = false;
 
-    if ($curlError) {
+    if ($curlError || empty($response)) {
         $aiFailed = true;
     } else {
         $aiResult = json_decode($response, true);
         
-        if (!empty($aiResult['candidates'][0]['content']['parts'][0]['text'])) {
-            $rawText = $aiResult['candidates'][0]['content']['parts'][0]['text'];
+        if (!empty($aiResult['choices'][0]['message']['content'])) {
+            $rawText = trim($aiResult['choices'][0]['message']['content']);
             
-            // Remove Markdown formatting if present
-            $cleanText = preg_replace('/^```json\s*/i', '', $rawText);
-            $cleanText = preg_replace('/^```\s*/i', '', $cleanText);
-            $cleanText = preg_replace('/\s*```$/', '', $cleanText);
+            // Strategy 1: Try direct JSON decode
+            $decoded = json_decode($rawText, true);
             
-            $decoded = json_decode($cleanText, true);
+            // Strategy 2: Strip markdown code blocks and try again
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $stripped = preg_replace('/^```(?:json)?\s*/im', '', $rawText);
+                $stripped = preg_replace('/\s*```\s*$/m', '', $stripped);
+                $decoded = json_decode(trim($stripped), true);
+            }
             
-            if (json_last_error() === JSON_ERROR_NONE) {
+            // Strategy 3: Extract the first JSON object {...} from anywhere in the text
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                if (preg_match('/\{[\s\S]*"reply"[\s\S]*"search_candidates"[\s\S]*\}/U', $rawText, $jsonMatch)) {
+                    // Find the full balanced JSON object
+                    $start = strpos($rawText, '{');
+                    if ($start !== false) {
+                        $depth = 0;
+                        $end = $start;
+                        for ($i = $start; $i < strlen($rawText); $i++) {
+                            if ($rawText[$i] === '{') $depth++;
+                            if ($rawText[$i] === '}') $depth--;
+                            if ($depth === 0) { $end = $i; break; }
+                        }
+                        $jsonStr = substr($rawText, $start, $end - $start + 1);
+                        $decoded = json_decode($jsonStr, true);
+                    }
+                }
+            }
+            
+            // Apply parsed result
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 $cleanReply = $decoded['reply'] ?? "Here is what I found.";
                 $suggestions = $decoded['search_candidates'] ?? [];
             } else {
-                // If JSON parsing fails, assume it's just text
-                $cleanReply = strip_tags($cleanText);
+                // Strategy 4: AI responded with plain text - use it as reply and extract titles
+                $cleanReply = strip_tags($rawText);
+                // Try to extract quoted titles from the text
+                if (preg_match_all('/"([^"]{2,50})"/', $rawText, $titleMatches)) {
+                    $suggestions = array_slice($titleMatches[1], 0, 8);
+                }
+                // Also try titles after numbered lists (1. Title, 2. Title)
+                if (empty($suggestions) && preg_match_all('/\d+\.\s*\*{0,2}([A-Z][^\n\r*]{3,50})/', $rawText, $listMatches)) {
+                    $suggestions = array_map('trim', array_slice($listMatches[1], 0, 8));
+                }
             }
-        } elseif (isset($aiResult['promptFeedback']['blockReason'])) {
-            $cleanReply = "I cannot answer that because it triggered my safety filters.";
-            $aiFailed = true; // Treat block as failure so we don't search blindly
+        } elseif (isset($aiResult['error'])) {
+            $cleanReply = "API Error: " . ($aiResult['error']['message'] ?? 'Unknown Error');
+            $aiFailed = true;
         } else {
             $aiFailed = true;
         }
@@ -179,9 +250,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $suggestions[] = $keywords;
     }
 
-    // Update History
-    $_SESSION['chat_history'][] = ['user' => $userQuery, 'ai_text' => $cleanReply];
-    if (count($_SESSION['chat_history']) > 10) array_shift($_SESSION['chat_history']);
+    // Update History specifically for this conversation
+    $_SESSION['chat_history'][$cid][] = ['user' => $userQuery, 'ai_text' => $cleanReply];
+    if (count($_SESSION['chat_history'][$cid]) > 10) array_shift($_SESSION['chat_history'][$cid]);
 
     // 5. TMDB SEARCH (Iterate through suggestions)
     $finalMovies = [];
@@ -189,13 +260,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $isKidsMode = isset($_SESSION['is_kids_mode']) && $_SESSION['is_kids_mode'] === true;
 
     foreach ($suggestions as $title) {
-        if (count($finalMovies) >= 5) break;
+        if (count($finalMovies) >= 10) break;
         if (empty($title)) continue;
 
         $searchData = fetchTmdbApi("search/multi", ['query' => $title]);
 
         if ($searchData && !empty($searchData['results'])) {
+            $matchCount = 0;
             foreach ($searchData['results'] as $item) {
+                if ($matchCount >= 2) break; // Take top 2 results per suggestion for variety
+                if (count($finalMovies) >= 10) break;
                 
                 // Validate Media Type
                 if (!isset($item['media_type']) || !in_array($item['media_type'], ['movie', 'tv'])) continue;
@@ -206,13 +280,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Kids Mode Filter
                 if ($isKidsMode) {
                     $gids = $item['genre_ids'] ?? [];
-                    // Must have Animation (16) or Family (10751)
                     if (!array_intersect([16, 10751], $gids)) continue;
                 }
 
                 $poster = !empty($item['poster_path']) 
                     ? "https://image.tmdb.org/t/p/w500" . $item['poster_path'] 
-                    : "assets/images/media/robert.webp"; // Ensure this fallback exists in your JS or Path
+                    : "assets/images/media/robert.webp";
 
                 $finalMovies[] = [
                     'id' => $item['id'],
@@ -224,7 +297,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
 
                 $seenIds[] = $item['id'];
-                break; // Take top result per suggestion to ensure variety
+                $matchCount++;
             }
         }
     }

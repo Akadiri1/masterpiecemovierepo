@@ -158,11 +158,11 @@ if ($heroData && !empty($heroData['results'])) {
             // 4K Ultra HD Background
             'bg_url'       => isset($details['backdrop_path']) 
                               ? 'https://image.tmdb.org/t/p/original' . $details['backdrop_path'] 
-                              : '/assets/images/media/placeholder.webp',
+                              : '/assets/images/media/placeholder.svg',
             // Standard HD Thumb
             'thumb_url'    => isset($details['poster_path']) 
                               ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
-                              : '/assets/images/media/placeholder-portrait.webp',
+                              : '/assets/images/media/placeholder-portrait.svg',
             'rating'       => $details['vote_average'] ?? 0,
             'stars'        => round(($details['vote_average'] ?? 0) / 2),
             'duration'     => $duration,
@@ -230,7 +230,7 @@ if (isset($_SESSION['user_id']) && isset($conn)) {
                 'title'       => $details['title'],
                 'image_url'   => isset($details['backdrop_path']) 
                                  ? 'https://image.tmdb.org/t/p/w780' . $details['backdrop_path'] 
-                                 : '/assets/images/media/placeholder.webp',
+                                 : '/assets/images/media/placeholder.svg',
                 'time_left'   => $minutesLeft . 'm Left',
                 'percent'     => $percentage,
                 'last_viewed' => date('M d', strtotime($row['last_watched'])),
@@ -259,7 +259,7 @@ if ($topTenData && !empty($topTenData['results'])) {
         $topTenList[] = [
             'id'           => $item['id'],
             'title'        => $item['title'] ?? ($item['name'] ?? ''),
-            'poster_url'   => isset($item['poster_path']) ? 'https://image.tmdb.org/t/p/w780' . $item['poster_path'] : '/assets/images/media/placeholder-portrait.webp',
+            'poster_url'   => isset($item['poster_path']) ? 'https://image.tmdb.org/t/p/w780' . $item['poster_path'] : '/assets/images/media/placeholder-portrait.svg',
             'rank'         => $rank++
         ];
     }
@@ -285,7 +285,7 @@ if ($exclusiveData && !empty($exclusiveData['results'])) {
             // Using w780 for sharp High HD quality (good compromise between 4K and speed)
             'poster_url'   => isset($details['poster_path']) 
                               ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
-                              : '/assets/images/media/placeholder-portrait.webp', 
+                              : '/assets/images/media/placeholder-portrait.svg', 
             'genre'        => $details['genres'][0]['name'] ?? 'Movie',
             'language'     => isset($details['original_language']) 
                               ? locale_get_display_language($details['original_language'], 'en') 
@@ -314,7 +314,7 @@ if ($freshData && !empty($freshData['results'])) {
             // Using w780 for High HD quality
             'poster_url'   => isset($details['poster_path']) 
                               ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
-                              : '/assets/images/media/placeholder-portrait.webp', 
+                              : '/assets/images/media/placeholder-portrait.svg', 
             'genre'        => $details['genres'][0]['name'] ?? 'Movie',
             'language'     => isset($details['original_language']) 
                               ? locale_get_display_language($details['original_language'], 'en') 
@@ -364,7 +364,7 @@ if ($upcomingData && !empty($upcomingData['results'])) {
             // High Quality Poster
             'poster_url'   => isset($details['poster_path']) 
                               ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
-                              : '/assets/images/media/placeholder-portrait.webp', 
+                              : '/assets/images/media/placeholder-portrait.svg', 
             'genre'        => $details['genres'][0]['name'] ?? 'Movie', 
             'language'     => isset($details['original_language']) 
                               ? locale_get_display_language($details['original_language'], 'en') 
@@ -401,11 +401,11 @@ if ($verticalData && !empty($verticalData['results'])) {
             // Big image for the right side (High Quality)
             'backdrop_url' => isset($details['backdrop_path']) 
                               ? 'https://image.tmdb.org/t/p/original' . $details['backdrop_path'] 
-                              : '/assets/images/media/placeholder.webp',
+                              : '/assets/images/media/placeholder.svg',
             // Smaller image for the left thumb (Optimized)
             'poster_url'   => isset($details['poster_path']) 
-                              ? 'https://image.tmdb.org/t/p/w500' . $details['poster_path'] 
-                              : '/assets/images/media/placeholder-portrait.webp',
+                              ? 'https://image.tmdb.org/t/p/w1280' . $details['poster_path'] 
+                              : '/assets/images/media/placeholder-portrait.svg',
             'runtime'      => formatRuntime($details['runtime'] ?? 0),
             'rating'       => $details['vote_average'] ?? 0,
             'stars'        => round(($details['vote_average'] ?? 0) / 2),
@@ -421,7 +421,7 @@ $popularPeople = [];
 $peopleData = fetchTmdbApi('person/popular', ['page' => 1]);
 
 // Define a default placeholder image (Make sure this file exists in your folder!)
-$defaultCastImage = 'assets/images/media/robert.jpg'; 
+$defaultCastImage = '/assets/images/media/placeholder-portrait.svg'; 
 
 if ($peopleData && !empty($peopleData['results'])) {
     $list = array_slice($peopleData['results'], 0, 11);
@@ -437,7 +437,7 @@ if ($peopleData && !empty($peopleData['results'])) {
             'name'         => $person['name'],
             // PHP Check: If API has no path, use default immediately
             'profile_url'  => !empty($person['profile_path']) 
-                              ? 'https://image.tmdb.org/t/p/w500' . $person['profile_path'] 
+                              ? 'https://image.tmdb.org/t/p/w1280' . $person['profile_path'] 
                               : $defaultCastImage, 
             'role'         => $role,
         ];
@@ -503,7 +503,7 @@ if ($ottData && !empty($ottData['results'])) {
             'overview'     => $details['overview'],
             'backdrop_url' => isset($details['backdrop_path']) 
                               ? 'https://image.tmdb.org/t/p/original' . $details['backdrop_path'] 
-                              : '/assets/images/media/placeholder.webp',
+                              : '/assets/images/media/placeholder.svg',
             'rank'         => $rank++,
             'date'         => date('F Y', strtotime($details['first_air_date'])),
             'total_seasons'=> $details['number_of_seasons'],
@@ -532,7 +532,7 @@ if ($recData && !empty($recData['results'])) {
             // Using w780 for high quality
             'poster_url'   => isset($details['poster_path']) 
                               ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
-                              : '/assets/images/media/placeholder-portrait.webp', 
+                              : '/assets/images/media/placeholder-portrait.svg', 
             'genre'        => $details['genres'][0]['name'] ?? 'Movie',
             'language'     => isset($details['original_language']) 
                               ? locale_get_display_language($details['original_language'], 'en') 
@@ -561,7 +561,7 @@ if ($picksData && !empty($picksData['results'])) {
             // Using w780 for high quality
             'poster_url'   => isset($details['poster_path']) 
                               ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
-                              : '/assets/images/media/placeholder-portrait.webp', 
+                              : '/assets/images/media/placeholder-portrait.svg', 
             'genre'        => $details['genres'][0]['name'] ?? 'Movie',
             'language'     => isset($details['original_language']) 
                               ? locale_get_display_language($details['original_language'], 'en') 
@@ -686,7 +686,7 @@ include ("includes/header.php");
 
                                     <!-- Play Button -->
                                     <div class="RightAnimate-four mt-4 pt-2">
-                                       <a href="movie-detail?id=<?php echo $slide['id']; ?>&type=<?php echo $slide['type']; ?>" 
+                                       <a href="/<?php echo $slide['type']; ?>/<?php echo $slide['id']; ?>" 
                                           class="btn btn-primary text-capitalize position-relative rounded-3">
                                           <span class="d-flex align-items-center gap-2">
                                              <span class="button-text">Play Now</span>
@@ -733,7 +733,7 @@ include ("includes/header.php");
                             
                             <!-- Image & Link -->
                             <div class="iq-image-box overly-images">
-                                <a href="movie-detail?id=<?php echo $item['id']; ?>" class="d-block">
+                                <a href="/movie/<?php echo $item['id']; ?>" class="d-block">
                                     <img src="<?php echo $item['image_url']; ?>" alt="<?php echo htmlspecialchars($item['title']); ?>"
                                          class="w-100 d-block border-0 rounded-3 continue-image" loading="lazy">
                                 </a>
@@ -756,7 +756,7 @@ include ("includes/header.php");
                                             <span><?php echo $item['last_viewed']; ?></span>
                                         </li>
                                     </ul>
-                                    <a href="movie-detail?id=<?php echo $item['id']; ?>">
+                                    <a href="/movie/<?php echo $item['id']; ?>">
                                         <i class="ph-fill ph-play iq-preogress-play-btn fs-6"></i>
                                     </a>
                                 </div>
@@ -806,9 +806,9 @@ function removeFromHistory(element, mediaId) {
                 // Optional: Update swiper if needed, though removing the DOM element usually suffices for visual purposes
             }, 300);
 
-            Toastify({ text: "Removed from History", style: { background: "#e50914" } }).showToast();
+            Toastify({ text: "Removed from History", style: { background: "var(--primary)" } }).showToast();
         } else {
-            Toastify({ text: data.message, style: { background: "#e50914" } }).showToast();
+            Toastify({ text: data.message, style: { background: "var(--primary)" } }).showToast();
         }
     })
     .catch(error => console.error('Error:', error));
@@ -905,7 +905,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="iq-top-ten-block position-relative">
                                 <div class="block-image position-relative">
                                     <div class="img-box">
-                                        <a class="overly-images" href="movie-detail?id=<?php echo $movie['id']; ?>">
+                                        <a class="overly-images" href="/movie/<?php echo $movie['id']; ?>">
                                             <!-- Added loading="lazy" and decoding="async" here -->
                                             <img src="<?php echo $movie['poster_url']; ?>" 
                                                  alt="<?php echo htmlspecialchars($movie['title']); ?>"
@@ -955,7 +955,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     
                                     <!-- Poster Image -->
                                     <div class="img-box w-100">
-                                        <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
+                                        <a href="/movie/<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
                                             <img src="<?php echo $movie['poster_url']; ?>" alt="<?php echo htmlspecialchars($movie['title']); ?>"
                                                  class="img-fluid object-cover w-100 d-block border-0 rounded-3" 
                                                  loading="lazy" decoding="async">
@@ -965,7 +965,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <div class="card-description with-transition">
                                         <ul class="genres-list p-0 mb-2 d-flex align-items-center flex-wrap list-inline">
                                             <li class="fw-semi-bold">
-                                                <a href="movie-detail?id=<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
+                                                <a href="/movie/<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
                                                     <?php echo htmlspecialchars($movie['genre']); ?>
                                                 </a>
                                             </li>
@@ -974,7 +974,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <div class="cart-content">
                                             <div class="content-left">
                                                 <h5 class="iq-title text-capitalize">
-                                                    <a href="movie-detail?id=<?php echo $movie['id']; ?>">
+                                                    <a href="/movie/<?php echo $movie['id']; ?>">
                                                         <?php echo htmlspecialchars($movie['title']); ?>
                                                     </a>
                                                 </h5>
@@ -989,14 +989,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                         
                                         <!-- Action Buttons -->
                                         <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
-                                            <a href="watchlist-add.php?id=<?php echo $movie['id']; ?>"
+                                            <a href="/add-watchlist?id=<?php echo $movie['id']; ?>"
                                                class="d-flex align-items-center justify-content-center flex-shrink-0 border-0 add-to-wishlist-btn btn btn-secondary"
                                                data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip"
                                                data-bs-title="Add to Watchlist">
                                                 <i class="ph ph-plus font-size-18"></i>
                                             </a>
                                             <div class="iq-play-button iq-button">
-                                                <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
+                                                <a href="/movie/<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
                                                     Play Now
                                                 </a>
                                             </div>
@@ -1050,7 +1050,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     
                                     <!-- Poster Image -->
                                     <div class="img-box w-100">
-                                        <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
+                                        <a href="/movie/<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
                                             <img src="<?php echo $movie['poster_url']; ?>" alt="<?php echo htmlspecialchars($movie['title']); ?>"
                                                  class="img-fluid object-cover w-100 d-block border-0 rounded-3" 
                                                  loading="lazy" decoding="async">
@@ -1060,7 +1060,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <div class="card-description with-transition">
                                         <ul class="genres-list p-0 mb-2 d-flex align-items-center flex-wrap list-inline">
                                             <li class="fw-semi-bold">
-                                                <a href="movie-detail?id=<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
+                                                <a href="/movie/<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
                                                     <?php echo htmlspecialchars($movie['genre']); ?>
                                                 </a>
                                             </li>
@@ -1069,7 +1069,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <div class="cart-content">
                                             <div class="content-left">
                                                 <h5 class="iq-title text-capitalize mb-0">
-                                                    <a href="movie-detail?id=<?php echo $movie['id']; ?>">
+                                                    <a href="/movie/<?php echo $movie['id']; ?>">
                                                         <?php echo htmlspecialchars($movie['title']); ?>
                                                     </a>
                                                 </h5>
@@ -1078,14 +1078,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                         
                                         <!-- Action Buttons -->
                                         <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
-                                            <a href="watchlist-add.php?id=<?php echo $movie['id']; ?>"
+                                            <a href="/add-watchlist?id=<?php echo $movie['id']; ?>"
                                                class="d-flex align-items-center justify-content-center flex-shrink-0 border-0 add-to-wishlist-btn btn btn-secondary"
                                                data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip"
                                                data-bs-title="Add to Watchlist">
                                                 <i class="ph ph-plus font-size-18"></i>
                                             </a>
                                             <div class="iq-play-button iq-button">
-                                                <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
+                                                <a href="/movie/<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
                                                     Play Now
                                                 </a>
                                             </div>
@@ -1139,7 +1139,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     
                                     <!-- Poster Image -->
                                     <div class="img-box w-100">
-                                        <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
+                                        <a href="/movie/<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
                                             <img src="<?php echo $movie['poster_url']; ?>" alt="<?php echo htmlspecialchars($movie['title']); ?>"
                                                  class="img-fluid object-cover w-100 d-block border-0 rounded-3" 
                                                  loading="lazy" decoding="async">
@@ -1149,7 +1149,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <div class="card-description with-transition">
                                         <ul class="genres-list p-0 mb-2 d-flex align-items-center flex-wrap list-inline">
                                             <li class="fw-semi-bold">
-                                                <a href="movie-detail?id=<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
+                                                <a href="/movie/<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
                                                     <?php echo htmlspecialchars($movie['genre']); ?>
                                                 </a>
                                             </li>
@@ -1158,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <div class="cart-content">
                                             <div class="content-left">
                                                 <h5 class="iq-title text-capitalize">
-                                                    <a href="movie-detail?id=<?php echo $movie['id']; ?>">
+                                                    <a href="/movie/<?php echo $movie['id']; ?>">
                                                         <?php echo htmlspecialchars($movie['title']); ?>
                                                     </a>
                                                 </h5>
@@ -1176,7 +1176,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         
                                         <!-- Buttons -->
                                         <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
-                                            <a href="watchlist-add.php?id=<?php echo $movie['id']; ?>"
+                                            <a href="/add-watchlist?id=<?php echo $movie['id']; ?>"
                                                class="d-flex align-items-center justify-content-center flex-shrink-0 border-0 add-to-wishlist-btn btn btn-secondary"
                                                data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip"
                                                data-bs-title="Add to Watchlist">
@@ -1184,7 +1184,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                             </a>
                                             <div class="iq-play-button iq-button">
                                                 <!-- Changed text to Pre-Order for logic consistency -->
-                                                <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
+                                                <a href="/movie/<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
                                                     Pre-Order
                                                 </a>
                                             </div>
@@ -1328,7 +1328,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                            <!-- Title -->
                            <h2 class="iq-title m-0 line-count-2">
-                               <a href="movie-detail?id=<?php echo $movie['id']; ?>">
+                               <a href="/movie/<?php echo $movie['id']; ?>">
                                    <?php echo htmlspecialchars($movie['title']); ?>
                                </a>
                            </h2>
@@ -1358,7 +1358,7 @@ document.addEventListener('DOMContentLoaded', function() {
                            </p>
 
                            <!-- Play Button -->
-                           <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="btn btn-primary text-capitalize position-relative rounded-3">
+                           <a href="/movie/<?php echo $movie['id']; ?>" class="btn btn-primary text-capitalize position-relative rounded-3">
                               <span class="d-flex align-items-center gap-2">
                                  <span class="button-text">play now</span>
                                  <i class="ph-fill ph-play fs-6"></i>
@@ -1450,7 +1450,7 @@ document.addEventListener('DOMContentLoaded', function() {
                      <div class="iq-card card-hover">
                         <div class="block-images position-relative w-100">
                            <div class="img-box w-100">
-                              <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
+                              <a href="/movie/<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
                                  <img src="<?php echo $movie['poster_url']; ?>" alt="<?php echo htmlspecialchars($movie['title']); ?>"
                                     class="img-fluid object-cover w-100 d-block border-0 rounded-3" loading="lazy">
                               </a>
@@ -1464,7 +1464,7 @@ document.addEventListener('DOMContentLoaded', function() {
                               <div class="cart-content">
                                  <div class="content-left">
                                     <h5 class="iq-title text-capitalize">
-                                       <a href="movie-detail?id=<?php echo $movie['id']; ?>"><?php echo htmlspecialchars($movie['title']); ?></a>
+                                       <a href="/movie/<?php echo $movie['id']; ?>"><?php echo htmlspecialchars($movie['title']); ?></a>
                                     </h5>
                                     <div class="d-flex align-items-center gap-3">
                                        <div class="d-flex align-items-center gap-2">
@@ -1475,11 +1475,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                  </div>
                               </div>
                               <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
-                                 <a href="watchlist-add.php?id=<?php echo $movie['id']; ?>" class="d-flex align-items-center justify-content-center flex-shrink-0 border-0 add-to-wishlist-btn btn btn-secondary">
+                                 <a href="/add-watchlist?id=<?php echo $movie['id']; ?>" class="d-flex align-items-center justify-content-center flex-shrink-0 border-0 add-to-wishlist-btn btn btn-secondary">
                                     <i class="ph ph-plus font-size-18"></i>
                                  </a>
                                  <div class="iq-play-button iq-button">
-                                    <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="btn btn-primary w-100">Play Now</a>
+                                    <a href="/movie/<?php echo $movie['id']; ?>" class="btn btn-primary w-100">Play Now</a>
                                  </div>
                               </div>
                            </div>
@@ -1539,7 +1539,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <li class="font-size-18 trending-list"><?php echo $show['date']; ?></li>
                                         <li class="font-size-18"><?php echo $show['total_seasons']; ?> Seasons</li>
                                      </ul>
-                                     <a href="movie-detail?id=<?php echo $show['id']; ?>&type=tv" class="btn btn-primary text-capitalize position-relative rounded-3">
+                                     <a href="/tv/<?php echo $show['id']; ?>" class="btn btn-primary text-capitalize position-relative rounded-3">
                                         <span class="d-flex align-items-center gap-2">
                                            <span class="button-text">Stream Now</span>
                                            <i class="ph-fill ph-play fs-6"></i>
@@ -1654,7 +1654,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     
                                     <!-- Poster -->
                                     <div class="img-box w-100">
-                                        <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
+                                        <a href="/movie/<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
                                             <img src="<?php echo $movie['poster_url']; ?>" 
                                                  alt="<?php echo htmlspecialchars($movie['title']); ?>"
                                                  class="img-fluid object-cover w-100 d-block border-0 rounded-3" 
@@ -1665,7 +1665,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <div class="card-description with-transition">
                                         <ul class="genres-list p-0 mb-2 d-flex align-items-center flex-wrap list-inline">
                                             <li class="fw-semi-bold">
-                                                <a href="movie-detail?id=<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
+                                                <a href="/movie/<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
                                                     <?php echo htmlspecialchars($movie['genre']); ?>
                                                 </a>
                                             </li>
@@ -1674,7 +1674,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <div class="cart-content">
                                             <div class="content-left">
                                                 <h5 class="iq-title text-capitalize">
-                                                    <a href="movie-detail?id=<?php echo $movie['id']; ?>">
+                                                    <a href="/movie/<?php echo $movie['id']; ?>">
                                                         <?php echo htmlspecialchars($movie['title']); ?>
                                                     </a>
                                                 </h5>
@@ -1689,14 +1689,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                         
                                         <!-- Buttons -->
                                         <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
-                                            <a href="watchlist-add.php?id=<?php echo $movie['id']; ?>"
+                                            <a href="/add-watchlist?id=<?php echo $movie['id']; ?>"
                                                class="d-flex align-items-center justify-content-center flex-shrink-0 border-0 add-to-wishlist-btn btn btn-secondary"
                                                data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip"
                                                data-bs-title="Add to Watchlist">
                                                 <i class="ph ph-plus font-size-18"></i>
                                             </a>
                                             <div class="iq-play-button iq-button">
-                                                <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
+                                                <a href="/movie/<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
                                                     Play Now
                                                 </a>
                                             </div>
@@ -1749,7 +1749,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     
                                     <!-- Poster -->
                                     <div class="img-box w-100">
-                                        <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
+                                        <a href="/movie/<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
                                             <img src="<?php echo $movie['poster_url']; ?>" 
                                                  alt="<?php echo htmlspecialchars($movie['title']); ?>"
                                                  class="img-fluid object-cover w-100 d-block border-0 rounded-3" 
@@ -1760,7 +1760,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <div class="card-description with-transition">
                                         <ul class="genres-list p-0 mb-2 d-flex align-items-center flex-wrap list-inline">
                                             <li class="fw-semi-bold">
-                                                <a href="movie-detail?id=<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
+                                                <a href="/movie/<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
                                                     <?php echo htmlspecialchars($movie['genre']); ?>
                                                 </a>
                                             </li>
@@ -1769,7 +1769,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <div class="cart-content">
                                             <div class="content-left">
                                                 <h5 class="iq-title text-capitalize">
-                                                    <a href="movie-detail?id=<?php echo $movie['id']; ?>">
+                                                    <a href="/movie/<?php echo $movie['id']; ?>">
                                                         <?php echo htmlspecialchars($movie['title']); ?>
                                                     </a>
                                                 </h5>
@@ -1784,14 +1784,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                         
                                         <!-- Buttons -->
                                         <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
-                                            <a href="watchlist-add.php?id=<?php echo $movie['id']; ?>"
+                                            <a href="/add-watchlist?id=<?php echo $movie['id']; ?>"
                                                class="d-flex align-items-center justify-content-center flex-shrink-0 border-0 add-to-wishlist-btn btn btn-secondary"
                                                data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip"
                                                data-bs-title="Add to Watchlist">
                                                 <i class="ph ph-plus font-size-18"></i>
                                             </a>
                                             <div class="iq-play-button iq-button">
-                                                <a href="movie-detail?id=<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
+                                                <a href="/movie/<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
                                                     Play Now
                                                 </a>
                                             </div>

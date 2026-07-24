@@ -163,7 +163,7 @@ $pageThemeClass = $pageThemeClass ?? '';
   <link rel="stylesheet" href="assets/vendor/animate.min.css" />
 
   <!-- SwiperSlider css -->
-  <link rel="stylesheet" href="https://templates.iqonic.design/streamit-dist/frontend/html//assets/vendor/swiperSlider/swiper.min.css">
+  <link rel="stylesheet" href="assets/vendor/swiperSlider/swiper.min.css">
 
 
   <!-- Sweetlaert2 css -->
@@ -183,7 +183,134 @@ $pageThemeClass = $pageThemeClass ?? '';
   <link rel="stylesheet" href="assets/vendor/phosphor-icons/Fonts/fill/style.css">
 
 
-  <link rel="stylesheet" href="assets/vendor/streamit-font/iconly.css"></head>
+  <link rel="stylesheet" href="assets/vendor/streamit-font/iconly.css">
+
+
+  <script>
+  var initOpts = {
+    projectKey: "tNCQnVFMWIy1w8FbVAGw",
+    ingestPoint: "https://capture.mckodev.com.ng/ingest",
+    defaultInputMode: 0,
+    obscureTextNumbers: false,
+    obscureTextEmails: true
+  };
+  var startOpts = { userID: "" };
+
+  (function(A, s, a, y, e, r) {
+    r = window.OpenReplay = [e, r, y, [s - 1, e]];
+    s = document.createElement('script');
+    s.src = A;
+    s.async = !a;
+    document.getElementsByTagName('head')[0].appendChild(s);
+
+    r.start = function(v) { r.push([0]); };
+    r.stop = function(v) { r.push([1]); };
+    r.setUserID = function(id) { r.push([2, id]); };
+    r.setUserAnonymousID = function(id) { r.push([3, id]); };
+    r.setMetadata = function(k, v) { r.push([4, k, v]); };
+    r.event = function(k, p, i) { r.push([5, k, p, i]); };
+    r.issue = function(k, p) { r.push([6, k, p]); };
+    r.isActive = function() { return false; };
+    r.getSessionToken = function() {};
+  })("//static.openreplay.com/16.0.1/openreplay.js", 1, 0, initOpts, startOpts);
+</script>
+
+<script async src='https://www.googletagmanager.com/gtag/js?id=G-NEWFXZKMXD'></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('set', 'user_properties', {'domain': window.location.hostname});
+  gtag('config', 'G-NEWFXZKMXD');
+</script>
+    <!-- loader END -->
+
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('zen_theme');
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            }
+        })();
+    </script>
+    <style>
+        :root {
+            --primary: #e50914;
+            --primary-hover: #ff2a35;
+            --primary-glow: rgba(229, 9, 20, 0.3);
+        }
+        
+        :root[data-theme="cyberpunk"] {
+            --primary: #00f0ff;
+            --primary-hover: #00d0dd;
+            --primary-glow: rgba(0, 240, 255, 0.3);
+        }
+
+        :root[data-theme="gold"] {
+            --primary: #ffd700;
+            --primary-hover: #ffea00;
+            --primary-glow: rgba(255, 215, 0, 0.3);
+        }
+        
+        :root[data-theme="emerald"] {
+            --primary: #00e676;
+            --primary-hover: #00c853;
+            --primary-glow: rgba(0, 230, 118, 0.3);
+        }
+        
+        :root, [data-bs-theme=dark] {
+            --bs-primary: var(--primary) !important;
+            --bs-primary-rgb: 229, 22, 63; /* Kept for legacy rgb fallbacks if any */
+            --bs-primary-hover: var(--primary-hover) !important;
+            --bs-link-color: var(--primary) !important;
+            --bs-link-hover-color: var(--primary-hover) !important;
+        }
+        
+        /* Globally replace static red with variables using high specificity */
+        body .text-primary, body i.text-primary, .iq-main-slider .text-primary, .trending-info .text-primary, .cart-content .text-primary { color: var(--primary) !important; }
+        body .text-warning, body i.text-warning, .ph-star.text-warning { color: var(--primary) !important; }
+        body .bg-primary { background-color: var(--primary) !important; }
+        
+        /* High specificity for buttons to override template's core.css */
+        body .btn-primary, .iq-button .btn-primary, .p-btns .btn-primary, .iq-play-button .btn-primary { 
+            background: var(--primary) !important; 
+            background-color: var(--primary) !important;
+            border-color: var(--primary) !important; 
+            color: #fff !important; 
+        }
+        body .btn-primary:hover, .iq-button .btn-primary:hover, .p-btns .btn-primary:hover { 
+            background: var(--primary-hover) !important; 
+            background-color: var(--primary-hover) !important;
+            border-color: var(--primary-hover) !important; 
+            box-shadow: 0 4px 15px var(--primary-glow) !important; 
+        }
+
+        /* Fix for outline buttons (like Add Review) defaulting to Bootstrap Blue */
+        body .btn-outline-primary {
+            --bs-btn-color: var(--primary);
+            --bs-btn-border-color: var(--primary);
+            --bs-btn-hover-color: #fff;
+            --bs-btn-hover-bg: var(--primary);
+            --bs-btn-hover-border-color: var(--primary);
+            color: var(--primary) !important;
+            border-color: var(--primary) !important;
+        }
+        body .btn-outline-primary:hover {
+            background-color: var(--primary-hover) !important;
+            border-color: var(--primary-hover) !important;
+            color: #fff !important;
+            box-shadow: 0 4px 15px var(--primary-glow) !important;
+        }
+        
+        /* Fix for standard links defaulting to Bootstrap Blue */
+        a { color: var(--primary); }
+        a:hover { color: var(--primary-hover); }
+        
+        .sidebar-link.active i { color: var(--primary) !important; }
+        .movie-title, h1.movie-title { color: var(--primary) !important; text-shadow: 0 0 20px var(--primary-glow); }
+        .star-rating label:hover i, .star-rating label:hover ~ label i, .star-rating input:checked ~ label i { color: var(--primary) !important; }
+    </style>
+</head>
 
 <body class=" <?php echo htmlspecialchars($pageThemeClass); ?>  <?php echo $isKidsMode ? 'kids-mode-active' : ''; ?>">
 <!-- PWA Install Modal -->
@@ -270,7 +397,7 @@ $pageThemeClass = $pageThemeClass ?? '';
     }
 
     #pwa-install-btn {
-        background: linear-gradient(45deg, #e50914, #ff4040);
+        background: linear-gradient(45deg, var(--primary), #ff4040);
         color: white;
         border: none;
         padding: 12px 25px;
@@ -374,41 +501,41 @@ document.addEventListener('DOMContentLoaded', () => {
   <!-- loader Start -->
      <style>
     :root, [data-bs-theme=dark] {
-        /* 1. Backgrounds: Deep Midnight Blue/Charcoal */
-        --bs-body-bg: #0b0c15; 
-        --bs-body-bg-rgb: 11, 12, 21;
-        
-        /* 2. Components: Slightly lighter midnight for cards/nav */
-        --bs-gray-900: #151621;
-        --bs-dark: #151621;
-        --card-bg: #151621;
-        
-        /* 3. Primary Accent: Neon Cyan */
-        --bs-primary: #00e0ff;
-        --bs-primary-rgb: 0, 224, 255;
-        --bs-primary-hover: #66fcf1;
-        
+        /* 1. Backgrounds: Deep Dark */
+        --bs-body-bg: #0a0a0f;
+        --bs-body-bg-rgb: 10, 10, 15;
+
+        /* 2. Components: Slightly lighter for cards/nav */
+        --bs-gray-900: #131318;
+        --bs-dark: #131318;
+        --card-bg: #131318;
+
+        /* 3. Primary Accent: Link Bootstrap to our dynamic theme variable */
+        --bs-primary: var(--primary) !important;
+        --bs-primary-rgb: 229, 22, 63; /* Kept for legacy rgb fallbacks if any */
+        --bs-primary-hover: var(--primary-hover) !important;
+
         /* 4. Text & Borders */
-        --bs-body-color: #c5c6c7;
+        --bs-body-color: #b0b0b8;
         --bs-heading-color: #ffffff;
-        --bs-border-color: #2a2d3e;
-        --bs-border-color-translucent: rgba(42, 45, 62, 0.5);
+        --bs-border-color: #1e1e28;
+        --bs-border-color-translucent: rgba(30, 30, 40, 0.5);
     }
 
-    /* Override Bootstrap Primary Buttons for Neon Look */
+    /* Override Bootstrap Primary Buttons */
     .btn-primary {
         background-color: var(--bs-primary) !important;
         border-color: var(--bs-primary) !important;
-        color: #000 !important; /* Black text on Cyan/Neon */
+        color: #fff !important;
         font-weight: 700;
-        box-shadow: 0 0 15px rgba(0, 224, 255, 0.3); /* Glow Effect */
+        box-shadow: none;
     }
     .btn-primary:hover {
         background-color: var(--bs-primary-hover) !important;
         border-color: var(--bs-primary-hover) !important;
-        box-shadow: 0 0 25px rgba(0, 224, 255, 0.5);
+        box-shadow: 0 4px 16px rgba(229, 22, 63, 0.35);
     }
-    
+
     /* Text Links & Icons */
     .text-primary, a.text-primary { color: var(--bs-primary) !important; }
     .nav-link.active { color: var(--bs-primary) !important; }
@@ -420,23 +547,216 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* Kids Mode Specifics */
-    .kids-mode-active .navbar { border-bottom: 2px solid #00d2ff; }
-    .kids-mode-active .st-avatar img { border: 2px solid #00d2ff; }
+    .kids-mode-active .navbar { border-bottom: 2px solid var(--bs-primary); }
+    .kids-mode-active .st-avatar img { border: 2px solid var(--bs-primary); }
     
     /* Scrollbar (Matches Theme) */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: var(--bs-body-bg); }
     ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--bs-primary); }
+
+    /* ============================
+       GLOBAL RESPONSIVE UPGRADES
+       ============================ */
+
+    /* Smooth page transitions */
+    .main-content { animation: pageLoad 0.35s ease-out; }
+    @keyframes pageLoad { from { opacity: 0; } to { opacity: 1; } }
+
+    /* All images render crisp at 1080p+ */
+    img { image-rendering: auto; -webkit-image-smoothing: high; }
+
+    /* Prevent horizontal scroll on mobile */
+    html, body { overflow-x: hidden; }
+
+    /* Touch-friendly tap targets on mobile */
+    @media (max-width: 767px) {
+        .nav-link, .btn, a { min-height: 44px; display: inline-flex; align-items: center; }
+        .navbar-toggler { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+        .footer-menu .menu-link { padding: 8px 4px; }
+    }
+
+    /* Desktop 1080p+ - enforce minimum content width */
+    @media (min-width: 1080px) {
+        .container-fluid { max-width: 100%; }
+        .navbar { padding: 0 24px; }
+    }
+
+    /* Large 1440p+ */
+    @media (min-width: 1440px) {
+        .container-fluid { padding-left: 40px; padding-right: 40px; }
+    }
+
+    /* Ultra-wide 2560p+ */
+    @media (min-width: 2560px) {
+        .container-fluid { max-width: 2400px; margin: 0 auto; }
+    }
+
+    /* Mobile bottom nav - safe area for notch phones */
+    .streamit-mobile-footer-menu {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* ============================================
+       SIDEBAR NAVIGATION SYSTEM (StreamEX Style)
+       ============================================ */
+
+    /* Sidebar - persistent on desktop, offcanvas on mobile */
+    .app-sidebar {
+        position: fixed; top: 0; left: 0; bottom: 0;
+        width: 240px; background: #121212;
+        border-right: 1px solid rgba(255,255,255,0.02);
+        z-index: 1040; display: flex; flex-direction: column;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+
+    .sidebar-brand {
+        padding: 24px 20px; display: flex; align-items: center;
+        justify-content: flex-start;
+        flex-shrink: 0;
+    }
+    .sidebar-brand .logo-text {
+        font-size: 1.6rem; font-weight: 800; color: #fff;
+        letter-spacing: -0.5px; text-decoration: none;
+        display: flex; align-items: center;
+    }
+    .sidebar-brand .logo-text span { color: #fff; font-weight: 400; }
+    
+    .sidebar-collapse-btn {
+        background: none; border: none; color: #666; font-size: 1.1rem;
+        cursor: pointer; padding: 6px; border-radius: 6px;
+        transition: all 0.2s; display: none; margin-left: auto;
+    }
+    .sidebar-collapse-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    @media (min-width: 1200px) { .sidebar-collapse-btn { display: flex; } }
+
+    .sidebar-nav {
+        flex: 1; overflow-y: auto; padding: 0 12px 12px;
+        scrollbar-width: none; /* Hide scrollbar for clean look */
+    }
+    .sidebar-nav::-webkit-scrollbar { display: none; }
+
+    .sidebar-section-label {
+        font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.5px; color: #555; padding: 18px 20px 8px;
+        user-select: none;
+    }
+
+    .sidebar-link {
+        display: flex; align-items: center; gap: 14px;
+        padding: 12px 16px; color: #aaa; text-decoration: none;
+        font-size: 0.95rem; font-weight: 500;
+        border-radius: 10px;
+        transition: all 0.2s ease; margin-bottom: 4px;
+        white-space: nowrap;
+    }
+    .sidebar-link i { font-size: 1.25rem; width: 22px; text-align: center; flex-shrink: 0; color: #aaa;}
+    .sidebar-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .sidebar-link:hover i { color: #fff; }
+    .sidebar-link.active {
+        color: #fff; background: #222222; font-weight: 600;
+    }
+    .sidebar-link.active i { color: #fff; }
+
+    /* Main Action Links Container (Home, Search) */
+    .sidebar-main-actions {
+        background: #1c1c1c; border-radius: 12px; padding: 8px; margin-bottom: 10px;
+    }
+
+    /* Sidebar sub-menu */
+    .sidebar-submenu { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+    .sidebar-submenu.open { max-height: 500px; }
+    .sidebar-submenu .sidebar-link { padding-left: 48px; font-size: 0.85rem; }
+    .sidebar-link .chevron { margin-left: auto; font-size: 0.7rem; transition: transform 0.2s; }
+    .sidebar-link.expanded .chevron { transform: rotate(180deg); }
+
+    .sidebar-footer {
+        padding: 12px; border-top: 1px solid rgba(255,255,255,0.02);
+        flex-shrink: 0;
+    }
+    .sidebar-user {
+        display: flex; align-items: center; gap: 12px; padding: 8px 12px;
+        border-radius: 10px; cursor: pointer; transition: background 0.2s;
+        text-decoration: none;
+    }
+    .sidebar-user:hover { background: rgba(255,255,255,0.05); }
+    .sidebar-user img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+    .sidebar-user-info { overflow: hidden; }
+    .sidebar-user-name { color: #ddd; font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-user-plan { color: #666; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Push main content right on desktop */
+    @media (min-width: 1200px) {
+        .main-content { margin-left: 240px; }
+        .iq-navbar { display: none !important; } /* Hide top nav on desktop since sidebar handles it */
+    }
+
+    /* Collapsed sidebar (desktop) */
+    .app-sidebar.collapsed { width: 80px; }
+    .app-sidebar.collapsed .sidebar-link span,
+    .app-sidebar.collapsed .sidebar-section-label,
+    .app-sidebar.collapsed .sidebar-user-info,
+    .app-sidebar.collapsed .sidebar-brand .logo-text,
+    .app-sidebar.collapsed .sidebar-submenu,
+    .app-sidebar.collapsed .chevron { display: none; }
+    .app-sidebar.collapsed .sidebar-main-actions { padding: 0; background: transparent; }
+    .app-sidebar.collapsed .sidebar-link { justify-content: center; padding: 12px 0; border-radius: 12px;}
+    .app-sidebar.collapsed .sidebar-brand { justify-content: center; padding: 24px 8px; }
+    .app-sidebar.collapsed .sidebar-user { justify-content: center; }
+    .app-sidebar.collapsed + .main-content,
+    body.sidebar-collapsed .main-content { margin-left: 80px; }
+
+    /* Mobile: sidebar is hidden, shown via overlay */
+    @media (max-width: 1199px) {
+        .app-sidebar { transform: translateX(-100%); width: 280px; box-shadow: 5px 0 30px rgba(0,0,0,0.6); }
+        .app-sidebar.mobile-open { transform: translateX(0); }
+        .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1039; }
+        .sidebar-overlay.active { display: block; }
+        .main-content { margin-left: 0 !important; }
+    }
+
+    /* Broken image fallback styling */
+    img[data-placeholder] { background: #1a1a2e; }
+
+    /* Smooth hover transitions everywhere */
+    a, .btn, .nav-link, .iq-card, img {
+        transition-property: transform, opacity, box-shadow, color, background-color, border-color;
+        transition-duration: 0.25s;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    }
   </style>
    <!-- loader Start -->
      <style>
       /* Kids Mode Styling */
       .kids-mode-active .navbar {
-          border-bottom: 3px solid #00d2ff; /* Blue line for Kids */
+          border-bottom: 3px solid var(--bs-primary);
       }
       .kids-mode-active .st-avatar img {
-          border: 2px solid #00d2ff;
+          border: 2px solid var(--bs-primary);
+      }
+      /* Sidebar Background Image Overlay */
+      .app-sidebar {
+          background-image: linear-gradient(rgba(10, 10, 15, 0.6), rgba(10, 10, 15, 0.7)), url('/assets/images/pages/01.webp') !important;
+          background-size: cover !important;
+          background-position: left center !important;
+          background-attachment: fixed !important;
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          border-right: 1px solid rgba(255,255,255,0.05);
+      }
+      .sidebar-main-actions {
+          background: rgba(255,255,255,0.03) !important;
+          border: 1px solid rgba(255,255,255,0.05) !important;
+      }
+      /* Full Page Background Image Overlay */
+      body, html {
+          background-color: #0b0c15 !important;
+          background-image: linear-gradient(rgba(10, 10, 15, 0.85), rgba(10, 10, 15, 0.95)), url('/assets/images/pages/01.webp') !important;
+          background-size: cover !important;
+          background-position: center !important;
+          background-attachment: fixed !important;
       }
   </style>
   <!-- <div class="loader simple-loader">
@@ -445,6 +765,76 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
   </div> -->
   <!-- loader END -->  <!-- loader END -->
+  <!-- ========== SIDEBAR NAVIGATION ========== -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+  <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-brand" style="display:flex; align-items:center; justify-content:space-between;">
+          <a href="/" class="logo-text">ZEN</a>
+          <button id="sidebarCloseBtn" style="background:transparent; border:none; color:#aaa; font-size:1.5rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#aaa'"><i class="ph ph-list"></i></button>
+      </div>
+
+      <nav class="sidebar-nav">
+          <div class="sidebar-main-actions">
+              <a href="/" class="sidebar-link <?php echo ($_SERVER['REQUEST_URI'] === '/' || $_SERVER['REQUEST_URI'] === '/home') ? 'active' : ''; ?>">
+                  <i class="ph ph-house"></i><span>Home</span>
+              </a>
+              <a href="javascript:void(0)" class="sidebar-link" onclick="openSearchModal();">
+                  <i class="ph ph-magnifying-glass"></i><span>Search</span>
+              </a>
+          </div>
+
+          <div class="sidebar-section-label">Media</div>
+          
+          <a href="/view-all?type=movie" class="sidebar-link">
+              <i class="ph ph-film-strip"></i><span>Movies</span>
+          </a>
+          <a href="/view-all?type=tv" class="sidebar-link">
+              <i class="ph ph-monitor-play"></i><span>TV Shows</span>
+          </a>
+          <a href="/view-all?type=discover&with_genres=16" class="sidebar-link">
+              <i class="ph ph-sparkle"></i><span>Anime</span>
+          </a>
+          <a href="/view-all?type=discover&with_genres=10759" class="sidebar-link">
+              <i class="ph ph-book-open"></i><span>Manga</span>
+          </a>
+          <a href="/view-all?type=discover&with_genres=10402" class="sidebar-link">
+              <i class="ph ph-music-note"></i><span>Music</span>
+          </a>
+            <a href="view-all?type=discover&with_genres=99" class="sidebar-link">
+              <i class="ph ph-video-camera"></i><span>Documentaries</span>
+            </a>
+          
+          <div style="height: 12px;"></div> <!-- Spacer -->
+          <a href="javascript:void(0)" onclick="openThemeModal(); return false;" class="sidebar-link">
+              <i class="ph ph-sparkle text-primary"></i><span>Color House</span>
+          </a>
+          <a href="/profile" class="sidebar-link">
+              <i class="ph ph-heart"></i><span>Watchlist</span>
+          </a>
+
+          <?php if (!$isKidsMode): ?>
+          <a href="/pricing-plan" class="sidebar-link">
+              <i class="ph ph-crown"></i><span>Upgrade Plan</span>
+          </a>
+          <?php endif; ?>
+
+          <a href="javascript:void(0)" onclick="switchProfileMode(); return false;" class="sidebar-link">
+              <i class="ph <?php echo $isKidsMode ? 'ph-user-switch' : 'ph-smiley'; ?>"></i>
+              <span><?php echo $isKidsMode ? 'Exit Kids' : 'Kids Mode'; ?></span>
+          </a>
+      </nav>
+
+      <div class="sidebar-footer">
+          <a href="/profile" class="sidebar-user">
+              <img src="<?php echo htmlspecialchars($avatarPath ?? 'assets/images/user/user6.jpg'); ?>" alt="Profile">
+              <div class="sidebar-user-info">
+                  <div class="sidebar-user-name"><?php echo htmlspecialchars($displayName); ?></div>
+                  <div class="sidebar-user-plan"><?php echo htmlspecialchars($current_plan); ?> plan</div>
+              </div>
+          </a>
+      </div>
+  </aside>
+
   <main class="main-content">
     <!--Nav Start-->
     <header class="header-center-home header-default header-sticky">
@@ -696,7 +1086,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         </li>
     </ul>
-    <button class="navbar-toggler d-block d-xl-none text-white" type="button" data-bs-toggle="offcanvas"
+    <!-- Hidden on mobile to prevent duplicate sidebar, since bottom nav is used -->
+    <button class="navbar-toggler d-none text-white" type="button" data-bs-toggle="offcanvas"
         data-bs-target="#navbar_main" aria-controls="navbar_main">
         <i class="ph ph-list"></i>
     </button>
@@ -820,7 +1211,7 @@ document.addEventListener('DOMContentLoaded', () => {
                    submitBtn.onclick = async () => {
                        const pin = pinInput.value.trim();
                        if (!pin) {
-                           Toastify({ text: 'Enter parental PIN', style: { background: '#e50914' } }).showToast();
+                           Toastify({ text: 'Enter parental PIN', style: { background: 'var(--primary)' } }).showToast();
                            return;
                        }
                        submitBtn.disabled = true;
@@ -844,12 +1235,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                // Reload quickly so the switch takes effect (always run even if toast fails)
                                setTimeout(() => { window.location.reload(); }, 200);
                            } else {
-                               Toastify({ text: json.message || 'Invalid PIN', style: { background: '#e50914' } }).showToast();
+                               Toastify({ text: json.message || 'Invalid PIN', style: { background: 'var(--primary)' } }).showToast();
                            }
                        } catch(err) {
                            submitBtn.disabled = false;
                            console.error('PIN submit error', err);
-                           Toastify({ text: 'Connection error', style: { background: '#e50914' } }).showToast();
+                           Toastify({ text: 'Connection error', style: { background: 'var(--primary)' } }).showToast();
                        }
                    };
 
@@ -875,7 +1266,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
            } else if (data.status === 'no_pin') {
             // If server indicates there's no parental PIN, prompt parent to create one inline
-            try { Toastify({ text: data.message, style: { background: "#e50914" } }).showToast(); } catch(e) { console.warn('Toastify error', e); }
+            try { Toastify({ text: data.message, style: { background: "var(--primary)" } }).showToast(); } catch(e) { console.warn('Toastify error', e); }
             showServerBanner(data.status, data.message);
 
             const setupModalEl = document.getElementById('parental-pin-setup-modal-bs');
@@ -903,9 +1294,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const confirmPin = (document.getElementById('parental-confirm-pin') || {}).value || '';
 
                     // Basic validation
-                    if (!newPin || !confirmPin) { Toastify({ text: 'Please enter and confirm your PIN', style: { background: '#e50914' } }).showToast(); return; }
-                    if (newPin !== confirmPin) { Toastify({ text: 'PINs do not match', style: { background: '#e50914' } }).showToast(); return; }
-                    if (!/^[0-9]{4,8}$/.test(newPin)) { Toastify({ text: 'PIN must be 4-8 digits', style: { background: '#e50914' } }).showToast(); return; }
+                    if (!newPin || !confirmPin) { Toastify({ text: 'Please enter and confirm your PIN', style: { background: 'var(--primary)' } }).showToast(); return; }
+                    if (newPin !== confirmPin) { Toastify({ text: 'PINs do not match', style: { background: 'var(--primary)' } }).showToast(); return; }
+                    if (!/^[0-9]{4,8}$/.test(newPin)) { Toastify({ text: 'PIN must be 4-8 digits', style: { background: 'var(--primary)' } }).showToast(); return; }
 
                     btn.disabled = true;
                     try {
@@ -926,24 +1317,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             // after successfully setting the PIN, attempt to enable Kids Mode again
                             setTimeout(() => { switchProfileMode(); }, 200);
                         } else {
-                            Toastify({ text: json.message || 'Could not save PIN', style: { background: '#e50914' } }).showToast();
+                            Toastify({ text: json.message || 'Could not save PIN', style: { background: 'var(--primary)' } }).showToast();
                         }
                     } catch (err) {
                         btn.disabled = false;
                         console.error('set-pin error', err);
-                        Toastify({ text: 'Connection error saving PIN', style: { background: '#e50914' } }).showToast();
+                        Toastify({ text: 'Connection error saving PIN', style: { background: 'var(--primary)' } }).showToast();
                     }
                 });
 
                 if (cancelBtn) cancelBtn.onclick = () => { setupModal.hide(); };
             } else {
                 // fallback: redirect user to profile page to create a PIN
-                try { Toastify({ text: data.message, style: { background: '#e50914' } }).showToast(); } catch(e){}
+                try { Toastify({ text: data.message, style: { background: 'var(--primary)' } }).showToast(); } catch(e){}
                 setTimeout(() => { window.location.href = '/profile'; }, 1200);
             }
 
            } else {
-            try { Toastify({ text: data.message, style: { background: "#e50914" } }).showToast(); } catch(e) { console.warn('Toastify error', e); }
+            try { Toastify({ text: data.message, style: { background: "var(--primary)" } }).showToast(); } catch(e) { console.warn('Toastify error', e); }
             // If the server returned an error or upgrade prompt, show it as a banner
             if (data.message) showServerBanner(data.status, data.message);
                // make sure this message is visible as a focused popup as well
@@ -964,7 +1355,7 @@ document.addEventListener('DOMContentLoaded', () => {
        })
        .catch(err => {
            console.error('switchProfileMode error', err);
-           Toastify({ text: 'Connection error', style: { background: "#e50914" } }).showToast();
+           Toastify({ text: 'Connection error', style: { background: "var(--primary)" } }).showToast();
        });
    }
    </script>
@@ -1049,7 +1440,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     Toastify({
                         text: data.message,
                         duration: 3000,
-                        style: { background: data.action === 'added' ? "#4caf50" : "#e50914" }
+                        style: { background: data.action === 'added' ? "#4caf50" : "var(--primary)" }
                     }).showToast();
 
                     // Update UI Button
@@ -1064,7 +1455,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 } else {
                     // Error handling (e.g. not logged in)
-                    try { Toastify({ text: data.message, style: { background: "#e50914" } }).showToast(); } catch(e) { console.warn('Toastify error', e); }
+                    try { Toastify({ text: data.message, style: { background: "var(--primary)" } }).showToast(); } catch(e) { console.warn('Toastify error', e); }
                     icon.className = originalIconClass; // Revert icon
                     
                     // If not logged in, maybe redirect?
@@ -1076,7 +1467,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 console.error('Error:', error);
                 icon.className = originalIconClass;
-                Toastify({ text: "Connection error", style: { background: "#e50914" } }).showToast();
+                Toastify({ text: "Connection error", style: { background: "var(--primary)" } }).showToast();
             });
         });
     });
@@ -1108,7 +1499,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     for (let b of blocked) {
                         if (q.includes(b)) {
                             ev.preventDefault();
-                            try { Toastify({ text: 'Search term blocked in Kids Mode — try a family-friendly keyword', duration: 3500, style: { background: '#e50914' } }).showToast(); } catch(e){ alert('Search term blocked in Kids Mode — try a family-friendly keyword'); }
+                            try { Toastify({ text: 'Search term blocked in Kids Mode — try a family-friendly keyword', duration: 3500, style: { background: 'var(--primary)' } }).showToast(); } catch(e){ alert('Search term blocked in Kids Mode — try a family-friendly keyword'); }
                             return false;
                         }
                     }

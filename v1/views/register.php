@@ -21,7 +21,42 @@
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/vendor/phosphor-icons/Fonts/regular/style.css">
   
+  <script>
+    // Apply saved theme immediately
+    const savedTheme = localStorage.getItem('zen_theme');
+    if (savedTheme) { document.documentElement.setAttribute('data-theme', savedTheme); }
+  </script>
   <style>
+      :root {
+          --primary: #e50914;
+          --primary-hover: #ff2a35;
+          --primary-glow: rgba(229, 9, 20, 0.3);
+      }
+      :root[data-theme="cyberpunk"] {
+          --primary: #00f0ff;
+          --primary-hover: #00d0dd;
+          --primary-glow: rgba(0, 240, 255, 0.3);
+      }
+      :root[data-theme="gold"] {
+          --primary: #ffd700;
+          --primary-hover: #ffea00;
+          --primary-glow: rgba(255, 215, 0, 0.3);
+      }
+      :root[data-theme="emerald"] {
+          --primary: #00e676;
+          --primary-hover: #00c853;
+          --primary-glow: rgba(0, 230, 118, 0.3);
+      }
+      :root, [data-bs-theme=dark] {
+          --bs-primary: var(--primary) !important;
+          --bs-primary-rgb: 229, 22, 63;
+          --bs-primary-hover: var(--primary-hover) !important;
+      }
+      body .text-primary, body i.text-primary { color: var(--primary) !important; }
+      body .bg-primary { background-color: var(--primary) !important; }
+      body .btn-primary { background: var(--primary) !important; border-color: var(--primary) !important; color: #fff !important; }
+      body .btn-primary:hover { background: var(--primary-hover) !important; border-color: var(--primary-hover) !important; box-shadow: 0 4px 15px var(--primary-glow) !important; }
+
       /* Lock body scroll */
       body { overflow: hidden !important; height: 100vh !important; }
 
@@ -61,6 +96,21 @@
       .user-login-card::-webkit-scrollbar-track { background: transparent; }
       .user-login-card::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
       .user-login-card::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.5); }
+
+      /* Card animation */
+      .user-login-card { animation: fadeSlideUp 0.5s ease-out; }
+      @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+      /* Input styling */
+      .form-control:focus { border-color: #e50914 !important; box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.15) !important; }
+      .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(229, 9, 20, 0.4); }
+
+      /* Mobile */
+      @media (max-width: 576px) {
+          .user-login-card { margin: 10px; }
+          .row-cols-md-2 > .col { flex: 0 0 100%; max-width: 100%; }
+          h3.fw-bold { font-size: 1.4rem; }
+      }
   </style>
 </head>
 

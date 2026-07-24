@@ -63,6 +63,15 @@ foreach ($_POST as $key => $value) {
 // die;
     $ret = doUserRegister($conn, $clean);
 
+// Send admin notification about new registration
+$notifyData = [
+  'firstname' => $clean['firstname'],
+  'lastname' => $clean['lastname'],
+  'email' => $clean['email'],
+  'phone_number' => $clean['phonenumber'] ?? null
+];
+sendAdminRegistrationNotification($conn, $notifyData, $site_name, $site_email);
+
 
 
 

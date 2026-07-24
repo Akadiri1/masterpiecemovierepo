@@ -1,0 +1,22 @@
+{
+  "name": "Masterpiece Movie",
+  "short_name": "Masterpiece",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#e50914",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/777/777242.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/777/777242.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

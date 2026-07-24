@@ -70,7 +70,14 @@ if ($searchQuery) {
             case 'discover': 
                 $endpoint = 'discover/movie'; 
                 $filterMode = "Explore"; 
-                if(!empty($_GET['with_genres'])) $filterMode = "Genre Results";
+                if(!empty($_GET['with_genres'])) {
+                    $filterMode = "Genre Results";
+                    // TMDB TV-exclusive genres (including 10759 used for Manga/Action&Adventure)
+                    $tvGenres = ['10759', '10762', '10763', '10764', '10765', '10766', '10767', '10768'];
+                    if (in_array($_GET['with_genres'], $tvGenres)) {
+                        $endpoint = 'discover/tv';
+                    }
+                }
                 if(!empty($_GET['with_origin_country'])) $filterMode = "International Content";
                 $params = $_GET; 
                 unset($params['type']); 
@@ -141,6 +148,8 @@ if ($data && !empty($data['results'])) {
     @media(min-width: 576px) { .movie-grid { grid-template-columns: repeat(3, 1fr); } }
     @media(min-width: 992px) { .movie-grid { grid-template-columns: repeat(4, 1fr); } }
     @media(min-width: 1400px) { .movie-grid { grid-template-columns: repeat(5, 1fr); gap: 20px; } }
+    @media(min-width: 1920px) { .movie-grid { grid-template-columns: repeat(6, 1fr); gap: 24px; } }
+    @media(min-width: 2560px) { .movie-grid { grid-template-columns: repeat(7, 1fr); gap: 28px; } }
 
     /* 3. Modern Movie Card */
     .vod-card {
@@ -154,9 +163,9 @@ if ($data && !empty($data['results'])) {
     }
 
     .vod-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        border-color: rgba(255,255,255,0.1);
+        transform: translateY(-4px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        border-color: rgba(255,255,255,0.08);
         z-index: 2;
     }
 
@@ -368,12 +377,12 @@ if ($data && !empty($data['results'])) {
                    if (isset($item['media_type']) && $item['media_type'] === 'person') continue;
                    $itemId = $item['id'];
                    $itemTitle = $item['title'] ?? $item['name'] ?? 'Unknown';
-                   $itemPoster = !empty($item['poster_path']) ? 'https://image.tmdb.org/t/p/w500'.$item['poster_path'] : 'assets/images/no-poster.jpg';
+                   $itemPoster = !empty($item['poster_path']) ? 'https://image.tmdb.org/t/p/w1280'.$item['poster_path'] : '/assets/images/media/placeholder-portrait.svg';
                    $itemType = $item['media_type'] ?? ((isset($item['title']) ? 'movie' : 'tv'));
                    $date = $item['release_date'] ?? $item['first_air_date'] ?? '';
                    $year = $date ? date('Y', strtotime($date)) : 'N/A';
                    $vote = $item['vote_average'] ?? 0;
-                   $link = "/movie-detail?id={$itemId}&type={$itemType}";
+                   $link = "/{$itemType}/{$itemId}";
                ?>
                
                <!-- Single Card -->
