@@ -635,6 +635,12 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
             <?php endif; ?>
             
             <h1 class="meta-title"><?php echo htmlspecialchars($title); ?></h1>
+            
+            <div id="ai-hook-container" style="background: rgba(123, 44, 191, 0.1); border-left: 3px solid #7b2cbf; padding: 12px 16px; margin: 15px 0; border-radius: 4px; font-size: 0.95rem; color: #e0e0e0; display: none;">
+                <div style="font-weight: bold; color: #00e0ff; margin-bottom: 5px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;"><i class="ph-fill ph-sparkle"></i> ZEN AI Pitch</div>
+                <div id="ai-hook-text">Thinking...</div>
+            </div>
+
             <p class="meta-desc"><?php echo htmlspecialchars($overview); ?></p>
             
             <div class="meta-actions">
@@ -952,6 +958,36 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
             })
             .catch(err => console.error('Watchlist Error:', err));
         });
+    });
+
+    // --- FETCH AI HOOK ---
+    document.addEventListener("DOMContentLoaded", function() {
+        const title = <?php echo json_encode($title); ?>;
+        const mediaId = <?php echo json_encode($mediaId); ?>;
+        const container = document.getElementById('ai-hook-container');
+        const textDiv = document.getElementById('ai-hook-text');
+        
+        if (title && mediaId) {
+            // Show loading state
+            container.style.display = 'block';
+            
+            const fd = new FormData();
+            fd.append('title', title);
+            fd.append('media_id', mediaId);
+            
+            fetch('/ai-hook', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success' && data.hook) {
+                        textDiv.innerHTML = data.hook;
+                    } else {
+                        container.style.display = 'none'; // Hide if failed
+                    }
+                })
+                .catch(() => {
+                    container.style.display = 'none';
+                });
+        }
     });
 </script>
 
