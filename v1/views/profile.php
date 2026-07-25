@@ -114,6 +114,18 @@ include 'includes/header.php';
         --border-color: rgba(255,255,255,0.1);
     }
 
+    /* 0. Full Width Page Override */
+    @media (min-width: 992px) {
+        /* .app-sidebar { display: none !important; } */
+        /* .iq-navbar { display: flex !important; } */
+        /* .main-content { margin-left: 0 !important; } */
+        .container-fluid { padding-left: 20px !important; padding-right: 20px !important; max-width: 100% !important; margin: 0 !important; }
+    }
+
+    #profile-header-name {
+        font-size: 2.2rem !important; /* Reduced font size */
+    }
+
     /* 1. Header Banner */
     .profile-cover {
         height: 70px;
@@ -204,12 +216,21 @@ include 'includes/header.php';
         border-color: var(--primary);
     }
 
-    .table-dark-custom th, .table-dark-custom td {
+    .table-dark-custom,
+    .table-dark-custom thead,
+    .table-dark-custom tbody,
+    .table-dark-custom tr,
+    .table-dark-custom th, 
+    .table-dark-custom td {
         background: transparent !important;
+        background-color: transparent !important;
         color: #fff !important;
         border-bottom: 1px solid rgba(255,255,255,0.05);
         padding: 15px;
+        box-shadow: none !important;
     }
+    
+    .table-dark-custom { border-collapse: collapse; }
 
     /* 5. Movie Card (Reused from view-all) */
     .vod-card {
@@ -297,39 +318,42 @@ include 'includes/header.php';
 <!-- ==========================================
      HTML STRUCTURE
      ========================================== -->
-<div class="main-content">
     
-    <div class="container-fluid" style="padding-top: 60px;">
+    <div class="container-fluid px-0" style="padding-top: 60px;">
         <!-- 1. USER INFO HEADER (GLASSMORPHISM) -->
-        <div class="profile-info-card mb-5" style="background: rgba(20, 20, 25, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; padding: 40px; margin-top: 0; display: flex; align-items: center; gap: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
-            
-            <div class="position-relative">
-                <img src="<?php echo htmlspecialchars($user['avatar_path']); ?>" alt="Profile" 
-                     class="user-avatar-lg" id="profile-header-avatar" style="border: 4px solid rgba(255,255,255,0.1); width: 150px; height: 150px; box-shadow: 0 0 30px rgba(229, 9, 20, 0.2);">
-                <button class="btn btn-primary position-absolute bottom-0 end-0 rounded-circle d-flex align-items-center justify-content-center"
-                        style="width: 40px; height: 40px; border: 2px solid #141414;"
-                        data-bs-toggle="modal" data-bs-target="#edit-profile-modal" title="Change Avatar">
-                    <i class="fa fa-camera"></i>
-                </button>
-            </div>
-            
-            <div class="d-flex flex-column text-start">
-                <h1 class="text-white fw-bold mb-1" id="profile-header-name" style="letter-spacing: -0.5px;"><?php echo htmlspecialchars($user['fullName']); ?></h1>
-                <p class="text-muted mb-3" id="profile-header-email"><?php echo htmlspecialchars($user['email']); ?></p>
-                
-                <div class="d-flex align-items-center gap-3">
-                    <span class="badge" style="background: <?php echo $isFree ? 'rgba(255,255,255,0.1)' : 'linear-gradient(45deg, var(--primary), #ff4b2b)'; ?>; color: #fff; padding: 8px 16px; font-size: 0.85rem; border-radius: 30px;">
-                        <i class="fa-solid <?php echo $isFree ? 'fa-user' : 'fa-crown'; ?> me-2"></i>
-                        <?php echo $isFree ? 'Free Member' : 'Premium Member'; ?>
-                    </span>
-                    <button class="btn btn-outline-light rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#edit-profile-modal">
-                        <i class="fa fa-pencil me-2"></i> Edit Profile
-                    </button>
+        <div class="row m-0 mb-5">
+            <div class="col-12 px-0">
+                <div class="profile-info-card" style="background: rgba(20, 20, 25, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); border-radius: 20px; padding: 40px; margin-top: 0; display: flex; align-items: center; gap: 30px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); width: 100%;">
+                    
+                    <div class="position-relative" style="flex-shrink: 0;">
+                        <img src="<?php echo htmlspecialchars($user['avatar_path']); ?>" alt="Profile" 
+                             class="user-avatar-lg" id="profile-header-avatar" style="border: 4px solid rgba(255,255,255,0.1); width: 150px; height: 150px; box-shadow: 0 0 30px rgba(229, 9, 20, 0.2);">
+                        <button class="btn btn-primary position-absolute bottom-0 end-0 rounded-circle d-flex align-items-center justify-content-center"
+                                style="width: 40px; height: 40px; border: 2px solid #141414;"
+                                data-bs-toggle="modal" data-bs-target="#edit-profile-modal" title="Change Avatar">
+                            <i class="fa fa-camera"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="d-flex flex-column text-start flex-grow-1">
+                        <h1 class="text-white fw-bold mb-1" id="profile-header-name" style="letter-spacing: -0.5px;"><?php echo htmlspecialchars($user['fullName']); ?></h1>
+                        <p class="text-muted mb-3" id="profile-header-email"><?php echo htmlspecialchars($user['email']); ?></p>
+                        
+                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                            <span class="badge" style="background: <?php echo $isFree ? 'rgba(255,255,255,0.1)' : 'linear-gradient(45deg, var(--primary), #ff4b2b)'; ?>; color: #fff; padding: 8px 16px; font-size: 0.85rem; border-radius: 30px;">
+                                <i class="fa-solid <?php echo $isFree ? 'fa-user' : 'fa-crown'; ?> me-2"></i>
+                                <?php echo $isFree ? 'Free Member' : 'Premium Member'; ?>
+                            </span>
+                            <button class="btn btn-outline-light rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#edit-profile-modal">
+                                <i class="fa fa-pencil me-2"></i> Edit Profile
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <div class="row g-4">
+        <div class="row g-4 px-4">
             <!-- 2. SIDEBAR NAVIGATION -->
             <div class="col-12 col-md-4 col-lg-3 mb-4">
                 <div class="profile-sidebar" style="background: rgba(20, 20, 25, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); overflow: hidden;">
@@ -345,6 +369,10 @@ include 'includes/header.php';
                         </a>
                         <a class="nav-link" id="v-pills-parental-tab" data-bs-toggle="pill" href="#v-pills-parental" role="tab">
                             <i class="fa-solid fa-shield-halved"></i> Parental Controls
+                        </a>
+                        <hr class="border-secondary my-2 mx-3">
+                        <a class="nav-link text-danger" href="/logout" onclick="return confirm('Are you sure you want to log out?');">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
                         </a>
                     </div>
                 </div>

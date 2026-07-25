@@ -22,17 +22,27 @@ if (!$userId) {
 
 // Daily Limit Check
 if (isset($conn)) {
+    // Get User AI Token Limit & Admin Status
+    $userStmt = $conn->prepare("SELECT is_admin, ai_tokens_limit FROM users WHERE id = ?");
+    $userStmt->execute([$userId]);
+    $userData = $userStmt->fetch(PDO::FETCH_ASSOC);
+    
+    $isAdminUser = $userData ? (bool)$userData['is_admin'] : false;
+    $aiTokensLimit = $userData ? (int)($userData['ai_tokens_limit'] ?? 10) : 10;
+
     $limitStmt = $conn->prepare("SELECT COUNT(id) FROM zen_search_history WHERE user_id = ? AND DATE(created_at) = CURDATE()");
     $limitStmt->execute([$userId]);
     $dailyCount = (int) $limitStmt->fetchColumn();
     
-    // Set Limit: 10 per day
-    if ($dailyCount >= 10) {
-        echo json_encode([
-            'status' => 'error', 
-            'message' => 'You have reached your daily limit of 10 AI requests. Please try again tomorrow!'
-        ]);
-        exit;
+    // Admins and users with limit -1 have unlimited access
+    if (!$isAdminUser && $aiTokensLimit !== -1) {
+        if ($dailyCount >= $aiTokensLimit) {
+            echo json_encode([
+                'status' => 'error', 
+                'message' => "You have reached your daily limit of {$aiTokensLimit} AI requests. Please try again tomorrow!"
+            ]);
+            exit;
+        }
     }
 }
 
@@ -107,6 +117,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!isset($_SESSION['chat_history'][$cid])) $_SESSION['chat_history'][$cid] = [];
     $messages = [];
     
+    $isKidsMode = isset($_SESSION['is_kids_mode']) && $_SESSION['is_kids_mode'] === true;
+    
+    $kidsInstruction = $isKidsMode 
+        ? "\n10. CRITICAL: The user is currently in KIDS MODE. You MUST adopt a child-friendly, safe, and positive tone. You MUST ONLY recommend movies and shows that are rated PG-13, TV-14, or lower. NEVER recommend any Horror, Crime, Thriller, War, R-rated, TV-MA, or explicit adult content. If the user asks for something inappropriate, politely steer them towards family-friendly or teen-safe alternatives."
+        : "";
+
     // System Instruction
     $messages[] = [
         'role' => 'system',
@@ -115,13 +131,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 RULES:
 1. Be friendly, helpful, and conversational. Keep your reply concise but engaging.
 2. When the user asks for movie or TV show recommendations by genre (e.g. \"shooting movies\", \"scary movies\", \"psychology thrillers\"), provide 5 to 8 well-known, popular, REAL titles that match.
-3. When the user describes a movie they forgot (e.g. \"a movie where a guy is stuck in a time loop\"), try to identify the exact title(s) they are thinking of.
+3. When the user describes a movie they forgot (e.g. \"a movie where a guy is stuck in a time loop\"), try to identify the exact title(s) they are thinking of. If you are guessing and not sure, state this clearly, suggest your best guess, and ask the user to elaborate or provide more details.
 4. When the user says \"hello\" or makes general conversation, respond naturally. Still include 3-5 popular trending movie suggestions in search_candidates.
-5. ONLY suggest REAL movies and TV shows that actually exist. Never invent fake titles.
-6. For \"shooting\" movies, think action/gun/war films like John Wick, Heat, The Departed, Sicario etc. NOT sports shooting.
-7. Always prefer well-known English-language titles unless the user asks for a specific language.
-8. The search_candidates array should contain ONLY the exact title of the movie or show (no year, no parentheses, no extra text). Example: \"Inception\" not \"Inception (2010)\".
-9. DO NOT output your internal thought process. Provide only your final, clean answer.
+5. When the user asks to explain, describe, or summarize a specific movie, TV show, franchise, or character, provide a detailed and engaging explanation in your `reply` (covering the premise, key cast/characters, tone, and what makes it notable) and place the exact title of that movie or show first in your `search_candidates` array (along with 1-2 highly similar recommendations).
+6. Note that users might refer to TV shows as 'movies' (e.g., 'the movie blacklist' refers to the TV show 'The Blacklist'). Always infer the correct title.
+7. When the user is asking a follow-up question or continuing a conversation about a movie/show that was already introduced or explained earlier in the chat history (e.g. \"how did it end?\", \"who starred in it?\", \"what is the rating?\", etc.), answer their question in your `reply` but keep the `search_candidates` array completely empty `[]`. You should only output search_candidates when a movie/show is first introduced, when new recommendations are requested, or when the user changes the topic to a different movie/show.
+8. ONLY suggest REAL movies and TV shows that actually exist. Never invent fake titles.
+9. For \"shooting\" movies, think action/gun/war films like John Wick, Heat, The Departed, Sicario etc. NOT sports shooting.
+10. Always prefer well-known English-language titles unless the user asks for a specific language.
+11. The search_candidates array should contain ONLY the exact title of the movie or show (no year, no parentheses, no extra text). Example: \"Inception\" not \"Inception (2010)\".
+12. DO NOT output your internal thought process. Provide only your final, clean answer.
+13. If you are not confident about identifying a forgotten movie description, do NOT guess repeatedly or correct yourself in a loop (e.g. saying \"it is X, no it is Y, no it is Z\"). Instead, politely state that you are guessing, ask the user to elaborate with more details (like actors, release era, or plot points), and list 2-3 of your best guesses in search_candidates.$kidsInstruction
 
 You MUST respond with valid JSON only. No markdown. No code blocks.
 {
@@ -171,6 +191,7 @@ You MUST respond with valid JSON only. No markdown. No code blocks.
     $cleanReply = "I'm having trouble connecting to my brain, but I'll search for that directly.";
     $suggestions = [];
     $aiFailed = false;
+    $aiExplicitEmpty = false;
 
     if ($curlError || empty($response)) {
         $aiFailed = true;
@@ -179,6 +200,11 @@ You MUST respond with valid JSON only. No markdown. No code blocks.
         
         if (!empty($aiResult['choices'][0]['message']['content'])) {
             $rawText = trim($aiResult['choices'][0]['message']['content']);
+            
+            // Fix: If LLM returned fields without outer braces, wrap them
+            if (strpos($rawText, '{') !== 0 && (strpos($rawText, '"reply"') === 0 || strpos($rawText, '"search_candidates"') === 0)) {
+                $rawText = '{' . $rawText . '}';
+            }
             
             // Strategy 1: Try direct JSON decode
             $decoded = json_decode($rawText, true);
@@ -213,6 +239,9 @@ You MUST respond with valid JSON only. No markdown. No code blocks.
             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
                 $cleanReply = $decoded['reply'] ?? "Here is what I found.";
                 $suggestions = $decoded['search_candidates'] ?? [];
+                if (isset($decoded['search_candidates']) && is_array($decoded['search_candidates'])) {
+                    $aiExplicitEmpty = true;
+                }
             } else {
                 // Strategy 4: AI responded with plain text - use it as reply and extract titles
                 $cleanReply = strip_tags($rawText);
@@ -234,13 +263,14 @@ You MUST respond with valid JSON only. No markdown. No code blocks.
     }
 
     // --- CRITICAL FALLBACK LOGIC ---
-    // If AI failed OR returned 0 suggestions, use the raw user query
-    if (empty($suggestions) && !$aiFailed) {
-        // AI worked but found nothing? Fallback search just in case.
-        $cleanReply = "I couldn't think of specific titles, but let me try a direct search.";
+    // If AI failed (meaning no valid JSON decoded), fallback to use raw user query keywords
+    if (empty($suggestions) && !$aiExplicitEmpty) {
+        $aiFailed = true;
     }
 
-    if (empty($suggestions)) {
+    if ($aiFailed) {
+        $cleanReply = "I'm having trouble connecting to my brain, but I'll search for that directly.";
+        
         // Strip conversational filler to make the search keyword-focused
         $stopwords = [' i ', ' want ', ' to ', ' watch ', ' a ', ' movie ', ' about ', ' looking ', ' for ', ' film ', ' show ', ' is ', ' that ', ' the '];
         $keywords = str_ireplace($stopwords, ' ', " " . $userQuery . " ");
@@ -279,8 +309,10 @@ You MUST respond with valid JSON only. No markdown. No code blocks.
 
                 // Kids Mode Filter
                 if ($isKidsMode) {
+                    if (isset($item['adult']) && $item['adult'] === true) continue;
                     $gids = $item['genre_ids'] ?? [];
-                    if (!array_intersect([16, 10751], $gids)) continue;
+                    // Block Horror(27), Crime(80), Thriller(53), War(10768)
+                    if (array_intersect([27, 80, 53, 10768], $gids)) continue;
                 }
 
                 $poster = !empty($item['poster_path']) 

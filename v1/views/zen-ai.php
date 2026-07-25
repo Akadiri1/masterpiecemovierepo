@@ -255,7 +255,10 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
                             </div>
                         </form>
                     </div>
-                    <p class="text-center text-muted mt-2 small" style="font-size:0.75rem;">AI can make mistakes. Check important info.</p>
+                    <div style="display:flex; justify-content:space-between; width:90%; max-width:700px; padding: 0 10px; margin-top:8px;">
+                        <p class="text-muted small" style="font-size:0.75rem; margin:0;">AI can make mistakes. Check important info.</p>
+                        <p class="text-muted small" id="zen-limit-display" style="font-size:0.75rem; margin:0; font-weight: 500; color: #00e0ff !important;">Loading limit...</p>
+                    </div>
                 </div>
 
             </main>
@@ -342,6 +345,13 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
         fetch(API_URL, { method: 'POST', body: fd })
             .then(r => r.json())
             .then(d => {
+                // Update Limit Display
+                const limitDisplay = document.getElementById('zen-limit-display');
+                if (limitDisplay && d.daily_used !== undefined) {
+                    const remaining = Math.max(0, 10 - parseInt(d.daily_used));
+                    limitDisplay.innerHTML = `<i class="ph-fill ph-lightning"></i> ${remaining}/10 Queries Left`;
+                }
+
                 if (!d.data || d.data.length === 0) {
                     list.innerHTML = '<div class="text-muted small text-center mt-4">No history yet</div>';
                     return;

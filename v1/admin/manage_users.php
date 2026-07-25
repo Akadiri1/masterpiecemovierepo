@@ -60,8 +60,9 @@ $content = selectContent($conn,'users',$where);
                           <tr>
                             <th>Info</th>
                             <th>Kids Mode</th>
-                            <!-- <th>Set Level</th> -->
-                            <th>suspend/verify</th>
+                            <th>Admin Privilege</th>
+                            <th>AI Token Limit</th>
+                            <th>Suspend/Verify</th>
                             <th>Delete</th>
                             <th>Date Registered</th>
                           </tr>
@@ -72,22 +73,34 @@ $content = selectContent($conn,'users',$where);
                           <?php foreach ($content as $key => $value) { ?>
                             <tr>
                               <td>
-                                Name: <?php echo $value['firstname']." ".$value['lastname'] ?> <br>
-                                Email: <?php echo $value['email']?> <br>
-
-                               </td>
+                                Name: <?php echo htmlspecialchars(($value['firstName'] ?? $value['firstname'] ?? '') . ' ' . ($value['lastName'] ?? $value['lastname'] ?? '')); ?> <br>
+                                Email: <?php echo htmlspecialchars($value['email']); ?> <br>
+                              </td>
                               <td style="vertical-align: middle; text-align:center;">
                                 <?php $kidFlag = isset($value['is_kids_mode']) && $value['is_kids_mode'] == 1 ? 1 : 0; ?>
                                 <div class="form-check form-switch d-inline-block">
                                   <input class="form-check-input admin-kids-mode-toggle" type="checkbox" id="kids_mode_<?php echo $value['id']; ?>" data-user-id="<?php echo $value['id']; ?>" <?php echo $kidFlag ? 'checked' : ''; ?> />
                                 </div>
                               </td>
-                              <!-- <td> <p><?php echo "Current Level: ". $value['level']; ?></p>
-                                <br>
-                                <a href="/updateContent.php?id=<?php echo $value['id'] ?>&level=3&data=admin"><button type="button" class="btn btn-primary btn-sm"><i class="feather icon-user"></i>3</button></a>
-                                <a href="/updateContent.php?id=<?php echo $value['id'] ?>&level=2&data=admin"><button type="button" class="btn btn-success btn-sm"><i class="feather icon-user"></i>2</button></a> <br>
-                                <a href="/updateContent.php?id=<?php echo $value['id'] ?>&level=1&data=admin"><button type="button" class="btn btn-warning btn-sm"><i class="feather icon-user"></i>1</button></a>
-                               </td> -->
+                              <td style="vertical-align: middle; text-align:center;">
+                                <p style="margin-bottom: 5px;">Admin: <strong><?php echo ($value['is_admin'] == 1) ? 'Yes' : 'No'; ?></strong></p>
+                                <?php if ($value['is_admin'] == 1): ?>
+                                    <a href="/updateContent.php?id=<?php echo $value['id']; ?>&is_admin=0&role=user&data=users" class="btn btn-warning btn-sm"><i class="feather icon-user-x"></i>Revoke Admin</a>
+                                <?php else: ?>
+                                    <a href="/updateContent.php?id=<?php echo $value['id']; ?>&is_admin=1&role=admin&data=users" class="btn btn-success btn-sm"><i class="feather icon-user-check"></i>Make Admin</a>
+                                <?php endif; ?>
+                              </td>
+                              <td style="vertical-align: middle;">
+                                <form action="/updateContent.php" method="GET" style="display: flex; gap: 5px; align-items: center; margin-bottom: 5px;">
+                                    <input type="hidden" name="id" value="<?php echo $value['id']; ?>">
+                                    <input type="hidden" name="data" value="users">
+                                    <input type="number" name="ai_tokens_limit" value="<?php echo htmlspecialchars($value['ai_tokens_limit'] ?? 10); ?>" style="width: 60px; height: 30px; text-align: center;" min="-1" required>
+                                    <button type="submit" class="btn btn-primary btn-sm" style="padding: 4px 8px; margin: 0; height: 30px;">Set</button>
+                                </form>
+                                <span style="font-size: 0.75rem; color: #666; font-weight: 500;">
+                                    <?php echo ($value['ai_tokens_limit'] == -1) ? '<span class="text-success">Unlimited</span>' : (($value['ai_tokens_limit'] ?? 10) . ' daily'); ?>
+                                </span>
+                              </td>
                               <td><p>User Status: <?php if($value['user_status'] == 1){ echo "Active"; }elseif ($value['user_status'] == NULL) {
                                 echo "Not Verified";
                               }else{
@@ -109,7 +122,8 @@ $content = selectContent($conn,'users',$where);
                           <tr>
                             <th>Info</th>
                             <th>Kids Mode</th>
-                            <!-- <th>Set Level</th> -->
+                            <th>Admin Privilege</th>
+                            <th>AI Token Limit</th>
                             <th>Suspend/Verify</th>
                             <th>Delete</th>
                             <th>Date Registered</th>

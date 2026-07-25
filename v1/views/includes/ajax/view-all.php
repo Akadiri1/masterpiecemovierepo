@@ -38,11 +38,8 @@ if ($searchQuery) {
         foreach ($data['results'] as $item) {
             if (isset($item['adult']) && $item['adult'] === true) continue;
          if (isset($item['genre_ids']) && is_array($item['genre_ids'])) {
-            $hasKidsGenre = (in_array(16, $item['genre_ids']) || in_array(10751, $item['genre_ids']));
-            if (!$hasKidsGenre) continue;
-            if (in_array(27, $item['genre_ids']) || in_array(80, $item['genre_ids']) || in_array(53, $item['genre_ids']) || in_array(18, $item['genre_ids'])) continue;
-         } else {
-            continue;
+            // Block mature genres: Horror(27), Thriller(53), Crime(80), War(10768)
+            if (in_array(27, $item['genre_ids']) || in_array(80, $item['genre_ids']) || in_array(53, $item['genre_ids']) || in_array(10768, $item['genre_ids'])) continue;
          }
             $filteredResults[] = $item;
         }
@@ -90,12 +87,12 @@ if ($searchQuery) {
    if ($isKidsMode) {
         $filterMode .= " (Kids)";
       $endpoint = ($type === 'tv') ? 'discover/tv' : 'discover/movie';
+      $cert = ($type === 'tv') ? 'TV-14' : 'PG-13';
       $params = [
          'certification_country' => 'US',
-         'certification.lte' => 'PG',
+         'certification.lte' => $cert,
          'sort_by' => 'popularity.desc',
-         'with_genres' => '16,10751',
-         'without_genres' => '27,53,80,18',
+         'without_genres' => '27,53,80,10768', // Block Horror, Thriller, Crime, War
          'page' => $page
       ];
         if ($type == 'upcoming') $params['primary_release_date.gte'] = date('Y-m-d');

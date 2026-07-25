@@ -19,6 +19,9 @@
           <li data-username="dashboard Default Ecommerce CRM Analytics Crypto Project" class="nav-item active">
               <a href="/admin" class="nav-link"><span class="micon"><i class="feather icon-home"></i></span><span class="mtext">Dashboard</span></a>
           </li>
+          <li data-username="users" class="nav-item">
+              <a href="/admin-view-users" class="nav-link"><span class="micon"><i class="feather icon-users"></i></span><span class="mtext">Manage Users</span></a>
+          </li>
           <li class="nav-item menu-caption">
               <label>Other</label>
           </li>

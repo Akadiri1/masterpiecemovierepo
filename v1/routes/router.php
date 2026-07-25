@@ -327,6 +327,10 @@ if (count($uri) > 2) {
     include APP_PATH."/views/movie-detail.php";
     break;
 
+    case 'movie?'.$query_string:
+    include APP_PATH."/views/movie-detail.php";
+    break;
+
     case 'contact-us':
     include APP_PATH."/views/contact.php";
     break;

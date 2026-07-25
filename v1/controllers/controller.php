@@ -284,8 +284,7 @@ function insertSafe($conn, $table, $parameters){
   $stmt =  $conn->prepare($sql);
   $stmt->execute($parameters);
 } catch (PDOException $e) {
-  die($e);
-  die("Error: Try again After Some Times");
+  die($e->getMessage());
 }
 }
 function insertContent($conn, $table, $parameters){
@@ -300,8 +299,8 @@ function insertContent($conn, $table, $parameters){
   $stmt =  $conn->prepare($sql);
   $stmt->execute($parameters);
 } catch (PDOException $e) {
-  // die($e);
-  die("Error: Try again After Some Times");
+  die($e->getMessage());
+  // die("Error: Try again After Some Times");
 }
 }
 
@@ -502,7 +501,7 @@ function selectContent($dbconn,$table,$columnWhere){
   if (isset($_SESSION['debug'])) {
   die($e);
 }else{
-    die("Error: Try again After Some Times");
+    die($e->getMessage());
 }
 }
 }
@@ -676,7 +675,7 @@ function updateContent($dbconn, $table, $parameters,$columnWhere){
     if (isset($_SESSION['debug'])) {
     die($e);
   }else{
-      die("Error: Try again After Some Times");
+      die($e->getMessage());
   }
   }
 }

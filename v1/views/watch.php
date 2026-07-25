@@ -126,9 +126,29 @@ if (function_exists('fetchTmdbApi')) {
 // ==========================================
 // 4. SERVER SELECTION LOGIC
 // ==========================================
+// Check for custom hosted media source first
+$customSource = null;
+if (isset($conn)) {
+    try {
+        $sql = "SELECT video_url, is_embed FROM media_sources 
+                WHERE tmdb_id = ? AND media_type = ? 
+                AND season = ? AND episode = ? LIMIT 1";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute([$mediaId, $mediaType, $seasonNum, $episodeNum]);
+        $customSource = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {}
+}
+
 // Multiple embed servers for fallback — if one buffers on slow network, switch to another
 $servers = [];
 if (!$isUpcoming) {
+    if ($customSource && !empty($customSource['video_url'])) {
+        $servers[] = [
+            'name' => $customSource['is_embed'] ? 'Server (Custom Embed)' : 'Server (Direct File)',
+            'url' => $customSource['video_url']
+        ];
+    }
+
     if ($mediaType === 'movie') {
         $servers[] = ['name' => 'Server 1 (Vidsrc)', 'url' => "https://vidsrc.in/embed/movie/$mediaId"];
         $servers[] = ['name' => 'Server 2 (Vidlink)', 'url' => "https://vidlink.pro/movie/$mediaId"];
@@ -145,9 +165,9 @@ if (!$isUpcoming) {
     
     // 100% unblocked fallbacks
     if (!empty($trailerKey)) {
-        $servers[] = ['name' => 'Server 4 (Trailer)', 'url' => "https://www.youtube.com/embed/$trailerKey?autoplay=1"];
+        $servers[] = ['name' => 'Server 6 (Trailer)', 'url' => "https://www.youtube.com/embed/$trailerKey?autoplay=1"];
     }
-    $servers[] = ['name' => 'Server 5 (Demo)', 'url' => "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"];
+    $servers[] = ['name' => 'Server 7 (Demo)', 'url' => "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"];
 }
 $videoSrc = !empty($servers) ? $servers[0]['url'] : '';
 $serversJson = json_encode($servers);
@@ -173,6 +193,41 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
   <link rel="stylesheet" href="assets/vendor/phosphor-icons/Fonts/regular/style.css">
   <link rel="stylesheet" href="assets/vendor/phosphor-icons/Fonts/fill/style.css">
   <style>
+      /* Cinematic Mode */
+      body.cinematic-active::before {
+          content: "";
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          backdrop-filter: blur(15px);
+          -webkit-backdrop-filter: blur(15px);
+          background: rgba(10, 10, 15, 0.4);
+          z-index: 9990;
+          pointer-events: none;
+          transition: all 0.5s ease;
+      }
+      body.cinematic-active .watch-sidebar,
+      body.cinematic-active .recommended-section,
+      body.cinematic-active .center-top-bar,
+      body.cinematic-active .watch-right {
+          opacity: 0.3 !important;
+          transition: all 0.5s ease-in-out;
+      }
+      body.cinematic-active .video-wrapper {
+          z-index: 99999;
+          position: relative;
+          box-shadow: 0 0 80px rgba(0,0,0,0.8);
+          transition: all 0.5s ease-in-out;
+      }
+      body.cinematic-active .bottom-controls-bar {
+          position: relative;
+          z-index: 99999; /* Keep above the blur */
+          background: rgba(10, 10, 15, 0.9) !important;
+          border-radius: 12px;
+          padding: 10px 20px;
+          margin-top: 10px;
+          transition: all 0.5s ease-in-out;
+      }
+      
       /* Sidebar Collapsed */
       .watch-app.sidebar-collapsed { grid-template-columns: 80px 1fr 0px !important; }
       .watch-app.sidebar-collapsed .watch-sidebar .sidebar-link span,
@@ -183,12 +238,33 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
       .watch-app.sidebar-collapsed .watch-sidebar .sidebar-link { justify-content: center; padding: 12px 0; border-radius: 12px; }
       .watch-app.sidebar-collapsed .watch-sidebar .sidebar-brand { justify-content: center !important; padding: 24px 0 !important; }
       .watch-app.sidebar-collapsed .watch-sidebar .sidebar-user { justify-content: center; padding: 10px 0 !important; }
+      .watch-app.sidebar-collapsed .watch-sidebar .sidebar-footer { padding: 10px !important; }
       .watch-app.sidebar-collapsed .watch-right { display: none !important; }
       #serverDropdown.open { display: block !important; }
       
       /* Fix iframe unclickable controls */
-      .video-wrapper { overflow: visible !important; border-radius: 0 !important; }
+      .video-wrapper { 
+          overflow: visible !important; 
+          border-radius: 12px !important; 
+          margin: 0 auto; 
+          max-width: 100%;
+      }
       #networkBanner { pointer-events: none !important; }
+      
+      /* Fix Bottom Controls Layout */
+      .bottom-controls-bar { flex-wrap: wrap !important; gap: 15px; align-items: flex-start !important; }
+      .bottom-controls-bar .meta-left { flex: 1 1 200px; }
+      .bottom-controls-bar .control-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; flex: 0 1 auto; }
+      
+      /* Episode Grid View */
+      .episode-list.grid-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; }
+      .episode-list.grid-view .ep-row { flex-direction: column; justify-content: center; padding: 15px 5px; text-align: center; background: rgba(255,255,255,0.03); border-radius: 10px; height: 100%; border: 1px solid rgba(255,255,255,0.05); }
+      .episode-list.grid-view .ep-row:hover { background: rgba(255,255,255,0.1); }
+      .episode-list.grid-view .ep-row.active { background: rgba(255,255,255,0.05); border-color: var(--primary); box-shadow: 0 0 15px var(--primary-glow); }
+      .episode-list.grid-view .ep-row .num { width: 100%; background: transparent; color: #fff; font-size: 1.3rem; margin-bottom: 5px; }
+      .episode-list.grid-view .ep-row.active .num { color: var(--primary); }
+      .episode-list.grid-view .ep-row .name { font-size: 0.7rem; white-space: normal; line-height: 1.2; opacity: 0.8; }
+      .episode-list.grid-view .ep-row i { display: none; }
       
       /* Mobile Offcanvas Sidebars */
       @media (max-width: 900px) {
@@ -426,10 +502,12 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                        </div>
                        <?php endif; ?>
                    </div>
-                </div>
-             <?php else: ?>
-                <iframe id="playerIframe" src="<?php echo $videoSrc; ?>" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" style="width:100%; height:100%; border:none;"></iframe>
-             <?php endif; ?>
+                </div>              <?php else: 
+                 $isDirectVideo = preg_match('/\.(mp4|mkv|webm|m3u8)(\?|$)/i', $videoSrc);
+              ?>
+                 <iframe id="playerIframe" src="<?php echo !$isDirectVideo ? $videoSrc : ''; ?>" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" style="width:100%; height:100%; border:none; display: <?php echo !$isDirectVideo ? 'block' : 'none'; ?>;"></iframe>
+                 <video id="playerVideo" src="<?php echo $isDirectVideo ? $videoSrc : ''; ?>" controls style="width:100%; height:100%; background:#000; display: <?php echo $isDirectVideo ? 'block' : 'none'; ?>; border: none;" playsinline></video>
+              <?php endif; ?>
         </div>
 
         <div class="bottom-controls-bar">
@@ -469,6 +547,10 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                   <a href="watch?id=<?php echo $mediaId; ?>&type=tv&season=<?php echo $seasonNum; ?>&episode=<?php echo ($episodeNum + 1); ?>" class="btn-action"><i class="ph ph-caret-right"></i></a>
                   <?php endif; ?>
                   
+                  <button class="btn-action" id="cinematicToggleBtn" title="Cinematic Mode" onclick="toggleCinematicMode()" style="color: #00e0ff;"><i class="ph-fill ph-moon"></i></button>
+                  <button class="btn-action" onclick="triggerZenAI('Find 5 titles that are extremely similar to <?php echo addslashes($videoTitle); ?>')" title="AI: Find Similar" style="background: linear-gradient(135deg, #00e0ff, #7b2cbf); border: none; color: #fff; width: auto; padding: 0 15px; font-weight: 600; display: inline-flex; gap: 6px; align-items: center;">
+                      <i class="ph-fill ph-sparkle"></i> <span class="d-none d-md-block">Similar</span>
+                  </button>
                   <button class="btn-action" id="watchlistBtn" title="Add to Watchlist"><i class="ph ph-plus"></i></button>
                   <button class="btn-action" onclick="navigator.share({title: document.title, url: window.location.href})"><i class="ph ph-share-network"></i></button>
                   <?php if (!$isUpcoming && !empty($servers)): ?>
@@ -479,9 +561,15 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 
         <!-- Recommended Section -->
         <?php if (!empty($details['recommendations']['results'])): ?>
-        <div class="recommended-section">
-            <h4>Recommended</h4>
-            <div class="rec-cards">
+        <div class="recommended-section" style="position:relative;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                <h4 style="margin:0;">Recommended</h4>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-action" onclick="document.getElementById('recCards').scrollBy({left:-300, behavior:'smooth'})" style="width:40px;height:40px;padding:0;background:rgba(255,255,255,0.05);color:#fff;border-radius:50%;"><i class="ph ph-caret-left"></i></button>
+                    <button class="btn-action" onclick="document.getElementById('recCards').scrollBy({left:300, behavior:'smooth'})" style="width:40px;height:40px;padding:0;background:rgba(255,255,255,0.05);color:#fff;border-radius:50%;"><i class="ph ph-caret-right"></i></button>
+                </div>
+            </div>
+            <div class="rec-cards" id="recCards">
                 <?php foreach (array_slice($details['recommendations']['results'], 0, 10) as $rec): ?>
                 <a href="/watch?id=<?php echo $rec['id']; ?>&type=<?php echo $mediaType; ?>" class="rec-card">
                     <img src="<?php echo !empty($rec['poster_path']) ? 'https://image.tmdb.org/t/p/w300'.$rec['poster_path'] : 'assets/images/user/userblank.jpg'; ?>" loading="lazy" alt="Poster">
@@ -500,8 +588,8 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
        <div class="right-controls-top">
            <div class="dropdown-btn" onclick="document.getElementById('seasonDropdownNav').classList.toggle('d-none');">Season <?php echo $seasonNum; ?> <i class="ph ph-caret-down"></i></div>
            <div class="icon-btn-group">
-               <button class="icon-btn"><i class="ph ph-list"></i></button>
-               <button class="icon-btn"><i class="ph ph-squares-four"></i></button>
+               <button class="icon-btn" onclick="document.getElementById('epListContainer').classList.remove('grid-view')"><i class="ph ph-list"></i></button>
+               <button class="icon-btn" onclick="document.getElementById('epListContainer').classList.add('grid-view')"><i class="ph ph-squares-four"></i></button>
            </div>
        </div>
        
@@ -514,7 +602,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
            <?php endforeach; ?>
        </div>
 
-       <div class="episode-list">
+       <div class="episode-list" id="epListContainer">
            <?php 
            foreach ($seasonsData as $season):
                if($season['season_number'] == $seasonNum):
@@ -712,16 +800,40 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
             }, delay || 0);
         }
 
+        const playerVideo = document.getElementById('playerVideo');
+
         // --- Server switching ---
         function switchToServer(index) {
-            if (!playerIframe || !servers[index]) return;
+            if (!servers[index]) return;
             currentServer = index;
 
             // Show loading overlay
             if (playerLoading) playerLoading.classList.add('visible');
 
-            // Update iframe src
-            playerIframe.src = servers[index].url;
+            const url = servers[index].url;
+            const isDirect = url.match(/\.(mp4|mkv|webm|m3u8)(\?|$)/i);
+
+            if (isDirect) {
+                if (playerIframe) {
+                    playerIframe.style.display = 'none';
+                    playerIframe.src = '';
+                }
+                if (playerVideo) {
+                    playerVideo.style.display = 'block';
+                    playerVideo.src = url;
+                    playerVideo.load();
+                    playerVideo.play().catch(e => console.log("Play failed: ", e));
+                }
+            } else {
+                if (playerVideo) {
+                    playerVideo.style.display = 'none';
+                    playerVideo.src = '';
+                }
+                if (playerIframe) {
+                    playerIframe.style.display = 'block';
+                    playerIframe.src = url;
+                }
+            }
 
             // Update button label
             if (serverBtn) {
@@ -977,13 +1089,62 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         });
     }
 
-    // Automatically track history after a few seconds of watching
-    setTimeout(function() {
+    // Automatically track history and simulate progress realistically based on time spent on page
+    <?php
+    $durationSeconds = 120 * 60; // Default 120 minutes (7200 seconds)
+    if ($mediaType === 'movie') {
+        if (!empty($details['runtime'])) {
+            $durationSeconds = $details['runtime'] * 60;
+        }
+    } else {
+        if (!empty($details['episode_run_time'][0])) {
+            $durationSeconds = $details['episode_run_time'][0] * 60;
+        } else {
+            $durationSeconds = 45 * 60; // Default TV show episode 45 minutes
+        }
+    }
+    
+    // Fetch saved progress if user is logged in
+    $savedProgress = 0;
+    if (isset($_SESSION['user_id']) && isset($conn)) {
+        try {
+            $stmt = $conn->prepare("SELECT current_time FROM watch_history WHERE user_id = ? AND tmdb_movie_id = ? AND media_type = ? LIMIT 1");
+            $stmt->execute([$_SESSION['user_id'], $mediaId, $mediaType]);
+            $savedProgress = (int) $stmt->fetchColumn();
+        } catch (Exception $e) {}
+    }
+    ?>
+
+    const startTime = Date.now();
+    const savedProgress = <?php echo $savedProgress; ?>;
+    const duration = <?php echo $durationSeconds; ?>;
+    
+    // If no saved progress, start at a small realistic progress (e.g. 5 minutes or 300 seconds) so it registers on the dashboard immediately.
+    const initialProgress = savedProgress > 0 ? savedProgress : 300;
+    
+    function updateProgress() {
+        const playerVideoElement = document.getElementById('playerVideo');
+        let currentTime;
+        let totalDuration = duration;
+        
+        if (playerVideoElement && playerVideoElement.style.display !== 'none' && !isNaN(playerVideoElement.duration) && playerVideoElement.duration > 0) {
+            currentTime = Math.floor(playerVideoElement.currentTime);
+            totalDuration = Math.round(playerVideoElement.duration);
+        } else {
+            const elapsedSeconds = Math.floor((Date.now() - startTime) / 1000);
+            currentTime = initialProgress + elapsedSeconds;
+            
+            // Cap current time at duration
+            if (currentTime > totalDuration) {
+                currentTime = totalDuration;
+            }
+        }
+        
         const formData = new FormData();
         formData.append('media_id', "<?php echo $mediaId; ?>");
-        // Simulate progress for iframe-based players
-        formData.append('current_time', Math.floor(Math.random() * 30) + 10);
-        formData.append('duration', 120); 
+        formData.append('media_type', "<?php echo $mediaType; ?>");
+        formData.append('current_time', currentTime);
+        formData.append('duration', totalDuration);
         
         if (navigator.sendBeacon) {
             navigator.sendBeacon('/update-history', formData);
@@ -993,7 +1154,16 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                 body: formData
             }).catch(err => console.error('History Error:', err));
         }
-    }, 5000); // 5 seconds after load
+    }
+    
+    // Update after 5 seconds initially so it gets registered
+    setTimeout(updateProgress, 5000);
+    
+    // And then update every 15 seconds
+    setInterval(updateProgress, 15000);
+    
+    // And also update when leaving the page
+    window.addEventListener('beforeunload', updateProgress);
 </script>
 
 <!-- Fullscreen Search Overlay -->
@@ -1161,6 +1331,30 @@ watchlistBtns.forEach(btn => {
         .catch(err => console.error('Watchlist Error:', err));
     });
 });
+
+// Cinematic Mode Toggle
+function toggleCinematicMode() {
+    const isActive = document.body.classList.contains('cinematic-active');
+    
+    if (!isActive) {
+        if (confirm("Enable Cinematic Mode? This will dim the background so you can focus entirely on the movie. (Works best when not in fullscreen)")) {
+            document.body.classList.add('cinematic-active');
+            const btn = document.getElementById('cinematicToggleBtn');
+            if (btn) {
+                btn.style.color = '#e50914';
+                btn.title = "Turn Off Cinematic Mode";
+            }
+        }
+    } else {
+        document.body.classList.remove('cinematic-active');
+        const btn = document.getElementById('cinematicToggleBtn');
+        if (btn) {
+            btn.style.color = '#00e0ff';
+            btn.title = "Cinematic Mode";
+        }
+    }
+}
 </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

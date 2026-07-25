@@ -14,36 +14,63 @@ if (!function_exists('formatRuntime')) {
 // Helper: Decide whether a TMDB details block is kid-safe
 if (!function_exists('isSafeForKids')) {
     function isSafeForKids(array $details): bool {
-        // If TMDB reports 'adult' => treat as NOT safe
+        // 1. Immediately reject explicitly adult content
         if (!empty($details['adult'])) return false;
 
-        // 1) Movie -> check release_dates -> certification
+        // 2. Reject mature genres (Horror: 27, Crime: 80, Thriller: 53, War: 10768)
+        $adultGenres = [27, 80, 53, 10768];
+        if (!empty($details['genre_ids'])) {
+            foreach ($details['genre_ids'] as $gId) {
+                if (in_array($gId, $adultGenres)) return false;
+            }
+        }
+        if (!empty($details['genres'])) {
+            foreach ($details['genres'] as $g) {
+                if (in_array($g['id'], $adultGenres)) return false;
+            }
+        }
+
+        $hasSafeCert = false;
+        $hasMatureCert = false;
+        $safeCerts = ['G', 'PG', 'PG-13', 'TV-Y', 'TV-Y7', 'TV-G', 'TV-PG', 'TV-14', 'U', 'U/A', 'A', 'ALL'];
+
+        // 3. Check Movie Certifications globally
         if (!empty($details['release_dates']['results'])) {
             foreach ($details['release_dates']['results'] as $result) {
-                // prefer US-specific certification if present
-                if (!empty($result['iso_3166_1']) && $result['iso_3166_1'] === 'US') {
-                    foreach ($result['release_dates'] as $r) {
-                        $cert = trim((string)($r['certification'] ?? ''));
-                        if ($cert === '') continue;
-                        // If certification contains 18 or 21, or NC-17 / R treat as not safe
-                        if (preg_match('/\b(18|21)\b|NC-17|R/i', $cert)) return false;
+                foreach ($result['release_dates'] as $r) {
+                    $cert = strtoupper(trim((string)($r['certification'] ?? '')));
+                    if ($cert === '') continue;
+                    
+                    if (preg_match('/\b(15|16|18|21|NC-17|R|X|TV-MA|MA|NR|UR)\b/i', $cert)) {
+                        $hasMatureCert = true;
+                    } elseif (in_array($cert, $safeCerts)) {
+                        $hasSafeCert = true;
                     }
                 }
             }
         }
 
-        // 2) TV -> content_ratings
+        // 4. Check TV Certifications globally
         if (!empty($details['content_ratings']['results'])) {
             foreach ($details['content_ratings']['results'] as $result) {
-                if (!empty($result['iso_3166_1']) && $result['iso_3166_1'] === 'US') {
-                    $rating = strtoupper(trim((string)($result['rating'] ?? '')));
-                    // Treat TV-MA and 18+ as not allowed
-                    if ($rating === 'TV-MA' || preg_match('/\b(18|18\+|ADULT)\b/i', $rating)) return false;
+                $rating = strtoupper(trim((string)($result['rating'] ?? '')));
+                if ($rating === '') continue;
+                
+                if (preg_match('/\b(15|16|18|21|NC-17|R|X|TV-MA|MA|NR|UR)\b/i', $rating)) {
+                    $hasMatureCert = true;
+                } elseif (in_array($rating, $safeCerts)) {
+                    $hasSafeCert = true;
                 }
             }
         }
 
-        // Nothing explicitly adult found — consider safe
+        // 5. Final Decision
+        if ($hasMatureCert) return false;        // If we found a safe certification, allow it.
+        if ($hasSafeCert) return true;
+
+        // If there are no certifications at all, we've already verified it doesn't have 
+        // explicitly mature genres (Horror, Crime, etc) or an 'adult' flag.
+        // It's safer to allow it so the catalog isn't completely empty for older/unrated titles.
         return true;
     }
 }
@@ -173,7 +200,6 @@ if ($heroData && !empty($heroData['results'])) {
         ];
     }
 }
-
 $continueWatching = [];
 
 if (isset($_SESSION['user_id']) && isset($conn)) {
@@ -184,8 +210,8 @@ if (isset($_SESSION['user_id']) && isset($conn)) {
         // We fetch 20 items to allow buffer for filtering duplicates
         $sql = "SELECT * FROM watch_history 
                 WHERE user_id = :uid 
-                ORDER BY last_watched DESC LIMIT 20";
-                
+                ORDER BY last_watched DESC 
+                LIMIT 20";
         $stmt = $conn->prepare($sql);
         $stmt->execute([':uid' => $userId]);
         $historyList = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -199,12 +225,25 @@ if (isset($_SESSION['user_id']) && isset($conn)) {
 
             // 2. Use YOUR database column name: tmdb_movie_id
             $tmdbId = $row['tmdb_movie_id'];
+            $mediaType = $row['media_type'] ?? 'movie';
 
             // 3. Skip if we already added this movie to the list
             if (in_array($tmdbId, $addedIds)) continue;
 
-            $details = fetchTmdbApi("movie/" . $tmdbId, ['append_to_response' => 'release_dates,content_ratings']);
-            if (!$details) continue;
+            $details = fetchTmdbApi($mediaType . "/" . $tmdbId, ['append_to_response' => 'release_dates,content_ratings']);
+            
+            // Auto-heal old database records that were missing media_type
+            if (empty($details) || (isset($details['success']) && $details['success'] == false) || isset($details['status_code'])) {
+                // If it failed as a movie, it might be an old TV show record
+                if ($mediaType === 'movie') {
+                    $mediaType = 'tv';
+                    $details = fetchTmdbApi("tv/" . $tmdbId, ['append_to_response' => 'release_dates,content_ratings']);
+                }
+            }
+
+            if (empty($details) || (isset($details['success']) && $details['success'] == false) || isset($details['status_code'])) {
+                continue;
+            }
 
             if (!empty($isKidsModeActive) && !isSafeForKids($details)) {
                 // if the user's continue-watching item is not kid-safe, skip it in Kids Mode
@@ -227,7 +266,8 @@ if (isset($_SESSION['user_id']) && isset($conn)) {
 
             $continueWatching[] = [
                 'id'          => $details['id'],
-                'title'       => $details['title'],
+                'type'        => $mediaType,
+                'title'       => $details['title'] ?? $details['name'],
                 'image_url'   => isset($details['backdrop_path']) 
                                  ? 'https://image.tmdb.org/t/p/w780' . $details['backdrop_path'] 
                                  : '/assets/images/media/placeholder.svg',
@@ -733,7 +773,7 @@ include ("includes/header.php");
                             
                             <!-- Image & Link -->
                             <div class="iq-image-box overly-images">
-                                <a href="/movie/<?php echo $item['id']; ?>" class="d-block">
+                                <a href="/<?php echo $item['type']; ?>/<?php echo $item['id']; ?>" class="d-block">
                                     <img src="<?php echo $item['image_url']; ?>" alt="<?php echo htmlspecialchars($item['title']); ?>"
                                          class="w-100 d-block border-0 rounded-3 continue-image" loading="lazy">
                                 </a>

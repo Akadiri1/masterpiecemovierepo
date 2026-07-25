@@ -1,0 +1,1 @@
+<?php require 'c:/wamp64/www/masterpiecemovie/v1/models/model.php'; require 'c:/wamp64/www/masterpiecemovie/v1/controllers/controller.php'; print_r(fetchTmdbApi('movie/217288')); print_r(fetchTmdbApi('tv/217288')); print_r(fetchTmdbApi('movie/127532')); print_r(fetchTmdbApi('tv/127532')); print_r(fetchTmdbApi('movie/7225')); print_r(fetchTmdbApi('tv/7225')); ?>

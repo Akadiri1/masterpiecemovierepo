@@ -5,7 +5,8 @@
  * It will create a temporary user, toggle is_kids_mode, and verify DB values.
  */
 
-require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../../.env/config.php';
+require_once __DIR__ . '/../models/model.php';
 
 function out($m){ echo $m . PHP_EOL; }
 

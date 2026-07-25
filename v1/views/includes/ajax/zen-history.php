@@ -52,9 +52,9 @@ try {
             WHERE id IN (
                 SELECT MAX(id) 
                 FROM zen_search_history 
-                WHERE user_id = ? 
+                WHERE user_id = ? AND is_deleted = 0
                 GROUP BY conversation_id
-            ) 
+            ) AND is_deleted = 0
             ORDER BY is_pinned DESC, id DESC 
             LIMIT 50
         ";
@@ -63,7 +63,12 @@ try {
         $stmt->execute([$userId]);
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        echo json_encode(['status' => 'success', 'data' => $data]);
+        // Count today's usage (counts all queries created today, including soft-deleted ones, to prevent daily limit bypass)
+        $limitStmt = $conn->prepare("SELECT COUNT(id) FROM zen_search_history WHERE user_id = ? AND DATE(created_at) = CURDATE()");
+        $limitStmt->execute([$userId]);
+        $dailyUsed = (int) $limitStmt->fetchColumn();
+        
+        echo json_encode(['status' => 'success', 'data' => $data, 'daily_used' => $dailyUsed]);
         exit;
     }
 
@@ -71,7 +76,7 @@ try {
     if ($action === 'fetch_chat') {
         $cid = $_POST['conversation_id'] ?? '';
         
-        $stmt = $conn->prepare("SELECT * FROM zen_search_history WHERE conversation_id = ? AND user_id = ? ORDER BY id ASC");
+        $stmt = $conn->prepare("SELECT * FROM zen_search_history WHERE conversation_id = ? AND user_id = ? AND is_deleted = 0 ORDER BY id ASC");
         $stmt->execute([$cid, $userId]);
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
@@ -83,7 +88,7 @@ try {
     if ($action === 'pin') {
         $cid = $_POST['conversation_id'] ?? '';
         
-        $stmt = $conn->prepare("UPDATE zen_search_history SET is_pinned = NOT is_pinned WHERE conversation_id = ? AND user_id = ?");
+        $stmt = $conn->prepare("UPDATE zen_search_history SET is_pinned = NOT is_pinned WHERE conversation_id = ? AND user_id = ? AND is_deleted = 0");
         $stmt->execute([$cid, $userId]);
         
         usleep(200000); // UX Delay
@@ -91,11 +96,11 @@ try {
         exit;
     }
 
-    // --- DELETE CONVERSATION ---
+    // --- DELETE CONVERSATION (Soft Delete to preserve query counts) ---
     if ($action === 'delete') {
         $cid = $_POST['conversation_id'] ?? '';
         
-        $stmt = $conn->prepare("DELETE FROM zen_search_history WHERE conversation_id = ? AND user_id = ?");
+        $stmt = $conn->prepare("UPDATE zen_search_history SET is_deleted = 1 WHERE conversation_id = ? AND user_id = ?");
         $stmt->execute([$cid, $userId]);
         
         usleep(200000); // UX Delay

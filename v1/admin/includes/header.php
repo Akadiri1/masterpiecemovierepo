@@ -1,26 +1,65 @@
-<?php if(!isset($_SESSION['admin_id'])){
-  header("Location:/admin-login");
-  die;
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+if (!isset($_SESSION['admin_id'])) {
+    // Check if they are logged in as a front-end user who is admin
+    if (isset($_SESSION['user_id'])) {
+        $stmt = $conn->prepare("SELECT * FROM users WHERE id = ? AND is_admin = 1 LIMIT 1");
+        $stmt->execute([$_SESSION['user_id']]);
+        $u = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($u) {
+            $_SESSION['admin_id'] = $u['id'];
+            $_SESSION['admin_name'] = ($u['firstName'] ?? $u['firstname'] ?? '') . ' ' . ($u['lastName'] ?? $u['lastname'] ?? '');
+        }
+    }
+}
+
+if (!isset($_SESSION['admin_id'])) {
+    header("Location:/admin-login");
+    die;
 }
 
 $whereAdmin['hash_id'] = $_SESSION['admin_id'];
-$adminDetails = selectContent($conn,"admin",$whereAdmin);
+$adminDetails = selectContent($conn, "admin", $whereAdmin);
 
-
-$whereTable['TABLE_TYPE'] = "BASE TABLE";
-$whereTable['TABLE_SCHEMA'] = "mckodevc_demo";
-$table_name['table_name'] = "table_name";
-$tables = selectTableContent($conn,'information_schema.tables',$table_name,$whereTable);
-// die(var_dump($tables));
-
-if($adminDetails[0]['user_status'] == 2){
-  header("Location:/admin-login?err=".base64url_encode("Your Account Has Been Suspended"));
+// Fallback: If not found in admin table, check users table
+if (empty($adminDetails)) {
+    $stmt = $conn->prepare("SELECT * FROM users WHERE id = ? AND is_admin = 1 LIMIT 1");
+    $stmt->execute([$_SESSION['admin_id']]);
+    $u = $stmt->fetch(PDO::FETCH_ASSOC);
+    if ($u) {
+        $adminDetails = [[
+            'id' => $u['id'],
+            'firstname' => $u['firstName'] ?? $u['firstname'] ?? '',
+            'lastname' => $u['lastName'] ?? $u['lastname'] ?? '',
+            'email' => $u['email'],
+            'level' => 'MASTER',
+            'user_status' => 1
+        ]];
+    }
 }
 
-// die($adminDetails[0]['level']);
-if(!in_array($adminDetails[0]['level'],$level_check)){
-  unset($_SESSION['admin_id']);
-  header("Location:/admin-login?err=".base64url_encode("<p>You were logged out because your account cannot visit the page you visited</p>"));
+if (empty($adminDetails)) {
+    header("Location:/admin-login?err=" . base64url_encode("Access Denied"));
+    die;
+}
+
+$whereTable['TABLE_TYPE'] = "BASE TABLE";
+$whereTable['TABLE_SCHEMA'] = $conn->query('SELECT DATABASE()')->fetchColumn();
+$table_name['table_name'] = "table_name";
+$tables = selectTableContent($conn, 'information_schema.tables', $table_name, $whereTable);
+
+if ($adminDetails[0]['user_status'] == 2) {
+    header("Location:/admin-login?err=" . base64url_encode("Your Account Has Been Suspended"));
+    die;
+}
+
+if (!in_array($adminDetails[0]['level'], $level_check)) {
+    unset($_SESSION['admin_id']);
+    header("Location:/admin-login?err=" . base64url_encode("<p>You were logged out because your account cannot visit the page you visited</p>"));
+    die;
 }
 
  ?>
@@ -90,7 +129,7 @@ if(!in_array($adminDetails[0]['level'],$level_check)){
 	</div>
 	<!-- [ Pre-loader ] End -->
 	<!-- [ navigation menu ] start -->
-	<nav class="navbar menupos-fixed menu-light brand-red icon-colored">
+	<nav class="pcoded-navbar navbar menupos-fixed menu-light brand-red icon-colored">
 		<div class="navbar-wrapper ">
 			<div class="navbar-brand header-logo" style="/*background-color:white;*/">
 				<a href="/admin" class="b-brand">
@@ -100,8 +139,8 @@ if(!in_array($adminDetails[0]['level'],$level_check)){
 					<span class="b-title">Flash Able</span> -->
 					<!-- <img src="/logo.png" width="50" height="50" alt="" class="logo images"> -->
 					<!-- <img src="/logo.gif" width="50" height="50" alt="" class="logo-thumb images"> -->
-          <span class="text-white logo images">ADMC</span>
-          <!-- <span class="text-white logo-thumb images">ADMC</span> -->
+           <span class="text-white logo images">ADMC</span>
+           <!-- <span class="text-white logo-thumb images">ADMC</span> -->
 
 				</a>
 				<a class="mobile-menu" id="mobile-collapse" href="#!"><span></span></a>
@@ -110,7 +149,7 @@ if(!in_array($adminDetails[0]['level'],$level_check)){
 
 
 
-				<ul class="nav navbar ">
+				<ul class="nav pcoded-inner-navbar">
 					<li class="nav-item menu-caption" style="padding: 25px 15px 15px 10px;">
             	<img src="/logo.png" width="50" height="50" alt="" class="logo images">
 						<!-- <label>Navigation</label> -->
@@ -129,9 +168,9 @@ if(!in_array($adminDetails[0]['level'],$level_check)){
              array_shift($remains);
 
                $remains = ucwords(implode(" ",$remains)); ?>
-             <li data-username="<?php echo $remains ?>" class="nav-item hasmenu">
+             <li data-username="<?php echo $remains ?>" class="nav-item pcoded-hasmenu">
                <a href="#!" class="nav-link"><span class="micon"><i class="feather icon-menu"></i></span><span class="mtext"><?php echo $remains ?></span></a>
-               <ul class="submenu">
+               <ul class="pcoded-submenu">
 
                  <li class=""><a href="/add/<?php echo str_replace(" ","_",strtolower($remains)); ?>" class="" >Add <?php echo $remains ?></a></li>
                  <li class=""><a href="/manage/<?php echo str_replace(" ","_",strtolower($remains)); ?>" class="" >Manage <?php echo $remains ?></a></li>
@@ -155,9 +194,9 @@ if(!in_array($adminDetails[0]['level'],$level_check)){
              array_shift($remains);
 
                $remains = ucwords(implode(" ",$remains)); ?>
-             <li data-username="<?php echo $remains ?>" class="nav-item hasmenu">
+             <li data-username="<?php echo $remains ?>" class="nav-item pcoded-hasmenu">
                <a href="#!" class="nav-link"><span class="micon"><i class="feather icon-bookmark"></i></span><span class="mtext"><?php echo $remains ?></span></a>
-               <ul class="submenu">
+               <ul class="pcoded-submenu">
 
                  <li class=""><a href="/create/<?php echo str_replace(" ","_",strtolower($remains)); ?>" class="" >Add <?php echo $remains ?></a></li>
                  <li class=""><a href="/manage/<?php echo str_replace(" ","_",strtolower($remains)); ?>" class="" >Manage <?php echo $remains ?></a></li>
@@ -198,9 +237,9 @@ if(!in_array($adminDetails[0]['level'],$level_check)){
 					<li class="nav-item menu-caption">
 						<label>Users Management</label>
 					</li>
-          <li data-username="registration dashboard users" class="nav-item hasmenu">
+          <li data-username="registration dashboard users" class="nav-item pcoded-hasmenu">
             <a href="#!" class="nav-link"><span class="micon"><i class="feather icon-users"></i></span><span class="mtext">Users</span></a>
-            <ul class="submenu">
+            <ul class="pcoded-submenu">
               <li class=""><a href="/admin/registration_dashboard.php" class="">Registration Dashboard</a></li>
               <li class=""><a href="/admin/manage_users.php" class="">Manage Users</a></li>
             </ul>

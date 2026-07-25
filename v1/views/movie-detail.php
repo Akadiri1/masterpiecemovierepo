@@ -165,9 +165,14 @@ if (isset($conn)) {
 // --- WATCHLIST ---
 $isInWatchlist = false;
 if (isset($conn) && isset($_SESSION['user_id'])) {
-    $wlStmt = $conn->prepare("SELECT id FROM watchlist WHERE user_id = ? AND tmdb_movie_id = ? AND media_type = ?");
-    $wlStmt->execute([$_SESSION['user_id'], $mediaId, $mediaType]);
-    $isInWatchlist = (bool) $wlStmt->fetch();
+    try {
+        $wlStmt = $conn->prepare("SELECT id FROM watchlist WHERE user_id = ? AND tmdb_movie_id = ? AND media_type = ?");
+        $wlStmt->execute([$_SESSION['user_id'], $mediaId, $mediaType]);
+        $isInWatchlist = (bool) $wlStmt->fetch();
+    } catch (PDOException $e) {
+        error_log("Watchlist Check Error: " . $e->getMessage());
+        $isInWatchlist = false;
+    }
 }
 
 // --- UPCOMING ---

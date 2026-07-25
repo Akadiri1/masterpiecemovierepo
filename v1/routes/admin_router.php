@@ -43,10 +43,10 @@ if(count($uri) > 2){
         switch ($uri[1]."/".$uri[2]){
 
           case "add/$placeholder":
-          include APP_PATH."/v1/admin/admin_add_all.php";
+          include APP_PATH."/admin/admin_add_all.php";
           break;
             // case "project/$placeholder":
-            // include APP_PATH."/v1/demo_public_views/details.php";
+            // include APP_PATH."/demo_public_views/details.php";
             // break;
             ///////Public Routes////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
           }
@@ -58,10 +58,10 @@ if(count($uri) > 2){
             switch ($uri[1]."/".$uri[2]){
 
               case "create/$placeholder":
-              include APP_PATH."/v1/admin/admin_add_select.php";
+              include APP_PATH."/admin/admin_add_select.php";
               break;
                 // case "project/$placeholder":
-                // include APP_PATH."/v1/demo_public_views/details.php";
+                // include APP_PATH."/demo_public_views/details.php";
                 // break;
                 ///////Public Routes////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
               }
@@ -75,10 +75,10 @@ if(count($uri) > 2){
             switch ($uri[1]."/".$uri[2]){
 
               case "manage/$placeholder":
-              include APP_PATH."/v1/admin/manage_all.php";
+              include APP_PATH."/admin/manage_all.php";
               break;
                 // case "project/$placeholder":
-                // include APP_PATH."/v1/demo_public_views/details.php";
+                // include APP_PATH."/demo_public_views/details.php";
                 // break;
                 ///////Public Routes////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
               }
@@ -93,120 +93,111 @@ switch ($uri[1]) {
 
 
   case 'admin-add-category':
-  include APP_PATH."/v1/admin/create_category.php";
+  include APP_PATH."/admin/create_category.php";
   break;
   case 'admin-add-blog':
-  include APP_PATH."/v1/admin/create_blog.php";
+  include APP_PATH."/admin/create_blog.php";
   break;
   case 'admin-add-post':
-  include APP_PATH."/v1/admin/create_post.php";
+  include APP_PATH."/admin/create_post.php";
   break;
   case 'admin-add-polls':
-  include APP_PATH."/v1/admin/create_polls.php";
+  include APP_PATH."/admin/create_polls.php";
   break;
   case 'admin-view-post':
-  include APP_PATH."/v1/admin/manage_post.php";
+  include APP_PATH."/admin/manage_post.php";
   break;
   case 'admin-view-blog':
-  include APP_PATH."/v1/admin/manage_blog.php";
+  include APP_PATH."/admin/manage_blog.php";
   break;
   case 'admin-view-polls':
-  include APP_PATH."/v1/admin/manage_polls.php";
+  include APP_PATH."/admin/manage_polls.php";
   break;
   case "admin-edit-content?id=$id&data=$data&location=$location":
-  include APP_PATH."/v1/admin/edit_content.php";
+  include APP_PATH."/admin/edit_content.php";
   break;
   case "admin-edit-hospital?id=$id&data=$data&location=$location":
-  include APP_PATH."/v1/admin/edit_hospital.php";
+  include APP_PATH."/admin/edit_hospital.php";
   break;
   case "admin-edit-school?id=$id&data=$data&location=$location":
-  include APP_PATH."/v1/admin/edit_school.php";
+  include APP_PATH."/admin/edit_school.php";
   break;
 
   case 'add-hospital':
-  include APP_PATH."/v1/admin/add_hospital_asset.php";
+  include APP_PATH."/admin/add_hospital_asset.php";
   break;
 
   case 'add-school':
-  include APP_PATH."/v1/admin/add_school_asset.php";
+  include APP_PATH."/admin/add_school_asset.php";
   break;
 
   case 'admin-view-category':
-  include APP_PATH."/v1/admin/manage_category.php";
+  include APP_PATH."/admin/manage_category.php";
   break;
 
   case 'admin-view-hospital':
-  include APP_PATH."/v1/admin/manage_hospital.php";
+  include APP_PATH."/admin/manage_hospital.php";
   break;
 
   case 'admin-add-slider':
-  include APP_PATH."/v1/admin/create_slider.php";
+  include APP_PATH."/admin/create_slider.php";
   break;
   case 'admin-view-slider':
-  include APP_PATH."/v1/admin/manage_slider.php";
+  include APP_PATH."/admin/manage_slider.php";
   break;
 
   case 'admin-edit-slider':
-  include APP_PATH."/v1/admin/manage_slider.php";
+  include APP_PATH."/admin/manage_slider.php";
   break;
 
   case 'admin-view-admin':
-  include APP_PATH."/v1/admin/manage_admin.php";
+  include APP_PATH."/admin/manage_admin.php";
   break;
 
   case 'admin-view-users':
-  include APP_PATH."/v1/admin/manage_users.php";
+  include APP_PATH."/admin/manage_users.php";
   break;
 
   case 'admin-view-school':
-  include APP_PATH."/v1/admin/manage_school.php";
+  include APP_PATH."/admin/manage_school.php";
   break;
 
   case 'admin-add-topic':
-  include APP_PATH."/v1/admin/create_post.php";
+  include APP_PATH."/admin/create_post.php";
   break;
   case "change-image?id=$id&data=$data&location=$location":
-  include APP_PATH."/v1/admin/change_image.php";
+  include APP_PATH."/admin/change_image.php";
   break;
 
   // case 'admin-signup':
-  // include APP_PATH."/v1/admin/admin_register.php";
+  // include APP_PATH."/admin/admin_register.php";
   // break;
   //
   //
   // case "admin-signup?err=$err":
-  // include APP_PATH."/v1/admin/admin_register.php";
+  // include APP_PATH."/admin/admin_register.php";
   // break;
   //
   // case "admin-signup?wn=$wn":
-  // include APP_PATH."/v1/admin/admin_register.php";
+  // include APP_PATH."/admin/admin_register.php";
   // break;
   //
-  // case 'admin-logout':
-  // include APP_PATH."/v1/admin/admin_logout.php";
-  // break;
-  //
-  // case 'admin-login':
-  // include APP_PATH."/v1/admin/admin_login.php";
-  // break;
-  // case "admin-login?rd=$rd":
-  // include APP_PATH."/v1/admin/admin_login.php";
-  // break;
-  // case "admin":
-  // include APP_PATH."/v1/admin/admin_home.php";
-  // break;
-  // case "admin-login?wn=$wn":
-  // include APP_PATH."/v1/admin/admin_login.php";
-  // break;
-  // case "admin-login?err=$err":
-  // include APP_PATH."/v1/admin/admin_login.php";
-  // break;
-  // case "admin-login?wn=$wn&rd=$rd":
-  // include APP_PATH."/v1/admin/admin_login.php";
-  // break;
-  // case "admin-login?success=$success":
-  // include APP_PATH."/v1/admin/admin_login.php";
-  // break;
+  case 'admin-logout':
+    if (session_status() === PHP_SESSION_NONE) session_start();
+    session_destroy();
+    header("Location: /login");
+    exit;
+    break;
+
+  case 'admin-login':
+    header("Location: /login");
+    exit;
+    break;
+
+  case 'admin':
+  case 'admin-dashboard':
+    include APP_PATH."/admin/registration_dashboard.php";
+    break;
 
 
 

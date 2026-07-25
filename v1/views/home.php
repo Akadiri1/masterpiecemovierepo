@@ -166,14 +166,14 @@ if (isset($_SESSION['user_id'])) {
     
                 if (!$details) continue;
     
-                // 3. Calculate Progress
+                // 3. Calculate Progress (converting saved seconds to minutes for presentation)
                 $minutes_watched = $row['current_time'];
                 $runtime = $row['total_duration'];
                 
                 // Prevent division by zero
                 if ($runtime > 0) {
                     $percentage = floor(($minutes_watched / $runtime) * 100);
-                    $minutes_left = $runtime - $minutes_watched;
+                    $minutes_left = floor(max(0, $runtime - $minutes_watched) / 60);
                 } else {
                     $percentage = 0;
                     $minutes_left = 0;
