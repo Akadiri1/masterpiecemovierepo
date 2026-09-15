@@ -52,24 +52,15 @@ if (!empty($input['identity']) && !empty($input['password'])) {
         $_SESSION['plan_id'] = $sessionPlanId;
         $_SESSION['plan_name'] = strtolower($planName);
 
-        // Optional remember-me handling (best-effort): set cookie and persist hashed token if DB supports it
-        $remember = !empty($input['rememberMe']);
-        if ($remember) {
-            try {
-                $rawToken = bin2hex(random_bytes(16));
-                // Try to persist to DB if column exists - silently ignore on failure
-                $hashed = password_hash($rawToken, PASSWORD_BCRYPT);
-                $uStmt = $conn->prepare("UPDATE users SET remember_token = ? WHERE id = ?");
-                @$uStmt->execute([$hashed, $user['id']]);
-                setcookie('remember_token', $rawToken, time() + (86400 * 30), '/', '', false, true);
-            } catch (Exception $e) {
-                // ignore
-            }
+        // Remember me: a rotating per-device token, restored by www/index.php
+        // on later visits. The old version wrote a token nothing ever read.
+        if (!empty($input['rememberMe'])) {
+            auth_remember_issue($conn, (int) $user['id']);
         }
 
-        // Redirect after successful login. Admins go to dashboard, users go to home by default.
+        // Redirect after successful login. 
         $isAdmin = $user['is_admin'] ?? 0;
-        $redirect_url = ($isAdmin == 1) ? '/admin-dashboard' : '/';
+        $redirect_url = '/';
 
         // If the social login request sent a 'next' parameter, respect it when safe.
         $nextCandidate = $input['next'] ?? '';
@@ -244,10 +235,14 @@ if ($userData) {
         $_SESSION['plan_id'] = $sessionPlanId;
         $_SESSION['plan_name'] = strtolower($planName);
 
+        if (!empty($input['rememberMe'])) {
+            auth_remember_issue($conn, (int) $user['id']);
+        }
+
         // --- DETERMINE REDIRECT URL ---
-        // Matches your login logic: Admin goes to dashboard, User goes to home
+        // Matches your login logic: Everyone goes to home
         $isAdmin = $user['is_admin'] ?? 0;
-        $redirect_url = ($isAdmin == 1) ? '/admin-dashboard' : '/home';
+        $redirect_url = '/';
 
         echo json_encode([
             'success' => true,

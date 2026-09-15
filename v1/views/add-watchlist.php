@@ -10,7 +10,8 @@ if (!isset($_SESSION['user_id'])) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         echo json_encode(['status' => 'error', 'message' => 'Please login to add to watchlist.']);
     } else {
-        header('Location: /login');
+        $currentUrl = urlencode($_SERVER['HTTP_REFERER'] ?? '/');
+        header('Location: /login?next=' . $currentUrl);
     }
     exit;
 }

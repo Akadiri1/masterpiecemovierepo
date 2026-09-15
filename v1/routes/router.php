@@ -97,6 +97,10 @@ if (count($uri) > 2) {
     include APP_PATH."/views/login.php";
     break;
 
+    case 'admin-dashboard':
+    include APP_PATH."/views/admin-dashboard.php";
+    break;
+
     case 'admin_login'.$query_string:
     include APP_PATH."/views/admin_login.php";
     break;
@@ -226,50 +230,7 @@ if (count($uri) > 2) {
       include APP_PATH."/views/dashboard.php";
       break;
 
-       case 'dashboard?page=colors':
-      include APP_PATH."/views/dashboard.php";
-      break;
 
-       case 'dashboard?page=sizes':
-      include APP_PATH."/views/dashboard.php";
-      break;
-
-       case 'dashboard?page=orders':
-      include APP_PATH."/views/dashboard.php";
-      break;
-
-       case 'dashboard?page=add_product&edit_id=':
-      include APP_PATH."/views/dashboard.php";
-      break;
-
-      case 'dashboard?page=colors&edit_id=':
-      include APP_PATH."/views/dashboard.php";
-      break;
-
-       case 'dashboard?page=sizes&edit_id=':
-      include APP_PATH."/views/dashboard.php";
-      break;
-     
-      case 'dashboard?page=dashboard':
-      include APP_PATH."/views/dashboard.php";
-      break;
-
-      // case 'dashboard?page=add_product&edit_id='.$_GET['edit_id']:
-      // include APP_PATH."/views/dashboard.php";
-      // break;
-      
-
-       case 'dashboard?page=add_product':
-      include APP_PATH."/views/dashboard.php";
-      break;
-
-         case 'dashboard?page=manage_products':
-      include APP_PATH."/views/dashboard.php";
-      break;
-
-      case 'dashboard?page=logout':
-      include APP_PATH."/views/dashboard.php";
-      break;
 
 // ... your other cases for 'shop', 'home', etc.
         
@@ -592,7 +553,7 @@ if (count($uri) > 2) {
     include APP_PATH."/auth/secure.php";
     break;
     case "login?".$query_string:
-    include APP_PATH."/auth/login.php";
+    include APP_PATH."/views/login.php";
     break;
     case "signup?".$query_string:
     include APP_PATH."/auth/signup.php";

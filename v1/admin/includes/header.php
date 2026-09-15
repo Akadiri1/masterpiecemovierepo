@@ -86,7 +86,7 @@ if (!in_array($adminDetails[0]['level'], $level_check)) {
 
 
   <!-- Favicon icon -->
-  <link rel="icon" href="/logo.png" type="image/x-icon">
+  <link rel="shortcut icon" href="/assets/images/favicon.ico" />
   <!-- fontawesome icon -->
   <link rel="stylesheet" href="/da/assets/fonts/fontawesome/css/fontawesome-all.min.css">
   <link rel="stylesheet" href="/da/assets/fonts/material/css/materialdesignicons.min.css">
@@ -104,6 +104,10 @@ if (!in_array($adminDetails[0]['level'], $level_check)) {
 <!-- Light Box -->
 <link rel="stylesheet" href="/da/assets/plugins/ekko-lightbox/css/ekko-lightbox.min.css">
 <link rel="stylesheet" href="/da/assets/plugins/lightbox2-master/css/lightbox.min.css">
+
+  <!-- Dark-glass admin theme. Must load last so it overrides the vendor
+       pcoded stylesheet above. -->
+  <link rel="stylesheet" href="/assets/css/core/admin-theme.css?v=<?php echo @filemtime($_SERVER['DOCUMENT_ROOT'] . '/assets/css/core/admin-theme.css') ?: time(); ?>">
 
 
   <!-- <script type="text/javascript" src="/map/viewer.js"></script> -->
@@ -155,6 +159,19 @@ if (!in_array($adminDetails[0]['level'], $level_check)) {
 						<!-- <label>Navigation</label> -->
 					</li>
         <li data-username="sample page" class="nav-item"><a href="/admin" class="nav-link"><span class="micon"><i class="feather icon-home"></i></span><span class="mtext">Dashboard</span></a></li>
+
+          <li class="nav-item menu-caption">
+            <label>Media &amp; AI</label>
+          </li>
+          <li data-username="ai zen groq pitches models" class="nav-item">
+            <a href="/admin-ai" class="nav-link"><span class="micon"><i class="feather icon-cpu"></i></span><span class="mtext">AI Control Panel</span></a>
+          </li>
+          <li data-username="ingestion catalogue archive licence review" class="nav-item">
+            <a href="/admin-ingestion" class="nav-link"><span class="micon"><i class="feather icon-download-cloud"></i></span><span class="mtext">Ingestion Queue</span></a>
+          </li>
+          <li data-username="downloads links quality" class="nav-item">
+            <a href="/admin-view-downloads" class="nav-link"><span class="micon"><i class="feather icon-link"></i></span><span class="mtext">Download Links</span></a>
+          </li>
 
           <li class="nav-item menu-caption">
             <label>Content Management</label>

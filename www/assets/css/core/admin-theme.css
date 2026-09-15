@@ -1,0 +1,503 @@
+/* ==========================================================================
+   Admin dark-glass theme
+   --------------------------------------------------------------------------
+   The admin sub-pages ship with the pcoded light theme, while the dashboard at
+   /admin uses the site's own dark glassmorphism. That left two design
+   languages inside one product. This layer moves the sub-pages onto the
+   dashboard's language: dark translucent surfaces, one brand accent, and
+   colour used only where it carries meaning.
+
+   Loaded after /da/assets/css/style.css, so the overrides here win. Some rules
+   need !important purely because the vendor theme is heavily specific.
+   ========================================================================== */
+
+:root {
+    /* Brand. Mirrors views/includes/header.php so both halves of the admin
+       agree on what "primary" means. */
+    --primary: #e50914;
+    --primary-rgb: 229, 9, 20;
+    --primary-hover: #ff2a35;
+
+    /* Surfaces, lightest to darkest. */
+    --adm-bg: #0d0a10;
+    --adm-bg-2: #120e17;
+    --adm-surface: rgba(255, 255, 255, 0.035);
+    --adm-surface-2: rgba(255, 255, 255, 0.06);
+    --adm-border: rgba(255, 255, 255, 0.08);
+    --adm-border-strong: rgba(255, 255, 255, 0.14);
+
+    /* Type. */
+    --adm-text: #e9eaee;
+    --adm-muted: #8b929c;
+    --adm-dim: #626974;
+
+    /* Semantic accents. Used for icons, numbers and edges -- never as a
+       full-bleed background block. */
+    --adm-cyan: #22d3ee;
+    --adm-green: #34d399;
+    --adm-amber: #fbbf24;
+    --adm-red: #f87171;
+    --adm-violet: #a78bfa;
+
+    --adm-radius: 14px;
+    --adm-radius-sm: 9px;
+}
+
+/* --------------------------------------------------------------- shell --- */
+
+body,
+.pcoded-main-container,
+.pcoded-content,
+.pcoded-wrapper {
+    background: var(--adm-bg) !important;
+    color: var(--adm-text) !important;
+}
+
+body {
+    /* Two very soft brand pools so the flat black has some depth. */
+    background-image:
+        radial-gradient(ellipse 80% 50% at 15% -10%, rgba(var(--primary-rgb), 0.10), transparent 60%),
+        radial-gradient(ellipse 60% 50% at 95% 0%, rgba(167, 139, 250, 0.06), transparent 60%) !important;
+    background-attachment: fixed !important;
+}
+
+.container, .wrapper, .content, .main-body, .page-wrapper {
+    background: transparent !important;
+}
+
+/* ---------------------------------------------------------- layout fix ---
+   admin/includes/header.php ends at </header> and never opens
+   .pcoded-main-container -- the element the vendor theme offsets by the
+   sidebar width. The admin pages instead open a plain Bootstrap .container,
+   which gets no offset, so content sits underneath the fixed sidebar. Worse,
+   .container caps its own width, so a wide table pushes the whole document
+   into horizontal scroll and drags the headings off-screen to the left.
+
+   Reproduce what .pcoded-main-container would have done, and let the page
+   fill the space so wide tables scroll inside their own box instead. */
+
+body > .container,
+.pcoded-navbar ~ .container {
+    margin-left: 264px !important;
+    margin-right: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+    min-width: 0;
+    padding: 0 26px 48px !important;
+    box-sizing: border-box;
+}
+
+/* Collapsed rail. */
+.pcoded-navbar.navbar-collapsed ~ .container {
+    margin-left: 70px !important;
+}
+
+/* Keep the wide tables inside their card rather than stretching the page. */
+body > .container .table-responsive,
+body > .container .dt-responsive {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* The sidebar is taller than the viewport on long pages; pin it so it does
+   not slide away when a table scrolls the page sideways. */
+.pcoded-navbar.menupos-fixed {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+}
+
+@media only screen and (max-width: 991px) {
+    body > .container,
+    .pcoded-navbar ~ .container,
+    .pcoded-navbar.navbar-collapsed ~ .container {
+        margin-left: 0 !important;
+        padding: 0 14px 40px !important;
+    }
+}
+
+/* ------------------------------------------------------------- sidebar --- */
+
+.pcoded-navbar {
+    background: rgba(16, 12, 20, 0.92) !important;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-right: 1px solid var(--adm-border) !important;
+    box-shadow: none !important;
+}
+
+.pcoded-navbar .pcoded-inner-navbar > li > a,
+.pcoded-navbar .nav-link,
+.pcoded-navbar a {
+    color: var(--adm-muted) !important;
+}
+
+.pcoded-navbar .nav-item .nav-link:hover {
+    color: var(--adm-text) !important;
+    background: var(--adm-surface) !important;
+}
+
+/* Active item: a brand rail rather than a filled block. */
+.pcoded-navbar .nav-item.active > .nav-link,
+.pcoded-navbar .nav-item.pcoded-trigger > .nav-link {
+    color: #fff !important;
+    background: linear-gradient(90deg, rgba(var(--primary-rgb), 0.16), transparent) !important;
+    box-shadow: inset 3px 0 0 var(--primary) !important;
+}
+
+.pcoded-navbar .menu-caption > label,
+.pcoded-navbar .menu-caption {
+    color: var(--adm-dim) !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.pcoded-navbar .pcoded-submenu {
+    background: rgba(0, 0, 0, 0.25) !important;
+}
+
+.pcoded-navbar .micon i { color: inherit !important; }
+
+/* ------------------------------------------------------------- top bar --- */
+
+.pcoded-header,
+.pcoded-header .navbar,
+.header-navbar {
+    background: rgba(16, 12, 20, 0.85) !important;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--adm-border) !important;
+    box-shadow: none !important;
+    color: var(--adm-text) !important;
+}
+
+.pcoded-header a,
+.pcoded-header i,
+.pcoded-header .dropdown-toggle {
+    color: var(--adm-muted) !important;
+}
+.pcoded-header a:hover { color: var(--adm-text) !important; }
+
+.pcoded-header .input-group,
+.pcoded-header input {
+    background: var(--adm-surface) !important;
+    border: 1px solid var(--adm-border) !important;
+    color: var(--adm-text) !important;
+    border-radius: var(--adm-radius-sm);
+}
+
+/* -------------------------------------------------------------- cards --- */
+
+.card {
+    background: var(--adm-surface) !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--adm-border) !important;
+    border-radius: var(--adm-radius) !important;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35) !important;
+    color: var(--adm-text) !important;
+}
+
+.card-header {
+    background: transparent !important;
+    border-bottom: 1px solid var(--adm-border) !important;
+    padding: 20px 24px !important;
+}
+
+.card-header h5 {
+    color: var(--adm-text) !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    margin: 0;
+}
+
+.card-body { color: var(--adm-text) !important; }
+
+/* ---------------------------------------------------------- stat tiles --- */
+/* Replaces the saturated .bg-primary / .bg-success blocks. The number leads;
+   colour appears only as a small icon chip and a hairline top edge. */
+
+.admin-stat {
+    position: relative;
+    background: var(--adm-surface) !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--adm-border);
+    border-radius: var(--adm-radius);
+    padding: 22px 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    overflow: hidden;
+    transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+    height: 100%;
+}
+
+.admin-stat::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--tint, var(--primary)), transparent 70%);
+    opacity: 0.85;
+}
+
+.admin-stat:hover {
+    transform: translateY(-3px);
+    background: var(--adm-surface-2) !important;
+    border-color: var(--adm-border-strong);
+}
+
+.admin-stat .admin-stat-icon {
+    width: 46px;
+    height: 46px;
+    flex: 0 0 46px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: var(--tint, var(--primary));
+    /* Neutral fallback first, for browsers without color-mix(). */
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--adm-border);
+    background: color-mix(in srgb, var(--tint, var(--primary)) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--tint, var(--primary)) 26%, transparent);
+}
+
+.admin-stat .admin-stat-value {
+    font-size: 1.85rem;
+    font-weight: 700;
+    line-height: 1.05;
+    color: var(--adm-text);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.admin-stat .admin-stat-label {
+    margin: 4px 0 0;
+    font-size: 0.79rem;
+    color: var(--adm-muted);
+    font-weight: 500;
+}
+
+.admin-stat .admin-stat-note {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.72rem;
+    color: var(--adm-dim);
+}
+.admin-stat .admin-stat-note.warn { color: var(--adm-amber); }
+
+/* Tint modifiers. */
+.admin-stat.t-primary { --tint: var(--primary); }
+.admin-stat.t-cyan    { --tint: var(--adm-cyan); }
+.admin-stat.t-green   { --tint: var(--adm-green); }
+.admin-stat.t-amber   { --tint: var(--adm-amber); }
+.admin-stat.t-red     { --tint: var(--adm-red); }
+.admin-stat.t-violet  { --tint: var(--adm-violet); }
+.admin-stat.t-muted   { --tint: #6b7280; }
+
+a:has(> .admin-stat), a > .admin-stat { text-decoration: none !important; }
+
+/* ------------------------------------------------------------- tables --- */
+
+.table {
+    color: var(--adm-text) !important;
+    border-color: var(--adm-border) !important;
+}
+
+.table thead th {
+    background: rgba(255, 255, 255, 0.035) !important;
+    color: var(--adm-muted) !important;
+    border-color: var(--adm-border) !important;
+    font-size: 0.72rem !important;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 600 !important;
+}
+
+.table td,
+.table th {
+    border-color: var(--adm-border) !important;
+    vertical-align: middle;
+}
+
+.table-bordered,
+.table-bordered td,
+.table-bordered th { border-color: var(--adm-border) !important; }
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background: rgba(255, 255, 255, 0.018) !important;
+}
+
+.table tbody tr:hover {
+    background: rgba(var(--primary-rgb), 0.06) !important;
+}
+
+.table a { color: var(--adm-cyan) !important; }
+.table a:hover { color: #67e8f9 !important; }
+
+.text-muted { color: var(--adm-muted) !important; }
+
+/* -------------------------------------------------------------- forms --- */
+
+.form-control,
+.form-control:focus,
+select.form-control,
+textarea.form-control,
+input[type="text"],
+input[type="number"],
+input[type="url"],
+input[type="email"] {
+    background: rgba(0, 0, 0, 0.28) !important;
+    border: 1px solid var(--adm-border) !important;
+    color: var(--adm-text) !important;
+    border-radius: var(--adm-radius-sm) !important;
+}
+
+.form-control:focus {
+    border-color: rgba(var(--primary-rgb), 0.55) !important;
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.14) !important;
+}
+
+.form-control::placeholder { color: var(--adm-dim) !important; }
+
+label,
+.form-group label { color: var(--adm-muted) !important; font-size: 0.82rem; }
+
+select.form-control option { background: var(--adm-bg-2); color: var(--adm-text); }
+
+code {
+    background: rgba(var(--primary-rgb), 0.12) !important;
+    color: #ff8b93 !important;
+    padding: 2px 6px;
+    border-radius: 5px;
+}
+
+/* ------------------------------------------------------------ buttons --- */
+
+.btn { border-radius: var(--adm-radius-sm) !important; font-weight: 500; }
+
+.btn-primary {
+    background: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: #fff !important;
+}
+.btn-primary:hover { background: var(--primary-hover) !important; border-color: var(--primary-hover) !important; }
+
+.btn-secondary,
+.btn-outline-secondary {
+    background: var(--adm-surface-2) !important;
+    border-color: var(--adm-border) !important;
+    color: var(--adm-text) !important;
+}
+.btn-secondary:hover, .btn-outline-secondary:hover { background: rgba(255,255,255,0.1) !important; }
+
+.btn-success { background: rgba(52, 211, 153, 0.16) !important; border-color: rgba(52,211,153,0.4) !important; color: var(--adm-green) !important; }
+.btn-success:hover { background: rgba(52, 211, 153, 0.26) !important; }
+
+.btn-danger  { background: rgba(248, 113, 113, 0.14) !important; border-color: rgba(248,113,113,0.38) !important; color: var(--adm-red) !important; }
+.btn-danger:hover { background: rgba(248, 113, 113, 0.24) !important; }
+
+.btn-warning { background: rgba(251, 191, 36, 0.15) !important; border-color: rgba(251,191,36,0.4) !important; color: var(--adm-amber) !important; }
+.btn-warning:hover { background: rgba(251, 191, 36, 0.25) !important; }
+
+.btn-info    { background: rgba(34, 211, 238, 0.14) !important; border-color: rgba(34,211,238,0.38) !important; color: var(--adm-cyan) !important; }
+.btn-info:hover { background: rgba(34, 211, 238, 0.24) !important; }
+
+/* ------------------------------------------------------------- badges --- */
+/* Tinted pills instead of solid blocks, so a dense table stays readable. */
+
+.badge {
+    font-weight: 600 !important;
+    padding: 4px 9px !important;
+    border-radius: 999px !important;
+    font-size: 0.7rem !important;
+    border: 1px solid transparent;
+}
+
+.badge-primary   { background: rgba(var(--primary-rgb), 0.16) !important; color: #ff8b93 !important; border-color: rgba(var(--primary-rgb), 0.35) !important; }
+.badge-success   { background: rgba(52, 211, 153, 0.15) !important;  color: var(--adm-green) !important;  border-color: rgba(52,211,153,0.35) !important; }
+.badge-info      { background: rgba(34, 211, 238, 0.15) !important;  color: var(--adm-cyan) !important;   border-color: rgba(34,211,238,0.35) !important; }
+.badge-warning   { background: rgba(251, 191, 36, 0.15) !important;  color: var(--adm-amber) !important;  border-color: rgba(251,191,36,0.35) !important; }
+.badge-danger    { background: rgba(248, 113, 113, 0.15) !important; color: var(--adm-red) !important;    border-color: rgba(248,113,113,0.35) !important; }
+.badge-secondary { background: rgba(255, 255, 255, 0.08) !important; color: var(--adm-muted) !important;  border-color: var(--adm-border) !important; }
+.badge-dark      { background: rgba(0, 0, 0, 0.4) !important;        color: var(--adm-muted) !important;  border-color: var(--adm-border) !important; }
+
+/* ------------------------------------------------------------- alerts --- */
+
+.alert {
+    border-radius: var(--adm-radius) !important;
+    border: 1px solid var(--adm-border) !important;
+    background: var(--adm-surface) !important;
+    color: var(--adm-text) !important;
+    backdrop-filter: blur(10px);
+}
+
+.alert-success { border-left: 3px solid var(--adm-green) !important; }
+.alert-danger  { border-left: 3px solid var(--adm-red) !important; }
+.alert-warning { border-left: 3px solid var(--adm-amber) !important; }
+.alert-info    { border-left: 3px solid var(--adm-cyan) !important; }
+
+.alert .close { color: var(--adm-muted) !important; opacity: 0.7; text-shadow: none; }
+
+/* --------------------------------------------------------- page header --- */
+
+.page-header {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 26px 0 14px !important;
+}
+
+.page-header-title h5 {
+    color: var(--adm-text) !important;
+    font-weight: 650 !important;
+    letter-spacing: -0.01em;
+}
+
+.breadcrumb { background: transparent !important; padding-left: 0 !important; }
+.breadcrumb-item a, .breadcrumb-item { color: var(--adm-muted) !important; font-size: 0.8rem; }
+.breadcrumb-item a:hover { color: var(--primary) !important; }
+
+/* --------------------------------------------------------- datatables --- */
+
+.dataTables_wrapper,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter { color: var(--adm-muted) !important; }
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    background: var(--adm-surface) !important;
+    border: 1px solid var(--adm-border) !important;
+    color: var(--adm-text) !important;
+    border-radius: 7px !important;
+    margin: 0 2px;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background: rgba(var(--primary-rgb), 0.22) !important;
+    border-color: rgba(var(--primary-rgb), 0.5) !important;
+    color: #fff !important;
+}
+
+/* ------------------------------------------------------------ scrollbar --- */
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--adm-bg); }
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    border: 2px solid var(--adm-bg);
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+
+/* -------------------------------------------------------------- misc --- */
+
+hr { border-color: var(--adm-border) !important; }
+
+.bg-white, .bg-light { background: var(--adm-surface) !important; color: var(--adm-text) !important; }
+
+/* The vendor theme paints a white sheet behind some pages. */
+.pcoded-inner-content, .main-body, .page-wrapper { background: transparent !important; }

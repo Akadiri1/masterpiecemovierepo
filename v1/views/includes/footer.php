@@ -1,85 +1,8 @@
 <?php include APP_PATH . '/views/zen-ai.php'; ?>
 
-<style>
-    /* Modern Mobile Bottom Nav */
-    .streamit-mobile-footer-menu {
-        background: rgba(11, 12, 21, 0.95);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border-top: 1px solid rgba(255,255,255,0.06);
-        box-shadow: 0 -4px 20px rgba(0,0,0,0.4);
-    }
-    .footer-menu { padding: 8px 0; }
-    .footer-menu-item { flex: 1; text-align: center; }
-    .footer-menu-item .menu-link {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
-        padding: 6px 0;
-        color: #888;
-        text-decoration: none;
-        font-size: 11px;
-        font-weight: 500;
-        transition: color 0.2s ease, transform 0.2s ease;
-        position: relative;
-    }
-    .footer-menu-item .menu-link i { font-size: 22px; }
-    .footer-menu-item .menu-link:hover,
-    .footer-menu-item .menu-link.active {
-        color: var(--bs-primary, #e5163f);
-        transform: translateY(-2px);
-    }
-    /* Active indicator dot */
-    .footer-menu-item .menu-link.active::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        background: var(--bs-primary, #e5163f);
-    }
+<?php include APP_PATH . '/views/includes/mobile-footer.php'; ?>
 
-    /* Mobile footer spacing for content above */
-    @media (max-width: 991px) {
-        .main-content { padding-bottom: 70px; }
-    }
-    /* Hide mobile footer on desktop (sidebar handles navigation) */
-    @media (min-width: 1200px) {
-        .streamit-mobile-footer-menu { display: none !important; }
-    }
-</style>
-
-<div class="streamit-mobile-footer-menu" aria-label="Mobile Footer Navigation">
-    <ul class="footer-menu list-inline d-flex align-items-center justify-content-between m-0">
-        <li class="footer-menu-item">
-            <a href="/view-all?type=movie" class="menu-link font-size-12">
-                <i class="ph ph-film-reel d-block text-center"></i>
-                Movies</a>
-        </li>
-        <li class="footer-menu-item">
-            <a href="/view-all?type=fresh" class="menu-link font-size-12">
-                <i class="ph ph-monitor-play d-block text-center"></i>
-                Videos</a>
-        </li>
-        <li class="footer-menu-item">
-            <a href="/" class="menu-link font-size-12">
-                <i class="fa fa-home d-block text-center"></i>
-                Home</a>
-        </li>
-        <li class="footer-menu-item">
-            <a href="/view-all?type=tv" class="menu-link font-size-12">
-                <i class="ph ph-television d-block text-center"></i>
-                TV Shows</a>
-        </li>
-        <li class="footer-menu-item">
-            <a href="/profile" class="menu-link font-size-12">
-                <i class="ph ph-user d-block text-center"></i>
-                Profile</a>
-        </li>
-    </ul>
-</div>
+<!-- toggleMobileSidebar is now defined in sidebar.php -->
 
 <script>
 // Global: Replace any broken images with placeholder
@@ -341,119 +264,119 @@
         });
     }
 </script>
-<!-- Theme Modal (Color House) -->
-<div id="themeModal" class="theme-overlay" style="display: none;">
-    <div class="theme-modal-content">
-        <div class="theme-modal-header">
-            <h3><i class="ph ph-sparkle text-primary"></i> Color House</h3>
-            <button class="theme-close-btn" onclick="closeThemeModal()"><i class="ph ph-x"></i></button>
-        </div>
-        <div class="theme-grid">
-            <div class="theme-card" onclick="setTheme('')" data-theme="">
-                <div class="theme-color-preview" style="background: #e50914;"></div>
-                <span>Ruby Cinematic</span>
-            </div>
-            <div class="theme-card" onclick="setTheme('cyberpunk')" data-theme="cyberpunk">
-                <div class="theme-color-preview" style="background: #00f0ff;"></div>
-                <span>Neon Cyberpunk</span>
-            </div>
-            <div class="theme-card" onclick="setTheme('gold')" data-theme="gold">
-                <div class="theme-color-preview" style="background: #ffd700;"></div>
-                <span>Midnight Gold</span>
-            </div>
-            <div class="theme-card" onclick="setTheme('emerald')" data-theme="emerald">
-                <div class="theme-color-preview" style="background: #00e676;"></div>
-                <span>Emerald Aurora</span>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Floating Theme Switcher Button -->
-<div class="theme-switcher-float" onclick="openThemeModal()">
-    <i class="ph ph-palette text-primary"></i>
-</div>
+<?php include APP_PATH . '/views/includes/theme-modal.php'; ?>
+<!-- Driver.js Library -->
+<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>
 
 <style>
-/* Floating Button */
-.theme-switcher-float {
-    position: fixed; bottom: 100px; right: 30px; width: 50px; height: 50px;
-    z-index: 99999999 !important; cursor: pointer; pointer-events: auto;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(11, 12, 21, 0.85); backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 50%;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+/* Custom Driver.js Styling for Premium Dark Mode */
+.driver-popover {
+    background: #14141d !important;
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.6) !important;
+    font-family: inherit !important;
 }
-.theme-switcher-float:hover {
-    transform: scale(1.15) rotate(15deg);
-    border-color: var(--primary);
-    box-shadow: 0 10px 30px var(--primary-glow);
+.driver-popover-title {
+    color: var(--primary, #e50914) !important;
+    font-size: 1.2rem !important;
+    font-weight: 700 !important;
 }
-.theme-switcher-float i { font-size: 22px; transition: 0.3s; pointer-events: none; }
-
-/* Theme Modal Styles */
-.theme-overlay {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-    background: rgba(8, 8, 12, 0.85); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
-    z-index: 99999999 !important; display: flex; align-items: center; justify-content: center;
+.driver-popover-description {
+    color: #bbb !important;
+    font-size: 0.95rem !important;
+    line-height: 1.5 !important;
 }
-.theme-modal-content {
-    background: rgba(20, 20, 25, 0.95); border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 20px; width: 90%; max-width: 500px; padding: 30px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-    animation: themeModalIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+.driver-popover-footer button {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #fff !important;
+    text-shadow: none !important;
+    border-radius: 6px !important;
+    transition: 0.2s ease !important;
 }
-@keyframes themeModalIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.theme-modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; }
-.theme-modal-header h3 { margin: 0; font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
-.theme-close-btn { background: rgba(255,255,255,0.05); border: none; color: #aaa; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
-.theme-close-btn:hover { background: rgba(255,255,255,0.1); color: #fff; transform: rotate(90deg); }
-
-.theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-.theme-card {
-    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
-    padding: 20px; border-radius: 16px; cursor: pointer; transition: 0.2s;
-    display: flex; flex-direction: column; align-items: center; gap: 12px;
+.driver-popover-footer button:hover {
+    background: var(--primary, #e50914) !important;
+    border-color: var(--primary, #e50914) !important;
 }
-.theme-card:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); transform: translateY(-3px); }
-.theme-card.active { border-color: var(--primary); background: rgba(255,255,255,0.05); box-shadow: 0 0 20px var(--primary-glow); }
-.theme-color-preview { width: 40px; height: 40px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
-.theme-card span { font-weight: 600; font-size: 0.95rem; color: #eee; }
+.driver-popover-progress-text {
+    color: #666 !important;
+}
+.driver-popover-arrow {
+    border-color: #14141d !important;
+}
 </style>
 
 <script>
-function openThemeModal() {
-    document.getElementById('themeModal').style.display = 'flex';
-    updateActiveThemeCard();
-}
-
-function closeThemeModal() {
-    document.getElementById('themeModal').style.display = 'none';
-}
-
-function setTheme(themeName) {
-    if (themeName) {
-        document.documentElement.setAttribute('data-theme', themeName);
-        localStorage.setItem('zen_theme', themeName);
-    } else {
-        document.documentElement.removeAttribute('data-theme');
-        localStorage.removeItem('zen_theme');
+document.addEventListener("DOMContentLoaded", function() {
+    // Only run if not in an iframe and tour hasn't been completed
+    if (window.self === window.top && !localStorage.getItem('zen_tour_completed')) {
+        setTimeout(() => {
+            const driver = window.driver.js.driver;
+            const tour = driver({
+                showProgress: true,
+                animate: true,
+                allowClose: true,
+                steps: [
+                    {
+                        popover: {
+                            title: 'Welcome to Masterpiece Movie! 🍿',
+                            description: 'Let\'s take a quick tour of your new premium streaming hub. It will only take a few seconds!',
+                            side: "over",
+                            align: 'center'
+                        }
+                    },
+                    {
+                        element: '.search-box', 
+                        popover: {
+                            title: 'Global Search',
+                            description: 'Instantly find your favorite movies, actors, or directors from anywhere on the site.',
+                            side: "bottom",
+                            align: 'center'
+                        }
+                    },
+                    {
+                        element: '#zen-ai-toggle-btn', 
+                        popover: {
+                            title: 'Meet ZEN AI ✨',
+                            description: 'Your personal AI assistant. Ask for recommendations, movie facts, or just have a chat!',
+                            side: "left",
+                            align: 'center'
+                        }
+                    },
+                    {
+                        element: '#movies', 
+                        popover: {
+                            title: 'Explore Categories',
+                            description: 'Browse through thousands of titles across diverse genres and international categories.',
+                            side: "bottom",
+                            align: 'start'
+                        }
+                    },
+                    {
+                        element: '#itemdropdown1', 
+                        popover: {
+                            title: 'Profile & Kids Mode',
+                            description: 'Manage your profile or switch to a strict Kids Mode to ensure a safe browsing environment.',
+                            side: "left",
+                            align: 'start'
+                        }
+                    }
+                ],
+                onDestroyStarted: () => {
+                    if (tour.hasNextStep() || !tour.hasNextStep()) {
+                        localStorage.setItem('zen_tour_completed', 'true');
+                        tour.destroy();
+                    }
+                }
+            });
+            
+            tour.drive();
+        }, 1500); // 1.5s delay to let animations finish loading
     }
-    updateActiveThemeCard();
-}
-
-function updateActiveThemeCard() {
-    const currentTheme = localStorage.getItem('zen_theme') || '';
-    document.querySelectorAll('.theme-card').forEach(card => {
-        if (card.getAttribute('data-theme') === currentTheme) {
-            card.classList.add('active');
-        } else {
-            card.classList.remove('active');
-        }
-    });
-}
+});
 </script>
 </body>
 </html>

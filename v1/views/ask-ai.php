@@ -77,9 +77,13 @@ if (!function_exists('fetchTmdbApi')) {
             CURLOPT_URL => $baseUrl . $endpoint . '?' . $queryParams,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 5,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4 // Force IPv4
+            // Address family is decided by app_apply_tls() below. Forcing IPv4
+            // here made the connect hang on an IPv6-preferring host.
         ]);
+        // Verification stays on; app_apply_tls supplies the CA bundle that
+        // WAMP leaves unconfigured.
+        require_once __DIR__ . '/../lib/tls.php';
+        app_apply_tls($ch);
 
         $response = curl_exec($ch);
         curl_close($ch);
@@ -123,6 +127,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ? "\n10. CRITICAL: The user is currently in KIDS MODE. You MUST adopt a child-friendly, safe, and positive tone. You MUST ONLY recommend movies and shows that are rated PG-13, TV-14, or lower. NEVER recommend any Horror, Crime, Thriller, War, R-rated, TV-MA, or explicit adult content. If the user asks for something inappropriate, politely steer them towards family-friendly or teen-safe alternatives."
         : "";
 
+    // Ground the assistant in this site's own data: who is watching, and what
+    // the platform actually holds files for. Both return an empty string when
+    // there is nothing to say, so the prompt never asserts data that does not
+    // exist. See v1/lib/ai_context.php for the privacy note on watch history.
+    require_once __DIR__ . '/../lib/ai_context.php';
+    $viewerContext  = zen_user_context($conn ?? null, (int) $userId);
+    $catalogContext = zen_catalog_context($conn ?? null);
+
     // System Instruction
     $messages[] = [
         'role' => 'system',
@@ -130,18 +142,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 RULES:
 1. Be friendly, helpful, and conversational. Keep your reply concise but engaging.
-2. When the user asks for movie or TV show recommendations by genre (e.g. \"shooting movies\", \"scary movies\", \"psychology thrillers\"), provide 5 to 8 well-known, popular, REAL titles that match.
+2. RECOMMENDATION AMOUNT: When the user asks for movie or TV show recommendations, provide the EXACT number of titles they ask for (e.g., if they ask for \"3 horror movies\", give exactly 3). If they do not specify an amount, provide 4 to 6 popular, REAL titles that match.
 3. When the user describes a movie they forgot (e.g. \"a movie where a guy is stuck in a time loop\"), try to identify the exact title(s) they are thinking of. If you are guessing and not sure, state this clearly, suggest your best guess, and ask the user to elaborate or provide more details.
-4. When the user says \"hello\" or makes general conversation, respond naturally. Still include 3-5 popular trending movie suggestions in search_candidates.
-5. When the user asks to explain, describe, or summarize a specific movie, TV show, franchise, or character, provide a detailed and engaging explanation in your `reply` (covering the premise, key cast/characters, tone, and what makes it notable) and place the exact title of that movie or show first in your `search_candidates` array (along with 1-2 highly similar recommendations).
+4. UNDERSTANDING INTENT: If the user asks a general question (e.g. \"when does spiderman come out?\", \"what is the capital of France?\", \"how are you?\") or is just chatting, answer the question conversationally in your `reply` and keep the `search_candidates` array COMPLETELY EMPTY `[]`. ONLY provide `search_candidates` when the user EXPLICITLY asks for recommendations or when introducing a specific movie.
+5. DIRECT REQUESTS: When the user asks for, searches for, or wants to watch a SPECIFIC movie or TV show by name (e.g., \"I want Royal Gambler\", \"play Inception\", \"Spider-Man Brand New Day\"), you MUST use the user's COMPLETE FULL title as the VERY FIRST item in your `search_candidates` array. NEVER truncate or shorten the title. If the user says \"Spider-Man Brand New Day\", put \"Spider-Man: Brand New Day\" — NOT just \"Spider-Man\". You can include 2-3 similar recommendations after it, but the user's requested title MUST be first and MUST be the full title they specified.
 6. Note that users might refer to TV shows as 'movies' (e.g., 'the movie blacklist' refers to the TV show 'The Blacklist'). Always infer the correct title.
-7. When the user is asking a follow-up question or continuing a conversation about a movie/show that was already introduced or explained earlier in the chat history (e.g. \"how did it end?\", \"who starred in it?\", \"what is the rating?\", etc.), answer their question in your `reply` but keep the `search_candidates` array completely empty `[]`. You should only output search_candidates when a movie/show is first introduced, when new recommendations are requested, or when the user changes the topic to a different movie/show.
+7. When the user is asking a follow-up question or continuing a conversation about a movie/show that was already introduced or explained earlier in the chat history (e.g. \"how did it end?\", \"who starred in it?\", \"what is the rating?\", etc.), answer their question in your `reply` but keep the `search_candidates` array completely empty `[]`.
 8. ONLY suggest REAL movies and TV shows that actually exist. Never invent fake titles.
 9. For \"shooting\" movies, think action/gun/war films like John Wick, Heat, The Departed, Sicario etc. NOT sports shooting.
 10. Always prefer well-known English-language titles unless the user asks for a specific language.
 11. The search_candidates array should contain ONLY the exact title of the movie or show (no year, no parentheses, no extra text). Example: \"Inception\" not \"Inception (2010)\".
 12. DO NOT output your internal thought process. Provide only your final, clean answer.
-13. If you are not confident about identifying a forgotten movie description, do NOT guess repeatedly or correct yourself in a loop (e.g. saying \"it is X, no it is Y, no it is Z\"). Instead, politely state that you are guessing, ask the user to elaborate with more details (like actors, release era, or plot points), and list 2-3 of your best guesses in search_candidates.$kidsInstruction
+13. If you are not confident about identifying a forgotten movie description, do NOT guess repeatedly or correct yourself in a loop (e.g. saying \"it is X, no it is Y, no it is Z\"). Instead, politely state that you are guessing, ask the user to elaborate with more details (like actors, release era, or plot points), and list 2-3 of your best guesses in search_candidates.
+14. EXPLICIT CONTENT FILTER: You MUST completely reject any requests for porn, adult films, XXX, sex videos, masturbation, or any sexually explicit content. If the user asks for this, politely refuse by saying \"I cannot help with that request. I only recommend standard movies and TV shows.\" and keep the `search_candidates` array completely empty `[]`.
+15. SITE KNOWLEDGE: You are assisting users on Masterpiece Movie, a free streaming platform. If a user asks why a brand new movie (just released in theaters) is unavailable or not playing, explain that because it is a very recent theatrical release, high-quality streams are not yet available on the platform's third-party servers. Reassure them that it will be uploaded in the coming days/weeks as soon as a digital copy is available online.
+16. LINK SHARING: If the user asks you to \"share a link\", \"send the link\", or provide the URL to watch a specific movie or show, DO NOT say you cannot provide links. Instead, warmly agree to share it, and simply include ONLY the exact movie/show title (WITHOUT the word \"link\", \"URL\", or any other conversational text) in your `search_candidates` array. The system will automatically generate a clickable, playable movie card with the link for the user below your message.
+17. WATCH PAGE CONTEXT: Sometimes a message starts with \"Context: The user is watching 'X'\". This is just background info. If the user then asks about a DIFFERENT movie or show (e.g. they are watching Reacher but ask for \"Spider-Man Brand New Day\"), ALWAYS prioritize their actual request. Do NOT ignore their request just because they are watching something else. Put their requested title in `search_candidates`.
+18. NEVER DENY A TITLE EXISTS: Your knowledge may be outdated. The platform's library is constantly updated with new movies and shows that you may not know about. If a user asks for a specific title by name, NEVER say \"there isn't a movie called X\" or \"that's only a comic book/book/game\". Instead, ALWAYS include the title in `search_candidates` and let the system find it. If you are unsure, say something positive like \"Here's what I found for you!\" and put the title in `search_candidates`. The system will handle the rest.
+19. PLOT QUESTIONS: When a user asks \"what happens in X\" or \"tell me about the plot of X\", give your best answer about the plot in your `reply` AND also include the title in `search_candidates` so the movie card appears for them to watch.$kidsInstruction$catalogContext$viewerContext
 
 You MUST respond with valid JSON only. No markdown. No code blocks.
 {
@@ -162,10 +180,16 @@ You MUST respond with valid JSON only. No markdown. No code blocks.
     $groqApiKey = defined('GROQ_API_KEY') ? GROQ_API_KEY : '';
     
     $payload = [
-        "model" => "llama-3.3-70b-versatile",
+        // Configured in .env/config.php -- Groq retires models periodically and
+        // a retired name returns HTTP 404 for every request.
+        "model" => defined('AI_MODEL_CHAT') ? AI_MODEL_CHAT : 'openai/gpt-oss-120b',
         "messages" => $messages,
         "temperature" => 0.7,
-        "max_tokens" => 800
+        // gpt-oss reasons before answering and bills that against max_tokens.
+        // Without headroom the JSON contract comes back empty or truncated,
+        // which silently drops the reply into the fallback path below.
+        "reasoning_effort" => "low",
+        "max_tokens" => 1600
     ];
 
     $url = "https://api.groq.com/openai/v1/chat/completions";
@@ -179,9 +203,18 @@ You MUST respond with valid JSON only. No markdown. No code blocks.
             'Content-Type: application/json',
             'Authorization: Bearer ' . $groqApiKey
         ],
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4
+        // Forcing IPv4 here made every request to Groq time out at connect on
+        // an IPv6-preferring host, so the chat always fell back. Address family
+        // is now left to curl (override with HTTP_FORCE_IPV4 in config).
+        //
+        // Without a timeout a hung upstream pins an Apache worker until the
+        // request is killed.
+        CURLOPT_TIMEOUT => 25,
+        CURLOPT_CONNECTTIMEOUT => 8,
     ]);
+    // This request carries the Groq API key, so peer verification must be on.
+    require_once __DIR__ . '/../lib/tls.php';
+    app_apply_tls($ch);
 
     $response = curl_exec($ch);
     $curlError = curl_error($ch);
@@ -293,12 +326,12 @@ You MUST respond with valid JSON only. No markdown. No code blocks.
         if (count($finalMovies) >= 10) break;
         if (empty($title)) continue;
 
-        $searchData = fetchTmdbApi("search/multi", ['query' => $title]);
+        $searchData = fetchTmdbApi("search/multi", ['query' => $title, 'include_adult' => 'false']);
 
         if ($searchData && !empty($searchData['results'])) {
             $matchCount = 0;
             foreach ($searchData['results'] as $item) {
-                if ($matchCount >= 2) break; // Take top 2 results per suggestion for variety
+                if ($matchCount >= 1) break; // Take ONLY the top 1 result per suggestion to avoid parodies/duplicates
                 if (count($finalMovies) >= 10) break;
                 
                 // Validate Media Type
@@ -333,6 +366,16 @@ You MUST respond with valid JSON only. No markdown. No code blocks.
             }
         }
     }
+
+    // Mark which of these the platform genuinely holds a file for, so the card
+    // can say so. One query for the whole result set rather than per card.
+    $availability = zen_availability($conn ?? null, $finalMovies);
+    foreach ($finalMovies as &$m) {
+        $key = $m['id'] . '|' . $m['type'];
+        $m['available'] = isset($availability[$key]);
+        $m['qualities'] = $availability[$key]['qualities'] ?? '';
+    }
+    unset($m);
 
     echo json_encode([
         'status' => 'success',

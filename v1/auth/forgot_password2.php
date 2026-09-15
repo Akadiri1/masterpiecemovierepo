@@ -77,7 +77,7 @@ header("Location:/confirmRecovery");
   <!-- <meta name="viewport" content="width=device-width"> -->
     <meta name="mobile-web-app-capable" content="yes">
 
-    <link rel="icon" sizes="192x192" href="/<?php echo $logo_directory ?>">
+    <link rel="shortcut icon" href="/assets/images/favicon.ico" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
   <meta charset="UTF-8">

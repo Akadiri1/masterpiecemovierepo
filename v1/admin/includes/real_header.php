@@ -27,7 +27,7 @@ version="XHTML+RDFa 1.0" dir="ltr"
     <!--[if IE]><![endif]-->
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
 <![endif]--><meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<link rel="shortcut icon" href="/sites/all/themes/Mckodev/Mckodevlogo.ico" type="image/vnd.microsoft.icon" />
+<link rel="shortcut icon" href="/assets/images/favicon.ico" />
 <?php if(isset($login_page)){
   include 'seo/login_meta.php';
  } ?>

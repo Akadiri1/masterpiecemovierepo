@@ -1,6 +1,7 @@
 <?php
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /login');
+    $currentUrl = urlencode($_SERVER['REQUEST_URI']);
+    header('Location: /login?next=' . $currentUrl);
     exit;
 }
 
@@ -16,7 +17,8 @@ if (isset($conn)) {
 
         if (!$user) {
             session_destroy();
-            header('Location: /login');
+            $currentUrl = urlencode($_SERVER['REQUEST_URI']);
+            header('Location: /login?next=' . $currentUrl);
             exit;
         }
     } catch (PDOException $e) {
@@ -278,8 +280,24 @@ include 'includes/header.php';
     @media (max-width: 767.98px) {
         html, body { overflow-x: hidden; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
         .container-fluid, .profile-info-card, .profile-content { padding-left: 12px !important; padding-right: 12px !important; }
-        .user-avatar-lg { width: 96px; height: 96px; }
-        .profile-info-card { margin-top: -60px; }
+        .user-avatar-lg { width: 96px; height: 96px; border-width: 2px !important; }
+        .profile-info-card { 
+            margin-top: 20px !important; 
+            flex-direction: column !important; 
+            text-align: center !important; 
+            gap: 15px !important; 
+            padding: 25px 15px !important; 
+        }
+        .profile-info-card > .d-flex.flex-column {
+            align-items: center !important;
+            text-align: center !important;
+            width: 100%;
+        }
+        .profile-info-card .d-flex.align-items-center.gap-3 {
+            justify-content: center !important;
+        }
+        #profile-header-name { font-size: 1.6rem !important; margin-bottom: 5px !important; word-break: break-word; }
+        #profile-header-email { font-size: 0.9rem !important; word-break: break-all; }
         .profile-sidebar { padding: 12px 8px; }
         .nav-profile .nav-link { padding: 10px 12px; font-size: 0.95rem; }
         .poster-box { padding-top: 140%; }

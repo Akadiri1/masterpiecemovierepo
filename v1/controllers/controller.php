@@ -33,6 +33,12 @@ function fetchTmdbApi(string $endpoint, array $params = [], int $cacheDuration =
         CURLOPT_HTTPHEADER     => ['Accept: application/json']
     ]);
 
+    // WAMP ships with curl.cainfo unset, so curl has no trust store and every
+    // HTTPS call fails verification. Resolve a real CA bundle instead. This
+    // runs in both CLI and web contexts.
+    require_once __DIR__ . '/../lib/tls.php';
+    app_apply_tls($ch);
+
     $response = curl_exec($ch);
 
     // Check for cURL-specific errors (e.g., couldn't connect)

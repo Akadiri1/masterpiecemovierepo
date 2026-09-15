@@ -143,7 +143,7 @@ $pageThemeClass = $pageThemeClass ?? '';
   <meta name="google_font_api" content="AIzaSyBG58yNdAjc20_8jAvLNSVi9E4Xhwjau_k">
 
   <!-- Favicon -->
-  <!-- <link rel="shortcut icon" href="assets/images/favicon.ico" /> -->
+  <link rel="shortcut icon" href="/assets/images/favicon.ico" />
     <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#e50914">
   <link rel="apple-touch-icon" href="assets/images/logo.png">
@@ -268,7 +268,6 @@ $pageThemeClass = $pageThemeClass ?? '';
         
         /* Globally replace static red with variables using high specificity */
         body .text-primary, body i.text-primary, .iq-main-slider .text-primary, .trending-info .text-primary, .cart-content .text-primary { color: var(--primary) !important; }
-        body .text-warning, body i.text-warning, .ph-star.text-warning { color: var(--primary) !important; }
         body .bg-primary { background-color: var(--primary) !important; }
         
         /* High specificity for buttons to override template's core.css */
@@ -598,135 +597,6 @@ document.addEventListener('DOMContentLoaded', () => {
         padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
-    /* ============================================
-       SIDEBAR NAVIGATION SYSTEM (StreamEX Style)
-       ============================================ */
-
-    /* Sidebar - persistent on desktop, offcanvas on mobile */
-    .app-sidebar {
-        position: fixed; top: 0; left: 0; bottom: 0;
-        width: 240px; background: #121212;
-        border-right: 1px solid rgba(255,255,255,0.02);
-        z-index: 1040; display: flex; flex-direction: column;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        overflow: hidden;
-    }
-
-    .sidebar-brand {
-        padding: 24px 20px; display: flex; align-items: center;
-        justify-content: flex-start;
-        flex-shrink: 0;
-    }
-    .sidebar-brand .logo-text {
-        font-size: 1.6rem; font-weight: 800; color: #fff;
-        letter-spacing: -0.5px; text-decoration: none;
-        display: flex; align-items: center;
-    }
-    .sidebar-brand .logo-text span { color: #fff; font-weight: 400; }
-    
-    .sidebar-collapse-btn {
-        background: none; border: none; color: #666; font-size: 1.1rem;
-        cursor: pointer; padding: 6px; border-radius: 6px;
-        transition: all 0.2s; display: none; margin-left: auto;
-    }
-    .sidebar-collapse-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
-    @media (min-width: 1200px) { .sidebar-collapse-btn { display: flex; } }
-
-    .sidebar-nav {
-        flex: 1; overflow-y: auto; padding: 0 12px 12px;
-        scrollbar-width: none; /* Hide scrollbar for clean look */
-    }
-    .sidebar-nav::-webkit-scrollbar { display: none; }
-
-    .sidebar-section-label {
-        font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
-        letter-spacing: 0.5px; color: #555; padding: 18px 20px 8px;
-        user-select: none;
-    }
-
-    .sidebar-link {
-        display: flex; align-items: center; gap: 14px;
-        padding: 12px 16px; color: #aaa; text-decoration: none;
-        font-size: 0.95rem; font-weight: 500;
-        border-radius: 10px;
-        transition: all 0.2s ease; margin-bottom: 4px;
-        white-space: nowrap;
-    }
-    .sidebar-link i { font-size: 1.25rem; width: 22px; text-align: center; flex-shrink: 0; color: #aaa;}
-    .sidebar-link:hover { color: #fff; background: rgba(255,255,255,0.05); }
-    .sidebar-link:hover i { color: #fff; }
-    .sidebar-link.active {
-        color: #fff; background: #222222; font-weight: 600;
-    }
-    .sidebar-link.active i { color: #fff; }
-
-    /* Main Action Links Container (Home, Search) */
-    .sidebar-main-actions {
-        background: #1c1c1c; border-radius: 12px; padding: 8px; margin-bottom: 10px;
-    }
-
-    /* Sidebar sub-menu */
-    .sidebar-submenu { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
-    .sidebar-submenu.open { max-height: 500px; }
-    .sidebar-submenu .sidebar-link { padding-left: 48px; font-size: 0.85rem; }
-    .sidebar-link .chevron { margin-left: auto; font-size: 0.7rem; transition: transform 0.2s; }
-    .sidebar-link.expanded .chevron { transform: rotate(180deg); }
-
-    .sidebar-footer {
-        padding: 12px; border-top: 1px solid rgba(255,255,255,0.02);
-        flex-shrink: 0;
-    }
-    .sidebar-user {
-        display: flex; align-items: center; gap: 12px; padding: 8px 12px;
-        border-radius: 10px; cursor: pointer; transition: background 0.2s;
-        text-decoration: none;
-    }
-    .sidebar-user:hover { background: rgba(255,255,255,0.05); }
-    .sidebar-user img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
-    .sidebar-user-info { overflow: hidden; }
-    .sidebar-user-name { color: #ddd; font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sidebar-user-plan { color: #666; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
-
-    /* Push main content right on desktop */
-    @media (min-width: 1200px) {
-        .main-content { margin-left: 240px; }
-        .iq-navbar { display: none !important; } /* Hide top nav on desktop since sidebar handles it */
-    }
-
-    /* Collapsed sidebar (desktop) */
-    .app-sidebar.collapsed { width: 80px; }
-    .app-sidebar.collapsed .sidebar-link span,
-    .app-sidebar.collapsed .sidebar-section-label,
-    .app-sidebar.collapsed .sidebar-user-info,
-    .app-sidebar.collapsed .sidebar-brand .logo-text,
-    .app-sidebar.collapsed .sidebar-submenu,
-    .app-sidebar.collapsed .chevron { display: none; }
-    .app-sidebar.collapsed .sidebar-main-actions { padding: 0; background: transparent; }
-    .app-sidebar.collapsed .sidebar-link { justify-content: center; padding: 12px 0; border-radius: 12px;}
-    .app-sidebar.collapsed .sidebar-brand { justify-content: center; padding: 24px 8px; }
-    .app-sidebar.collapsed .sidebar-user { justify-content: center; }
-    .app-sidebar.collapsed + .main-content,
-    body.sidebar-collapsed .main-content { margin-left: 80px; }
-
-    /* Mobile: sidebar is hidden, shown via overlay */
-    @media (max-width: 1199px) {
-        .app-sidebar { transform: translateX(-100%); width: 280px; box-shadow: 5px 0 30px rgba(0,0,0,0.6); }
-        .app-sidebar.mobile-open { transform: translateX(0); }
-        .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1039; }
-        .sidebar-overlay.active { display: block; }
-        .main-content { margin-left: 0 !important; }
-    }
-
-    /* Broken image fallback styling */
-    img[data-placeholder] { background: #1a1a2e; }
-
-    /* Smooth hover transitions everywhere */
-    a, .btn, .nav-link, .iq-card, img {
-        transition-property: transform, opacity, box-shadow, color, background-color, border-color;
-        transition-duration: 0.25s;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    }
-  </style>
    <!-- loader Start -->
      <style>
       /* Kids Mode Styling */
@@ -765,75 +635,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
   </div> -->
   <!-- loader END -->  <!-- loader END -->
-  <!-- ========== SIDEBAR NAVIGATION ========== -->
-  <div class="sidebar-overlay" id="sidebarOverlay"></div>
-  <aside class="app-sidebar" id="appSidebar">
-      <div class="sidebar-brand" style="display:flex; align-items:center; justify-content:space-between;">
-          <a href="/" class="logo-text">ZEN</a>
-          <button id="sidebarCloseBtn" style="background:transparent; border:none; color:#aaa; font-size:1.5rem; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#aaa'"><i class="ph ph-list"></i></button>
-      </div>
-
-      <nav class="sidebar-nav">
-          <div class="sidebar-main-actions">
-              <a href="/" class="sidebar-link <?php echo ($_SERVER['REQUEST_URI'] === '/' || $_SERVER['REQUEST_URI'] === '/home') ? 'active' : ''; ?>">
-                  <i class="ph ph-house"></i><span>Home</span>
-              </a>
-              <a href="javascript:void(0)" class="sidebar-link" onclick="openSearchModal();">
-                  <i class="ph ph-magnifying-glass"></i><span>Search</span>
-              </a>
-          </div>
-
-          <div class="sidebar-section-label">Media</div>
-          
-          <a href="/view-all?type=movie" class="sidebar-link">
-              <i class="ph ph-film-strip"></i><span>Movies</span>
-          </a>
-          <a href="/view-all?type=tv" class="sidebar-link">
-              <i class="ph ph-monitor-play"></i><span>TV Shows</span>
-          </a>
-          <a href="/view-all?type=discover&with_genres=16" class="sidebar-link">
-              <i class="ph ph-sparkle"></i><span>Anime</span>
-          </a>
-          <a href="/view-all?type=discover&with_genres=10759" class="sidebar-link">
-              <i class="ph ph-book-open"></i><span>Manga</span>
-          </a>
-          <a href="/view-all?type=discover&with_genres=10402" class="sidebar-link">
-              <i class="ph ph-music-note"></i><span>Music</span>
-          </a>
-            <a href="view-all?type=discover&with_genres=99" class="sidebar-link">
-              <i class="ph ph-video-camera"></i><span>Documentaries</span>
-            </a>
-          
-          <div style="height: 12px;"></div> <!-- Spacer -->
-          <a href="javascript:void(0)" onclick="openThemeModal(); return false;" class="sidebar-link">
-              <i class="ph ph-sparkle text-primary"></i><span>Color House</span>
-          </a>
-          <a href="/profile" class="sidebar-link">
-              <i class="ph ph-heart"></i><span>Watchlist</span>
-          </a>
-
-          <?php if (!$isKidsMode): ?>
-          <a href="/pricing-plan" class="sidebar-link">
-              <i class="ph ph-crown"></i><span>Upgrade Plan</span>
-          </a>
-          <?php endif; ?>
-
-          <a href="javascript:void(0)" onclick="switchProfileMode(); return false;" class="sidebar-link">
-              <i class="ph <?php echo $isKidsMode ? 'ph-user-switch' : 'ph-smiley'; ?>"></i>
-              <span><?php echo $isKidsMode ? 'Exit Kids' : 'Kids Mode'; ?></span>
-          </a>
-      </nav>
-
-      <div class="sidebar-footer">
-          <a href="/profile" class="sidebar-user">
-              <img src="<?php echo htmlspecialchars($avatarPath ?? 'assets/images/user/user6.jpg'); ?>" alt="Profile">
-              <div class="sidebar-user-info">
-                  <div class="sidebar-user-name"><?php echo htmlspecialchars($displayName); ?></div>
-                  <div class="sidebar-user-plan"><?php echo htmlspecialchars($current_plan); ?> plan</div>
-              </div>
-          </a>
-      </div>
-  </aside>
+    <?php include __DIR__ . '/sidebar.php'; ?>
 
   <main class="main-content">
     <!--Nav Start-->
@@ -844,8 +646,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="d-flex gap-3 gap-xl-0 align-items-center">
                    <div class="d-flex align-items-center gap-2 gap-md-3">
                       <div class="logo-default">
-                          <a class="navbar-brand text-primary me-0" href="/"> <!-- Updated to root path -->
-                              <!-- <img class="img-fluid logo" src="assets/images/logo.png" loading="lazy" alt="streamit" /> -->
+                          <a class="navbar-brand text-primary me-0" href="/" style="font-weight: 800; font-size: 1.5rem; letter-spacing: -1px;">
+                              ZEN
                           </a>
                       </div>
                       <div class="logo-hotstar">
@@ -1349,7 +1151,8 @@ document.addEventListener('DOMContentLoaded', () => {
                }
                // If not logged-in, redirect to login for convenience
                else if (data.message && data.message.toLowerCase().includes('login')) {
-                   setTimeout(() => { window.location.href = '/login'; }, 1200);
+                   const curr = encodeURIComponent(window.location.pathname + window.location.search);
+                   setTimeout(() => { window.location.href = '/login?next=' + curr; }, 1200);
                }
            }
        })
@@ -1460,7 +1263,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // If not logged in, maybe redirect?
                     if(data.message.includes('login')) {
-                        setTimeout(() => window.location.href = '/login', 1500);
+                        const curr = encodeURIComponent(window.location.pathname + window.location.search);
+                        setTimeout(() => window.location.href = '/login?next=' + curr, 1500);
                     }
                 }
             })

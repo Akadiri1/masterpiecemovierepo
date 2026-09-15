@@ -68,7 +68,16 @@ try {
         $limitStmt->execute([$userId]);
         $dailyUsed = (int) $limitStmt->fetchColumn();
         
-        echo json_encode(['status' => 'success', 'data' => $data, 'daily_used' => $dailyUsed]);
+        // Fetch User's Actual Limit
+        $userStmt = $conn->prepare("SELECT is_admin, ai_tokens_limit FROM users WHERE id = ?");
+        $userStmt->execute([$userId]);
+        $userData = $userStmt->fetch(PDO::FETCH_ASSOC);
+        $isAdmin = $userData ? (bool)$userData['is_admin'] : false;
+        $aiLimit = $userData ? (int)($userData['ai_tokens_limit'] ?? 10) : 10;
+        
+        $finalLimit = ($isAdmin || $aiLimit === -1) ? -1 : $aiLimit;
+        
+        echo json_encode(['status' => 'success', 'data' => $data, 'daily_used' => $dailyUsed, 'limit' => $finalLimit]);
         exit;
     }
 

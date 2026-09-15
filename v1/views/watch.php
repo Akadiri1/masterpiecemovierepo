@@ -182,6 +182,8 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover">
   <title>Watch: <?php echo htmlspecialchars($videoTitle); ?></title>
+  <link rel="shortcut icon" href="/assets/images/favicon.ico" />
+  <link rel="apple-touch-icon" href="/assets/images/logo.png">
   <link rel="manifest" href="manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -190,6 +192,9 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
   <base href="<?php echo htmlspecialchars($baseDir); ?>">
   
   <link rel="stylesheet" href="assets/css/core/watch-theme.css?v=<?php echo time() + 2; ?>">
+  <link rel="stylesheet" href="assets/css/core/mobile-player.css?v=<?php echo time() + 2; ?>">
+  <!-- Loaded blocking (not deferred) so the inline player script below can use it. -->
+  <script src="assets/js/player/mobile-player.js?v=<?php echo time() + 2; ?>"></script>
   <link rel="stylesheet" href="assets/vendor/phosphor-icons/Fonts/regular/style.css">
   <link rel="stylesheet" href="assets/vendor/phosphor-icons/Fonts/fill/style.css">
   <style>
@@ -211,6 +216,13 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
       body.cinematic-active .watch-right {
           opacity: 0.3 !important;
           transition: all 0.5s ease-in-out;
+      }
+      
+      /* Bring AI sidebar into focus during cinematic mode if open */
+      body.cinematic-active.ai-active .watch-right {
+          opacity: 1 !important;
+          z-index: 99999;
+          box-shadow: -10px 0 50px rgba(0,0,0,0.8);
       }
       body.cinematic-active .video-wrapper {
           z-index: 99999;
@@ -268,11 +280,12 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
       
       /* Mobile Offcanvas Sidebars */
       @media (max-width: 900px) {
-          .watch-app { display: block !important; }
+          body, html { height: auto !important; overflow: auto !important; }
+          .watch-app { display: flex !important; flex-direction: column !important; height: auto !important; overflow: visible !important; }
+          .watch-center { flex: 1 0 auto; overflow: visible !important; }
           .watch-sidebar { position: fixed !important; left: 0; top: 0; bottom: 0; width: 280px; z-index: 10000; transform: translateX(-100%); transition: 0.3s; }
-          .watch-right { position: fixed !important; right: 0; top: 0; bottom: 0; width: 300px; z-index: 10000; transform: translateX(100%); transition: 0.3s; }
           .watch-sidebar.open { transform: translateX(0); display: flex !important; }
-          .watch-right.open { transform: translateX(0); display: flex !important; }
+          .watch-right { position: static !important; display: block !important; width: 100% !important; transform: none !important; border-left: none; padding: 15px; }
       }
       
       /* Fullscreen Search Overlay */
@@ -417,6 +430,31 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
       .sidebar-link.active i { color: var(--primary) !important; }
       .movie-title, h1.movie-title { color: var(--primary) !important; text-shadow: 0 0 20px var(--primary-glow); }
       .star-rating label:hover i, .star-rating label:hover ~ label i, .star-rating input:checked ~ label i { color: var(--primary) !important; }
+      
+      /* Hide the floating AI orb on watch page — we have a dedicated sidebar button */
+      .zen-ai-float { display: none !important; }
+      
+      /* Mobile AI Floating Button - only visible on small screens */
+      #mobileAiBtn { display: none; }
+      @media (max-width: 800px) {
+          #mobileAiBtn {
+              display: flex; position: fixed; bottom: 85px; right: 16px;
+              width: 52px; height: 52px; border-radius: 50%; z-index: 99999;
+              background: linear-gradient(135deg, #00e0ff, #7b2cbf);
+              border: none; color: #fff; align-items: center; justify-content: center;
+              cursor: pointer; box-shadow: 0 4px 20px rgba(0,224,255,0.35);
+              font-size: 1.3rem; transition: transform 0.2s;
+          }
+          #mobileAiBtn:active { transform: scale(0.92); }
+      }
+      
+      /* Mobile AI Full-Screen Chat Modal */
+      #mobileAiModal {
+          display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+          background: rgba(10, 10, 15, 0.98); z-index: 999999;
+          flex-direction: column;
+      }
+      #mobileAiModal.active { display: flex; }
   </style>
   <script>
       (function() {
@@ -548,8 +586,8 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                   <?php endif; ?>
                   
                   <button class="btn-action" id="cinematicToggleBtn" title="Cinematic Mode" onclick="toggleCinematicMode()" style="color: #00e0ff;"><i class="ph-fill ph-moon"></i></button>
-                  <button class="btn-action" onclick="triggerZenAI('Find 5 titles that are extremely similar to <?php echo addslashes($videoTitle); ?>')" title="AI: Find Similar" style="background: linear-gradient(135deg, #00e0ff, #7b2cbf); border: none; color: #fff; width: auto; padding: 0 15px; font-weight: 600; display: inline-flex; gap: 6px; align-items: center;">
-                      <i class="ph-fill ph-sparkle"></i> <span class="d-none d-md-block">Similar</span>
+                  <button class="btn-action" onclick="window.innerWidth <= 800 ? openMobileAI() : openWatchAI()" title="Ask ZEN AI" style="background: linear-gradient(135deg, #00e0ff, #7b2cbf); border: none; color: #fff; width: auto; padding: 0 15px; font-weight: 600; display: inline-flex; gap: 6px; align-items: center;">
+                      <i class="ph-fill ph-sparkle"></i> <span class="d-none d-md-block">ZEN AI</span>
                   </button>
                   <button class="btn-action" id="watchlistBtn" title="Add to Watchlist"><i class="ph ph-plus"></i></button>
                   <button class="btn-action" onclick="navigator.share({title: document.title, url: window.location.href})"><i class="ph ph-share-network"></i></button>
@@ -582,8 +620,21 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         <?php endif; ?>
     </main>
 
-    <!-- 3. Right Panel -->
     <aside class="watch-right custom-scrollbar" id="sidebar">
+        <!-- Ask ZEN AI Button -->
+        <div id="watchAiTrigger" onclick="openWatchAI()" style="background: linear-gradient(135deg, rgba(0,224,255,0.1), rgba(123,44,191,0.1)); border: 1px solid rgba(0,224,255,0.25); color: #fff; font-weight: 600; padding: 12px 16px; border-radius: 10px; display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 18px; user-select: none; transition: all 0.25s ease;">
+            <div style="width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #00e0ff, #7b2cbf); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                <i class="ph-fill ph-sparkle" style="color: #fff; font-size: 1rem;"></i>
+            </div>
+            <div style="flex: 1;">
+                <div style="font-size: 0.85rem; font-weight: 700;">Ask ZEN AI</div>
+                <div style="font-size: 0.7rem; color: #888; font-weight: 400;">Chat about this movie</div>
+            </div>
+            <i class="ph ph-caret-right" style="color: #555; font-size: 1rem;"></i>
+        </div>
+
+       <!-- Normal Sidebar Content -->
+       <div id="sidebarContent">
        <?php if ($mediaType === 'tv' && !empty($seasonsData)): ?>
        <div class="right-controls-top">
            <div class="dropdown-btn" onclick="document.getElementById('seasonDropdownNav').classList.toggle('d-none');">Season <?php echo $seasonNum; ?> <i class="ph ph-caret-down"></i></div>
@@ -655,6 +706,43 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
            <?php endforeach; ?>
        </div>
        <?php endif; ?>
+       </div><!-- end #sidebarContent -->
+
+       <!-- AI Chat Panel (hidden by default, shown when button clicked) -->
+       <div id="watchAiPanel" style="display:none; flex-direction:column; height:100%; margin: -20px; padding: 0;">
+           <!-- AI Header -->
+           <div style="display:flex; align-items:center; justify-content:space-between; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2);">
+               <div style="display:flex; align-items:center; gap: 10px;">
+                   <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #00e0ff, #7b2cbf); display:flex; align-items:center; justify-content:center;">
+                       <i class="ph-fill ph-sparkle" style="color:#fff; font-size: 0.85rem;"></i>
+                   </div>
+                   <div>
+                       <div style="font-size: 0.9rem; font-weight: 700; color: #fff;">ZEN AI</div>
+                       <div style="font-size: 0.65rem; color: #00e0ff;">Online</div>
+                   </div>
+               </div>
+               <button onclick="closeWatchAI()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #aaa; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display:flex; align-items:center; justify-content:center; font-size: 0.9rem; transition: 0.2s;" onmouseover="this.style.color='#fff';this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.color='#aaa';this.style.background='rgba(255,255,255,0.06)'">
+                   <i class="ph ph-arrow-left"></i>
+               </button>
+           </div>
+           <!-- AI Chat Messages -->
+           <div id="watchAiChat" style="flex:1; overflow-y:auto; padding: 20px; display:flex; flex-direction:column; gap: 12px;">
+               <div style="background: rgba(0,224,255,0.08); border: 1px solid rgba(0,224,255,0.15); border-radius: 12px; border-top-left-radius: 4px; padding: 14px 16px; color: #e0e0e0; font-size: 0.85rem; line-height: 1.6; max-width: 90%;">
+                   👋 Hey! I know everything about <strong style="color:#00e0ff;"><?php echo htmlspecialchars($videoTitle); ?></strong>. Ask me about the plot, characters, hidden details, or anything else!
+               </div>
+           </div>
+           <!-- AI Input -->
+           <div style="padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2);">
+               <div style="display:flex; gap: 8px;">
+                   <input type="text" id="watchAiInput" placeholder="Ask something..." autocomplete="off" style="flex:1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; font-size: 0.85rem; border-radius: 10px; padding: 10px 14px; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='rgba(0,224,255,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'" onkeypress="if(event.key === 'Enter') handleWatchAiSubmit(event)">
+                   <button onclick="handleWatchAiSubmit(event)" style="background: linear-gradient(135deg, #00e0ff, #7b2cbf); border: none; border-radius: 10px; padding: 0 14px; color: #fff; cursor: pointer; display:flex; align-items:center; justify-content:center; transition: transform 0.15s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                       <i class="ph-fill ph-paper-plane-right" style="font-size: 1rem;"></i>
+                   </button>
+               </div>
+               <p style="color: #555; text-align:center; margin: 8px 0 0; font-size: 0.65rem;">AI can make mistakes</p>
+           </div>
+       </div><!-- end #watchAiPanel -->
+
     </aside>
 </div>
 
@@ -802,6 +890,24 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 
         const playerVideo = document.getElementById('playerVideo');
 
+        // --- Mobile gesture player -------------------------------------
+        // Only wraps the real <video>. The embed servers render inside a
+        // cross-origin iframe, which the browser seals off completely, so
+        // gestures cannot reach them.
+        let mobilePlayer = null;
+        if (playerVideo && window.MobilePlayer) {
+            mobilePlayer = MobilePlayer.attach(playerVideo, {
+                title: <?php echo json_encode($videoTitle . ($mediaType === 'tv' ? ' — ' . $videoSubTitle : '')); ?>
+            });
+        }
+
+        // The player inserts a wrapper around the <video>, so show/hide has
+        // to act on that wrapper rather than the element itself.
+        function setDirectVideoVisible(visible) {
+            const target = (mobilePlayer && mobilePlayer.shell) ? mobilePlayer.shell : playerVideo;
+            if (target) target.style.display = visible ? 'block' : 'none';
+        }
+
         // --- Server switching ---
         function switchToServer(index) {
             if (!servers[index]) return;
@@ -819,14 +925,14 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                     playerIframe.src = '';
                 }
                 if (playerVideo) {
-                    playerVideo.style.display = 'block';
+                    setDirectVideoVisible(true);
                     playerVideo.src = url;
                     playerVideo.load();
                     playerVideo.play().catch(e => console.log("Play failed: ", e));
                 }
             } else {
                 if (playerVideo) {
-                    playerVideo.style.display = 'none';
+                    setDirectVideoVisible(false);
                     playerVideo.src = '';
                 }
                 if (playerIframe) {
@@ -1355,6 +1461,214 @@ function toggleCinematicMode() {
     }
 }
 </script>
+
+<script>
+// ==========================================
+// WATCH PAGE AI COMPANION LOGIC
+// ==========================================
+(function() {
+    const chatId = 'watch-' + Math.random().toString(36).substr(2, 9);
+    const movieTitle = <?php echo json_encode($videoTitle); ?>;
+    const isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+
+    window.openWatchAI = function() {
+        document.body.classList.add('ai-active');
+        document.getElementById('sidebarContent').style.display = 'none';
+        document.getElementById('watchAiTrigger').style.display = 'none';
+        var panel = document.getElementById('watchAiPanel');
+        panel.style.display = 'flex';
+        // Scroll sidebar to top
+        document.getElementById('sidebar').scrollTop = 0;
+        setTimeout(function() { document.getElementById('watchAiInput').focus(); }, 100);
+    };
+
+    window.closeWatchAI = function() {
+        document.body.classList.remove('ai-active');
+        document.getElementById('watchAiPanel').style.display = 'none';
+        document.getElementById('sidebarContent').style.display = 'block';
+        document.getElementById('watchAiTrigger').style.display = 'flex';
+    };
+
+    function appendMsg(text, isUser) {
+        var chat = document.getElementById('watchAiChat');
+        var div = document.createElement('div');
+        if (isUser) {
+            div.style.cssText = 'background:rgba(0,224,255,0.1);border:1px solid rgba(0,224,255,0.2);border-radius:12px;border-top-right-radius:4px;padding:12px 14px;color:#fff;font-size:0.85rem;line-height:1.5;max-width:90%;align-self:flex-end;';
+        } else {
+            div.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;border-top-left-radius:4px;padding:12px 14px;color:#e0e0e0;font-size:0.85rem;line-height:1.6;max-width:90%;';
+        }
+        div.innerHTML = text;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+        return div;
+    }
+
+    window.handleWatchAiSubmit = function(e) {
+        e.preventDefault();
+        var input = document.getElementById('watchAiInput');
+        var query = input.value.trim();
+        if (!query) return;
+
+        appendMsg(query, true);
+        input.value = '';
+
+        if (!isLoggedIn) {
+            appendMsg('🔒 <strong>Please log in</strong> to use ZEN AI.', false);
+            return;
+        }
+
+        var loader = appendMsg('<i class="ph ph-circle-notch" style="animation:watchAiSpin 1s linear infinite;display:inline-block;"></i> Thinking...', false);
+
+        var contextQuery = "Context: The user is watching '" + movieTitle + "'. Keep answers concise. " + query;
+        var fd = new FormData();
+        fd.append('query', contextQuery);
+        fd.append('conversation_id', chatId);
+
+        fetch('/ask', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            loader.remove();
+            if (data.status === 'success') {
+                var reply = (data.reply || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                appendMsg(reply, false);
+
+                // Render movie cards if AI returned any
+                if (data.movies && data.movies.length > 0) {
+                    var cardsHtml = '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(100px, 1fr)); gap:10px; margin-top:10px;">';
+                    data.movies.forEach(function(m) {
+                        var link = '/' + (m.type || 'movie') + '/' + m.id;
+                        cardsHtml += '<a href="' + link + '" style="text-decoration:none; color:inherit; border-radius:8px; overflow:hidden; position:relative; display:block; aspect-ratio:2/3; background:#1a1a2e;">' +
+                            '<img src="' + (m.poster_path || 'assets/images/media/placeholder.webp') + '" alt="' + (m.title || '') + '" style="width:100%; height:100%; object-fit:cover;" loading="lazy">' +
+                            '<div style="position:absolute; bottom:0; left:0; right:0; padding:15px 6px 6px; background:linear-gradient(transparent, rgba(0,0,0,0.95)); font-size:0.7rem; color:#fff; font-weight:700; text-align:center; line-height:1.2;">' +
+                                (m.title || '') +
+                                (m.rating ? '<div style="color:#ffc107; font-size:0.65rem; margin-top:3px;"><i class="ph-fill ph-star"></i> ' + Number(m.rating).toFixed(1) + '</div>' : '') +
+                            '</div>' +
+                        '</a>';
+                    });
+                    cardsHtml += '</div>';
+                    appendMsg(cardsHtml, false);
+                }
+            } else {
+                appendMsg('❌ ' + (data.message || 'Something went wrong.'), false);
+            }
+        })
+        .catch(function() {
+            loader.remove();
+            appendMsg('❌ Network error. Please try again.', false);
+        });
+    };
+})();
+</script>
+<style>@keyframes watchAiSpin{to{transform:rotate(360deg)}}</style>
+
+<!-- Mobile AI Floating Button -->
+<button id="mobileAiBtn" onclick="openMobileAI()">
+    <i class="ph-fill ph-sparkle"></i>
+</button>
+
+<!-- Mobile AI Full-Screen Chat -->
+<div id="mobileAiModal">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.3); flex-shrink:0;">
+        <div style="display:flex; align-items:center; gap: 10px;">
+            <div style="width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg, #00e0ff, #7b2cbf); display:flex; align-items:center; justify-content:center;">
+                <i class="ph-fill ph-sparkle" style="color:#fff; font-size: 0.9rem;"></i>
+            </div>
+            <div>
+                <div style="font-size: 0.95rem; font-weight: 700; color: #fff;">ZEN AI</div>
+                <div style="font-size: 0.65rem; color: #00e0ff;">Watching: <?php echo htmlspecialchars(mb_strimwidth($videoTitle, 0, 25, '...')); ?></div>
+            </div>
+        </div>
+        <button onclick="closeMobileAI()" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #aaa; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display:flex; align-items:center; justify-content:center; font-size: 1.1rem;">
+            <i class="ph ph-x"></i>
+        </button>
+    </div>
+    <div id="mobileAiChat" style="flex:1; overflow-y:auto; padding: 20px; display:flex; flex-direction:column; gap: 12px;">
+        <div style="background: rgba(0,224,255,0.08); border: 1px solid rgba(0,224,255,0.15); border-radius: 12px; border-top-left-radius: 4px; padding: 14px 16px; color: #e0e0e0; font-size: 0.85rem; line-height: 1.6; max-width: 90%;">
+            👋 Hey! I know everything about <strong style="color:#00e0ff;"><?php echo htmlspecialchars($videoTitle); ?></strong>. Ask me about the plot, characters, hidden details, or anything!
+        </div>
+    </div>
+    <div style="padding: 14px 16px; padding-bottom: max(14px, env(safe-area-inset-bottom)); border-top: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.3); flex-shrink:0;">
+        <div style="display:flex; gap: 8px;">
+            <input type="text" id="mobileAiInput" placeholder="Ask something..." autocomplete="off" style="flex:1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; font-size: 0.9rem; border-radius: 10px; padding: 12px 14px; outline: none;" onfocus="this.style.borderColor='rgba(0,224,255,0.4)'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'" onkeypress="if(event.key === 'Enter') handleMobileAiSubmit(event)">
+            <button onclick="handleMobileAiSubmit(event)" style="background: linear-gradient(135deg, #00e0ff, #7b2cbf); border: none; border-radius: 10px; padding: 0 16px; color: #fff; cursor: pointer; display:flex; align-items:center; justify-content:center;">
+                <i class="ph-fill ph-paper-plane-right" style="font-size: 1.1rem;"></i>
+            </button>
+        </div>
+        <p style="color: #555; text-align:center; margin: 8px 0 0; font-size: 0.65rem;">AI can make mistakes</p>
+    </div>
+</div>
+
+<script>
+// Mobile AI Chat Logic
+(function() {
+    var mobileChatId = 'mobile-' + Math.random().toString(36).substr(2, 9);
+    var movieTitle = <?php echo json_encode($videoTitle); ?>;
+    var isLoggedIn = <?php echo isset($_SESSION['user_id']) ? 'true' : 'false'; ?>;
+
+    window.openMobileAI = function() {
+        document.getElementById('mobileAiModal').classList.add('active');
+        setTimeout(function() { document.getElementById('mobileAiInput').focus(); }, 150);
+    };
+    window.closeMobileAI = function() {
+        document.getElementById('mobileAiModal').classList.remove('active');
+    };
+
+    function mobileAppendMsg(text, isUser) {
+        var chat = document.getElementById('mobileAiChat');
+        var div = document.createElement('div');
+        if (isUser) {
+            div.style.cssText = 'background:rgba(0,224,255,0.1);border:1px solid rgba(0,224,255,0.2);border-radius:12px;border-top-right-radius:4px;padding:12px 14px;color:#fff;font-size:0.85rem;line-height:1.5;max-width:85%;align-self:flex-end;';
+        } else {
+            div.style.cssText = 'background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;border-top-left-radius:4px;padding:12px 14px;color:#e0e0e0;font-size:0.85rem;line-height:1.6;max-width:85%;';
+        }
+        div.innerHTML = text;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+        return div;
+    }
+
+    window.handleMobileAiSubmit = function(e) {
+        e.preventDefault();
+        var input = document.getElementById('mobileAiInput');
+        var query = input.value.trim();
+        if (!query) return;
+        mobileAppendMsg(query, true);
+        input.value = '';
+        if (!isLoggedIn) { mobileAppendMsg('🔒 <strong>Please log in</strong> to use ZEN AI.', false); return; }
+        var loader = mobileAppendMsg('<i class="ph ph-circle-notch" style="animation:watchAiSpin 1s linear infinite;display:inline-block;"></i> Thinking...', false);
+        var fd = new FormData();
+        fd.append('query', "Context: The user is watching '" + movieTitle + "'. Keep answers concise. " + query);
+        fd.append('conversation_id', mobileChatId);
+        fetch('/ask', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            loader.remove();
+            if (data.status === 'success') {
+                var reply = (data.reply || '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                mobileAppendMsg(reply, false);
+
+                // Render movie cards if AI returned any
+                if (data.movies && data.movies.length > 0) {
+                    var cardsHtml = '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(80px, 1fr)); gap:8px; margin-top:8px;">';
+                    data.movies.forEach(function(m) {
+                        var link = '/' + (m.type || 'movie') + '/' + m.id;
+                        cardsHtml += '<a href="' + link + '" style="text-decoration:none; color:inherit; border-radius:8px; overflow:hidden; position:relative; display:block; aspect-ratio:2/3; background:#1a1a2e;">' +
+                            '<img src="' + (m.poster_path || 'assets/images/media/placeholder.webp') + '" alt="' + (m.title || '') + '" style="width:100%; height:100%; object-fit:cover;" loading="lazy">' +
+                            '<div style="position:absolute; bottom:0; left:0; right:0; padding:12px 4px 4px; background:linear-gradient(transparent, rgba(0,0,0,0.95)); font-size:0.65rem; color:#fff; font-weight:700; text-align:center; line-height:1.2;">' +
+                                (m.title || '') +
+                            '</div>' +
+                        '</a>';
+                    });
+                    cardsHtml += '</div>';
+                    mobileAppendMsg(cardsHtml, false);
+                }
+            } else { mobileAppendMsg('❌ ' + (data.message || 'Something went wrong.'), false); }
+        })
+        .catch(function() { loader.remove(); mobileAppendMsg('❌ Network error.', false); });
+    };
+})();
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -158,6 +158,23 @@ switch ($uri[1]) {
   include APP_PATH."/admin/manage_users.php";
   break;
 
+  case 'admin-ingestion':
+  case 'admin-view-ingestion':
+  include APP_PATH."/admin/manage_ingestion.php";
+  break;
+
+  case 'admin-ai':
+  case 'admin-view-ai':
+  include APP_PATH."/admin/manage_ai.php";
+  break;
+
+  // manage_downloads.php existed but had no route, so the page was only
+  // reachable by its direct file path.
+  case 'admin-downloads':
+  case 'admin-view-downloads':
+  include APP_PATH."/admin/manage_downloads.php";
+  break;
+
   case 'admin-view-school':
   include APP_PATH."/admin/manage_school.php";
   break;
@@ -184,6 +201,8 @@ switch ($uri[1]) {
   //
   case 'admin-logout':
     if (session_status() === PHP_SESSION_NONE) session_start();
+    // Revoke the remembered login too, or the cookie signs straight back in.
+    if (function_exists('auth_remember_forget_current')) auth_remember_forget_current($conn);
     session_destroy();
     header("Location: /login");
     exit;
@@ -196,7 +215,7 @@ switch ($uri[1]) {
 
   case 'admin':
   case 'admin-dashboard':
-    include APP_PATH."/admin/registration_dashboard.php";
+    include APP_PATH."/views/admin-dashboard.php";
     break;
 
 

@@ -200,7 +200,7 @@ if(!$mail->send()) {
 <meta name="google-signin-scope" content="profile email">
 <meta name="google-signin-client_id" content="<?php echo getenv("GOOGLE_LOGIN"); ?>">
 <script src="https://apis.google.com/js/platform.js" async defer></script>
-<link rel="icon" sizes="192x192" href="/ico.png">
+<link rel="shortcut icon" href="/assets/images/favicon.ico" />
 
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -212,8 +212,8 @@ if(!$mail->send()) {
 <link rel="stylesheet" href="/da/assets/fonts/themify/themify.css" >
 <link rel="stylesheet" href="/da/assets/plugins/animation/css/animate.min.css" >
 <link rel="stylesheet" href="/da/assets/plugins/prism/css/prism.min.css" >
-<link rel="shortcut icon" href="/vipresa_favicon.png" type="image/x-icon">
-<link rel="icon" href="/vipresa_favicon.png" type="image/x-icon">
+<link rel="shortcut icon" href="/assets/images/favicon.ico" />
+<link rel="shortcut icon" href="/assets/images/favicon.ico" />
 <!-- <link rel="stylesheet" type="text/css" href="https://boardspeck.com/card/core.cleanui.css"> -->
 
 

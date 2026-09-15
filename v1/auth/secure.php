@@ -60,7 +60,7 @@ if(isset($_POST['submit'])){
   <!-- <meta name="viewport" content="width=device-width"> -->
     <meta name="mobile-web-app-capable" content="yes">
 
-    <link rel="icon" sizes="192x192" href="/<?php echo $logo_directory ?>">
+    <link rel="shortcut icon" href="/assets/images/favicon.ico" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">

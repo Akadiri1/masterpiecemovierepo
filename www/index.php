@@ -16,6 +16,13 @@ require APP_PATH."/controllers/controller.php";
 
 #load auth Controllers(functions)
 require APP_PATH."/auth/auth_controller/controller.php";
+
+#restore a remembered login before routing, so every page sees the session.
+#PHP expires idle sessions after 24 minutes; this signs the user back in silently.
+require APP_PATH."/lib/auth_remember.php";
+if (isset($conn)) {
+    auth_remember_try_login($conn);
+}
 #load routes
 // require APP_PATH."/routes/router.php";
 

@@ -15,22 +15,21 @@ $results = [];
 $totalPages = 1;
 
 // --- LOGIC CONTROLLER ---
-$blockedSearchTerms = ['porn','xxx','sex','nude','nudity','erotic','pornography','adult','hardcore','xvideos','xhamster'];
+$blockedSearchTerms = ['porn', 'xxx', 'sex', 'nude', 'nudity', 'erotic', 'pornography', 'adult', 'hardcore', 'xvideos', 'xhamster', 'doggy', 'masturbation', 'nsfw', 'onlyfans'];
 
 if ($searchQuery) {
-   // If kids mode and the query contains a blocked word -> block the search
-   if ($isKidsMode) {
-      $qCheck = strtolower(trim($searchQuery));
-      foreach ($blockedSearchTerms as $b) {
-         if (strpos($qCheck, $b) !== false) {
-            $filterMode = "Search blocked (Kids Mode)";
-            $data = ['results' => [], 'total_pages' => 0, 'total_results' => 0];
-            goto SKIP_SEARCH;
-         }
+   // GLOBAL NSFW FILTER: Block the search entirely if it contains blocked words
+   $qCheck = strtolower(trim($searchQuery));
+   foreach ($blockedSearchTerms as $b) {
+      if (strpos($qCheck, $b) !== false) {
+         $filterMode = "Search blocked for explicit content";
+         $data = ['results' => [], 'total_pages' => 0, 'total_results' => 0];
+         goto SKIP_SEARCH;
       }
    }
+
     $filterMode = "Search: " . htmlspecialchars($searchQuery);
-    $data = fetchTmdbApi("search/multi", ['query' => $searchQuery, 'page' => $page, 'include_adult' => false]);
+    $data = fetchTmdbApi("search/multi", ['query' => $searchQuery, 'page' => $page, 'include_adult' => 'false']);
     
    // Manual Filter for Kids Mode
    if ($isKidsMode && !empty($data['results'])) {

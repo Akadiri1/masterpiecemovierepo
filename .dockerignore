@@ -1,0 +1,22 @@
+# Keeps secrets, local tooling and throwaway scripts out of the image.
+# (Render builds from a fresh git clone, so this mainly protects local builds.)
+
+.git
+.gitignore
+.env/config.php
+Vagrantfile
+.vagrant
+ngrok.exe
+node_modules
+www/phpmyadmin
+www/uploads
+**/*.log
+
+# One-off debug and test scripts
+test*.php
+test_output.html
+check_*.php
+fix_favicons.php
+refactor.php
+v1/test_*.php
+v1/debug_*.php

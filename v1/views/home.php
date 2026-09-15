@@ -4,7 +4,8 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /login'); // Redirect to login
+    $currentUrl = urlencode($_SERVER['REQUEST_URI']);
+    header('Location: /login?next=' . $currentUrl); // Redirect to login
     exit;
 }
 
@@ -394,8 +395,8 @@ if ($trendingData && !empty($trendingData['results'])) {
             'poster_url'   => isset($details['poster_path']) ? 'https://image.tmdb.org/t/p/w1280' . $details['poster_path'] : '',
             'year'         => isset($details['first_air_date']) ? date('Y', strtotime($details['first_air_date'])) : '',
             'seasons_count'=> $details['number_of_seasons'] ?? 1,
-            // Get first 5 episodes of Season 1
-            'episodes'     => array_slice($season1['episodes'] ?? [], 0, 50),
+            // Get all episodes of Season 1
+            'episodes'     => $season1['episodes'] ?? [],
             // Get Trailer
             'trailer_url'  => getTrailerUrl($details['videos']['results'] ?? []),
             // Get Similar/Recommended
@@ -1346,17 +1347,22 @@ function removeFromHistory(element, mediaId) {
                                        <div class="position-relative swiper swiper-card" data-slide="4" data-laptop="3" data-tab="2" data-mobile="2" data-mobile-sm="1" data-autoplay="false" data-loop="false" data-pagination="true">
                                           <ul class="p-0 swiper-wrapper m-0 list-inline">
                                              <?php foreach($show['episodes'] as $ep): ?>
-                                             <li class="swiper-slide">
-                                                <div class="episode-block rounded-3">
-                                                   <div class="block-image position-relative z-1">
-                                                      <img src="<?php echo isset($ep['still_path']) ? 'https://image.tmdb.org/t/p/w300'.$ep['still_path'] : '/assets/images/media/placeholder.svg'; ?>" class="img-fluid img-zoom" loading="lazy">
-                                                   </div>
-                                                   <div class="episode-detail fw-medium position-absolute">
-                                                      <h6 class="mt-2 mb-0">E<?php echo $ep['episode_number']; ?>: <?php echo $ep['name']; ?></h6>
-                                                      <span class="mb-0 line-count-2 mt-2 small lh-base"><?php echo $ep['overview']; ?></span>
-                                                   </div>
-                                                </div>
-                                             </li>
+                                              <li class="swiper-slide">
+                                                 <a href="/watch?id=<?php echo $show['id']; ?>&type=tv&season=1&episode=<?php echo $ep['episode_number']; ?>" class="text-decoration-none text-white episode-link-hover">
+                                                    <div class="episode-block rounded-3 position-relative overflow-hidden">
+                                                       <div class="block-image position-relative z-1">
+                                                          <img src="<?php echo isset($ep['still_path']) ? 'https://image.tmdb.org/t/p/w300'.$ep['still_path'] : '/assets/images/media/placeholder.svg'; ?>" class="img-fluid img-zoom" loading="lazy">
+                                                          <div class="play-overlay position-absolute top-50 start-50 translate-middle" style="background: rgba(0,0,0,0.5); border-radius: 50%; padding: 10px; display: none;">
+                                                              <i class="ph-fill ph-play text-white font-size-18"></i>
+                                                          </div>
+                                                       </div>
+                                                       <div class="episode-detail fw-medium position-absolute bottom-0 w-100 p-2" style="background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);">
+                                                          <h6 class="mt-2 mb-0 font-size-14 text-shadow">E<?php echo $ep['episode_number']; ?>: <?php echo htmlspecialchars($ep['name']); ?></h6>
+                                                          <span class="mb-0 line-count-2 mt-1 small lh-base text-shadow opacity-75"><?php echo htmlspecialchars($ep['overview']); ?></span>
+                                                       </div>
+                                                    </div>
+                                                 </a>
+                                              </li>
                                              <?php endforeach; ?>
                                           </ul>
                                           <div class="swiper-pagination d-block"></div>

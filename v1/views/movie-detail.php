@@ -344,6 +344,8 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover">
   <title><?php echo htmlspecialchars($title); ?> - Details</title>
+  <link rel="shortcut icon" href="/assets/images/favicon.ico" />
+  <link rel="apple-touch-icon" href="/assets/images/logo.png">
   <link rel="manifest" href="manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -368,10 +370,40 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
   <style>
         :root {
             --primary: #e50914;
-            --primary-hover: #ff2a35;
-            --primary-glow: rgba(229, 9, 20, 0.3);
+            --primary-hover: #f40612;
+            --primary-glow: rgba(229, 9, 20, 0.4);
         }
         
+        @media (max-width: 800px) {
+            body, html {
+                overflow: auto !important;
+                height: auto !important;
+            }
+            .watch-app {
+                overflow: visible !important;
+                height: auto !important;
+            }
+            .meta-actions {
+                flex-direction: column;
+                align-items: stretch !important;
+            }
+            .btn-play-now {
+                width: 100% !important;
+                justify-content: center !important;
+                margin-left: 0 !important;
+            }
+            .meta-actions-circles {
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+                width: 100%;
+                margin-top: 5px;
+            }
+            .btn-circle-action {
+                margin-left: 0 !important;
+            }
+        }
+
         :root[data-theme="cyberpunk"] {
             --primary: #00f0ff;
             --primary-hover: #00d0dd;
@@ -400,7 +432,8 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         
         /* Globally replace static red with variables using high specificity */
         body .text-primary, body i.text-primary, .iq-main-slider .text-primary, .trending-info .text-primary, .cart-content .text-primary { color: var(--primary) !important; }
-        body .text-warning, body i.text-warning, .ph-star.text-warning { color: var(--primary) !important; }
+        /* Fix for primary color overrides to NOT affect stars */
+        body .text-warning, body i.text-warning { color: var(--primary) !important; }
         body .bg-primary { background-color: var(--primary) !important; }
         
         /* High specificity for buttons to override template's core.css */
@@ -440,18 +473,9 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         
         .sidebar-link.active i { color: var(--primary) !important; }
         .movie-title, h1.movie-title { color: var(--primary) !important; text-shadow: 0 0 20px var(--primary-glow); }
-        .star-rating label:hover i, .star-rating label:hover ~ label i, .star-rating input:checked ~ label i { color: var(--primary) !important; }
 
       body, html { background-color: #0a0a0f !important; color: #b0b0b8 !important; overflow: hidden; margin:0; padding:0; height: 100vh;}
       
-      /* Make sure watch-app uses the grid layout from watch-theme.css */
-      .watch-app { 
-          display: grid; 
-          grid-template-columns: 240px 1fr 340px; 
-          height: 100vh; 
-          overflow: hidden; 
-          width: 100%; 
-      }
       
       .detail-stage {
           position: relative;
@@ -479,6 +503,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
       .meta-tag { background: rgba(255,255,255,0.1); backdrop-filter: blur(4px); padding: 5px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; color: #eee; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.05); }
       .meta-desc { font-size: 0.95rem; color: #ccc; max-width: 800px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 20px; line-height: 1.6; }
       .meta-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+      .meta-actions-circles { display: flex; gap: 12px; align-items: center; }
       
       .btn-play-now { background: var(--primary); color: #fff; border: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; text-decoration: none; transition: 0.2s; box-shadow: 0 4px 15px var(--primary-glow); }
       .btn-play-now:hover { background: var(--primary-hover); color: #fff; transform: translateY(-2px); }
@@ -489,11 +514,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
       .cast-row-link { display: block; text-decoration: none; transition: transform 0.2s; }
       .cast-row-link:hover { transform: translateX(5px); }
 
-      /* Sidebar Collapsed */
-      .watch-app.sidebar-collapsed { grid-template-columns: 0px 1fr 0px !important; }
-      .watch-app.sidebar-collapsed .watch-sidebar { display: none !important; }
-      .watch-app.sidebar-collapsed .watch-right { display: none !important; }
-
+      
       /* Fullscreen Search Overlay */
       #searchOverlay {
           position: fixed !important; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -581,36 +602,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 
 <div class="watch-app">
     <!-- 1. Left Sidebar -->
-    <aside class="watch-sidebar">
-        <div class="sidebar-brand">
-            <a href="./" class="logo-text text-decoration-none">ZEN</a>
-        </div>
-        <nav class="sidebar-nav">
-            <div class="sidebar-main-actions">
-                <a href="./" class="sidebar-link"><i class="ph ph-house"></i><span>Home</span></a>
-                <a href="javascript:void(0)" class="sidebar-link" onclick="openSearchModal();"><i class="ph ph-magnifying-glass"></i><span>Search</span></a>
-            </div>
-            <div class="sidebar-section-label">Media</div>
-            <a href="view-all?type=movie" class="sidebar-link"><i class="ph ph-film-strip"></i><span>Movies</span></a>
-            <a href="view-all?type=tv" class="sidebar-link"><i class="ph ph-monitor-play"></i><span>TV Shows</span></a>
-            <a href="view-all?type=discover&with_genres=16" class="sidebar-link"><i class="ph ph-sparkle"></i><span>Anime</span></a>
-            <a href="view-all?type=discover&with_genres=10759" class="sidebar-link"><i class="ph ph-book-open"></i><span>Manga</span></a>
-            <a href="view-all?type=discover&with_genres=10402" class="sidebar-link"><i class="ph ph-music-note"></i><span>Music</span></a>
-            <a href="view-all?type=discover&with_genres=99" class="sidebar-link"><i class="ph ph-video-camera"></i><span>Documentaries</span></a>
-            <div style="height: 12px;"></div>
-            <a href="profile" class="sidebar-link"><i class="ph ph-heart"></i><span>Watchlist</span></a>
-        </nav>
-        
-        <div class="sidebar-footer" style="padding: 20px; border-top: 1px solid rgba(255,255,255,0.05); margin-top: auto;">
-            <a href="/profile" class="sidebar-user" style="display:flex; align-items:center; gap:12px; text-decoration:none; padding:10px; border-radius:10px; transition:0.2s;">
-                <img src="<?php echo htmlspecialchars($_SESSION['avatar_url'] ?? 'assets/images/user/user6.jpg'); ?>" alt="Profile" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
-                <div class="sidebar-user-info" style="overflow:hidden;">
-                    <div class="sidebar-user-name" style="color:#ddd; font-size:0.85rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?php echo htmlspecialchars($_SESSION['username'] ?? 'Guest User'); ?></div>
-                    <div class="sidebar-user-plan" style="color:#666; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.5px;"><?php echo htmlspecialchars($_SESSION['plan_name'] ?? 'Free'); ?> plan</div>
-                </div>
-            </a>
-        </div>
-    </aside>
+    <?php include 'includes/sidebar.php'; ?>
 
     <!-- 2. Center Content -->
     <main class="watch-center custom-scrollbar" style="padding-top: 20px; padding-bottom: 60px;">
@@ -653,23 +645,25 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                     <i class="ph-fill ph-play-circle" style="font-size: 1.5rem;"></i> Play Now
                 </a>
                 
-                <button class="btn-play-now" onclick="triggerZenAI('Find 5 movies that are extremely similar to <?php echo addslashes($title); ?>')" style="background: linear-gradient(135deg, #00e0ff, #7b2cbf); border: none; padding: 12px 24px; color: #fff; font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 10px; display: inline-flex; align-items: center; gap: 8px;">
+                <button class="btn-play-now" onclick="triggerZenAI('Find 5 movies that are extremely similar to <?php echo addslashes($title); ?>')" style="background: linear-gradient(135deg, #00e0ff, #7b2cbf); border: none; padding: 12px 24px; color: #fff; font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 10px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
                     <i class="ph-fill ph-sparkle"></i> AI: Find Similar
                 </button>
                 
-                <a href="#" class="btn-circle-action watchlist-btn" style="margin-left: 10px;" data-id="<?php echo $mediaId; ?>" data-type="<?php echo $mediaType; ?>" title="Add to Watchlist">
-                    <i class="<?php echo $isInWatchlist ? 'ph ph-check text-success' : 'ph ph-plus'; ?>"></i>
-                </a>
-                
-                <?php if (!$isUpcoming): ?>
-                <button class="btn-circle-action" data-bs-target="#downloadModal" title="Download">
-                    <i class="fa-solid fa-download"></i>
-                </button>
-                <?php endif; ?>
+                <div class="meta-actions-circles">
+                    <a href="#" class="btn-circle-action watchlist-btn" style="margin-left: 10px;" data-id="<?php echo $mediaId; ?>" data-type="<?php echo $mediaType; ?>" title="Add to Watchlist">
+                        <i class="<?php echo $isInWatchlist ? 'ph ph-check text-success' : 'ph ph-plus'; ?>"></i>
+                    </a>
+                    
+                    <?php if (!$isUpcoming): ?>
+                    <button class="btn-circle-action" data-bs-target="#downloadModal" title="Download">
+                        <i class="fa-solid fa-download"></i>
+                    </button>
+                    <?php endif; ?>
 
-                <button class="btn-circle-action" onclick="navigator.share({title: document.title, url: window.location.href})" title="Share">
-                    <i class="ph ph-share-network"></i>
-                </button>
+                    <button class="btn-circle-action" onclick="navigator.share({title: document.title, url: window.location.href})" title="Share">
+                        <i class="ph ph-share-network"></i>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -681,7 +675,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                 <?php foreach ($relatedList as $rec): ?>
                 <a href="<?php echo ($mediaType === 'tv' ? 'tv/' : 'movie/') . $rec['id']; ?>" class="rec-card text-decoration-none">
                     <img src="<?php echo !empty($rec['poster_path']) ? 'https://image.tmdb.org/t/p/w300'.$rec['poster_path'] : 'assets/images/user/userblank.jpg'; ?>" loading="lazy" alt="Poster">
-                    <div class="rec-rating"><i class="ph-fill ph-star text-warning"></i> <?php echo round($rec['vote_average'], 1); ?></div>
+                    <div class="rec-rating"><i class="ph ph-star" style="font-family:'Phosphor-Fill' !important; color:#ffc107;"></i> <?php echo round($rec['vote_average'], 1); ?></div>
                     <p class="rec-card-title text-truncate text-white"><?php echo htmlspecialchars($rec['title'] ?? $rec['name'] ?? 'Untitled'); ?></p>
                 </a>
                 <?php endforeach; ?>
@@ -718,7 +712,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                              </div>
                              <div>
                                  <?php for($i=1; $i<=5; $i++): ?>
-                                     <i class="ph-fill ph-star <?php echo ($i <= $review['rating']) ? 'text-warning' : 'text-secondary'; ?>"></i>
+                                     <i class="ph ph-star" style="<?php echo ($i <= $review['rating']) ? "font-family:'Phosphor-Fill' !important; color:#ffc107;" : "color:#666;"; ?>"></i>
                                  <?php endfor; ?>
                              </div>
                          </div>
@@ -849,11 +843,11 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
           <div class="mb-4 text-center">
               <label class="form-label d-block text-start mb-2 text-secondary">Your Rating</label>
               <div class="star-rating d-flex justify-content-center gap-2 flex-row-reverse" style="background:#1a1a1a; padding:15px; border-radius:12px;">
-                    <input type="radio" id="star5" name="rating" value="5" class="d-none"><label for="star5" style="cursor:pointer;"><i class="ph-fill ph-star fs-1 text-secondary"></i></label>
-                    <input type="radio" id="star4" name="rating" value="4" class="d-none"><label for="star4" style="cursor:pointer;"><i class="ph-fill ph-star fs-1 text-secondary"></i></label>
-                    <input type="radio" id="star3" name="rating" value="3" class="d-none"><label for="star3" style="cursor:pointer;"><i class="ph-fill ph-star fs-1 text-secondary"></i></label>
-                    <input type="radio" id="star2" name="rating" value="2" class="d-none"><label for="star2" style="cursor:pointer;"><i class="ph-fill ph-star fs-1 text-secondary"></i></label>
-                    <input type="radio" id="star1" name="rating" value="1" class="d-none"><label for="star1" style="cursor:pointer;"><i class="ph-fill ph-star fs-1 text-secondary"></i></label>
+                    <input type="radio" id="star5" name="rating" value="5"><label for="star5" style="cursor:pointer;"><i class="ph ph-star fs-1 text-secondary"></i></label>
+                    <input type="radio" id="star4" name="rating" value="4"><label for="star4" style="cursor:pointer;"><i class="ph ph-star fs-1 text-secondary"></i></label>
+                    <input type="radio" id="star3" name="rating" value="3"><label for="star3" style="cursor:pointer;"><i class="ph ph-star fs-1 text-secondary"></i></label>
+                    <input type="radio" id="star2" name="rating" value="2"><label for="star2" style="cursor:pointer;"><i class="ph ph-star fs-1 text-secondary"></i></label>
+                    <input type="radio" id="star1" name="rating" value="1"><label for="star1" style="cursor:pointer;"><i class="ph ph-star fs-1 text-secondary"></i></label>
               </div>
           </div>
           <div class="mb-4">
@@ -867,9 +861,26 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 
 <style>
 /* CSS Fix for Review Stars */
+.star-rating input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+}
+.star-rating label i {
+    color: #6c757d !important; /* Force unselected to gray */
+}
 .star-rating input:checked ~ label i,
 .star-rating label:hover i,
-.star-rating label:hover ~ label i { color: #ffc107 !important; }
+.star-rating label:hover ~ label i { 
+    color: #ffc107 !important; 
+}
+.star-rating input:checked ~ label i::before,
+.star-rating label:hover i::before,
+.star-rating label:hover ~ label i::before { 
+    font-family: "Phosphor-Fill" !important;
+}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -967,24 +978,29 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 
     // --- FETCH AI HOOK ---
     document.addEventListener("DOMContentLoaded", function() {
-        const title = <?php echo json_encode($title); ?>;
         const mediaId = <?php echo json_encode($mediaId); ?>;
+        const mediaType = <?php echo json_encode($mediaType); ?>;
         const container = document.getElementById('ai-hook-container');
         const textDiv = document.getElementById('ai-hook-text');
-        
-        if (title && mediaId) {
+
+        if (mediaId) {
             // Show loading state
             container.style.display = 'block';
-            
+
+            // The title is deliberately not sent -- the endpoint resolves it
+            // from TMDB itself, so a caller cannot dictate what text gets
+            // cached and shown to everyone else on this page.
             const fd = new FormData();
-            fd.append('title', title);
             fd.append('media_id', mediaId);
-            
+            fd.append('media_type', mediaType);
+
             fetch('/ai-hook', { method: 'POST', body: fd })
                 .then(r => r.json())
                 .then(data => {
                     if (data.status === 'success' && data.hook) {
-                        textDiv.innerHTML = data.hook;
+                        // textContent, not innerHTML: this is model output and
+                        // must never be parsed as markup.
+                        textDiv.textContent = data.hook;
                     } else {
                         container.style.display = 'none'; // Hide if failed
                     }
@@ -994,6 +1010,88 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                 });
         }
     });
+
+    // --- ADD REVIEW AJAX ---
+    const addReviewForm = document.getElementById('addReviewForm');
+    if (addReviewForm) {
+        addReviewForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
+            
+            const formData = new FormData(this);
+            fetch('/process-reviews', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                
+                if (data.status === 'success') {
+                    // Close the offcanvas
+                    const offcanvasEl = document.getElementById('offcanvasReview');
+                    if (offcanvasEl) {
+                        const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasEl);
+                        if (offcanvasInstance) offcanvasInstance.hide();
+                    }
+                    
+                    // Reset the form
+                    addReviewForm.reset();
+                    
+                    // Dynamically prepend the review
+                    const reviewsList = document.querySelector('.comments-list');
+                    if (reviewsList) {
+                        const rating = parseInt(formData.get('rating')) || 0;
+                        const reviewText = formData.get('review_text') || '';
+                        const username = '<?php echo addslashes($_SESSION["username"] ?? "Guest"); ?>';
+                        const avatarUrl = '<?php echo addslashes($_SESSION["avatar_url"] ?? "assets/images/user/user.jpg"); ?>';
+                        
+                        const noReviews = reviewsList.querySelector('.text-center.p-4');
+                        if (noReviews) noReviews.remove();
+                        
+                        let starsHtml = '';
+                        for(let i=1; i<=5; i++) {
+                            starsHtml += `<i class="ph ph-star" style="${i <= rating ? "font-family:'Phosphor-Fill' !important; color:#ffc107;" : "color:#666;"}"></i>`;
+                        }
+                        
+                        const safeText = reviewText.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+                        const newReviewHTML = `
+                        <div class="review-card" style="animation: fadeIn 0.5s;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="${avatarUrl}" alt="user" style="width:40px; height:40px; object-fit:cover; border-radius:50%;">
+                                    <div>
+                                        <h6 style="margin:0; font-size:1rem; color:#fff;">${username}</h6>
+                                        <small style="color:#888; font-size:0.8rem;">Just now</small>
+                                    </div>
+                                </div>
+                                <div>${starsHtml}</div>
+                            </div>
+                            <p style="margin:0; color:#ccc; font-size:0.95rem; line-height:1.5;">${safeText}</p>
+                        </div>
+                        `;
+                        
+                        reviewsList.insertAdjacentHTML('afterbegin', newReviewHTML);
+                    } else {
+                        // Fallback reload if structure missing
+                        window.location.reload();
+                    }
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(err => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                alert('An error occurred while submitting your review.');
+            });
+        });
+    }
 </script>
 
 <!-- Fullscreen Search Overlay -->
@@ -1011,5 +1109,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 </div>
 
 <?php include __DIR__ . '/zen-ai.php'; ?>
+<?php include __DIR__ . '/includes/theme-modal.php'; ?>
+<?php include __DIR__ . '/includes/mobile-footer.php'; ?>
 </body>
 </html>

@@ -153,6 +153,11 @@ if ($userData) {
         $_SESSION['plan_id'] = $sessionPlanId;
         $_SESSION['plan_name'] = strtolower($planName);
 
+        // Remember me: the login page sends the checkbox state with the token.
+        if (!empty($input['rememberMe']) && function_exists('auth_remember_issue')) {
+            auth_remember_issue($conn, (int) $user['id']);
+        }
+
         // Redirect Logic
         $isAdmin = $user['is_admin'] ?? 0;
         $redirect_url = ($isAdmin == 1) ? '/admin-dashboard' : '/home';

@@ -124,7 +124,7 @@ if(count($record) > 0 && password_verify($clean['pword'],$record[0]['hash'])){
       <meta name="google-signin-scope" content="profile email">
          <meta name="google-signin-client_id" content="<?php echo getenv("GOOGLE_LOGIN"); ?>">
          <script src="https://apis.google.com/js/platform.js" async defer></script>
-   		<link rel="icon" sizes="192x192" href="/ico.png">
+   		<link rel="shortcut icon" href="/assets/images/favicon.ico" />
 
    	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
    	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -141,8 +141,8 @@ if(count($record) > 0 && password_verify($clean['pword'],$record[0]['hash'])){
              <link rel="stylesheet" href="/da/assets/plugins/ekko-lightbox/css/ekko-lightbox.min.css">
              <link rel="stylesheet" href="/da/assets/plugins/lightbox2-master/css/lightbox.min.css">
               <script src="/da/assets/js/pages/dashboard-help.js"></script>
-              <link rel="shortcut icon" href="/vipresa_favicon.png" type="image/x-icon">
-              <link rel="icon" href="/vipresa_favicon.png" type="image/x-icon">
+              <link rel="shortcut icon" href="/assets/images/favicon.ico" />
+              <link rel="shortcut icon" href="/assets/images/favicon.ico" />
    <!-- <link rel="stylesheet" type="text/css" href="https://boardspeck.com/card/core.cleanui.css"> -->
 
 

@@ -167,35 +167,39 @@ $tvLinks = count(array_filter($downloads, fn($d) => $d['media_type'] === 'tv'));
 
             <!-- Stats Cards -->
             <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card bg-primary text-white">
-                        <div class="card-body text-center">
-                            <h3><?php echo $totalLinks; ?></h3>
-                            <p class="mb-0">Total Links</p>
+                <div class="col-md-3 mb-3">
+                    <div class="admin-stat t-primary">
+                        <div class="admin-stat-icon"><i class="feather icon-link"></i></div>
+                        <div>
+                            <h3 class="admin-stat-value"><?php echo number_format($totalLinks); ?></h3>
+                            <p class="admin-stat-label">Total Links</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card bg-success text-white">
-                        <div class="card-body text-center">
-                            <h3><?php echo $activeLinks; ?></h3>
-                            <p class="mb-0">Active</p>
+                <div class="col-md-3 mb-3">
+                    <div class="admin-stat <?php echo $activeLinks > 0 ? 't-green' : 't-muted'; ?>">
+                        <div class="admin-stat-icon"><i class="feather icon-check-circle"></i></div>
+                        <div>
+                            <h3 class="admin-stat-value"><?php echo number_format($activeLinks); ?></h3>
+                            <p class="admin-stat-label">Active</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card bg-info text-white">
-                        <div class="card-body text-center">
-                            <h3><?php echo $movieLinks; ?></h3>
-                            <p class="mb-0">Movies</p>
+                <div class="col-md-3 mb-3">
+                    <div class="admin-stat t-cyan">
+                        <div class="admin-stat-icon"><i class="feather icon-film"></i></div>
+                        <div>
+                            <h3 class="admin-stat-value"><?php echo number_format($movieLinks); ?></h3>
+                            <p class="admin-stat-label">Movies</p>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="card bg-warning text-white">
-                        <div class="card-body text-center">
-                            <h3><?php echo $tvLinks; ?></h3>
-                            <p class="mb-0">TV Shows</p>
+                <div class="col-md-3 mb-3">
+                    <div class="admin-stat t-violet">
+                        <div class="admin-stat-icon"><i class="feather icon-tv"></i></div>
+                        <div>
+                            <h3 class="admin-stat-value"><?php echo number_format($tvLinks); ?></h3>
+                            <p class="admin-stat-label">TV Shows</p>
                         </div>
                     </div>
                 </div>

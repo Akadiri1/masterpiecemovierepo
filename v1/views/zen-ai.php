@@ -32,6 +32,11 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
     }
     .zen-ai-float:hover { transform: scale(1.15); }
 
+    /* Adjust for mobile footer */
+    @media (max-width: 991px) {
+        .zen-ai-float { bottom: 90px !important; }
+    }
+
     .zen-orb-wrapper { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
     .zen-orb-wrapper i {
         font-size: 28px;
@@ -194,6 +199,7 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
     @keyframes slideInRight { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
     @keyframes slideInLeft { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
     @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
 </style>
 
 <div class="zen-ai-float" onclick="triggerZenAI()">
@@ -348,8 +354,13 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
                 // Update Limit Display
                 const limitDisplay = document.getElementById('zen-limit-display');
                 if (limitDisplay && d.daily_used !== undefined) {
-                    const remaining = Math.max(0, 10 - parseInt(d.daily_used));
-                    limitDisplay.innerHTML = `<i class="ph-fill ph-lightning"></i> ${remaining}/10 Queries Left`;
+                    if (d.limit === -1) {
+                        limitDisplay.innerHTML = `<i class="ph-fill ph-lightning"></i> Unlimited Queries`;
+                    } else {
+                        const limit = parseInt(d.limit || 10);
+                        const remaining = Math.max(0, limit - parseInt(d.daily_used));
+                        limitDisplay.innerHTML = `<i class="ph-fill ph-lightning"></i> ${remaining}/${limit} Queries Left`;
+                    }
                 }
 
                 if (!d.data || d.data.length === 0) {
@@ -521,30 +532,79 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
                 const loader = document.getElementById(loaderId);
 
                 if (data.status === 'success') {
-                    // AI Reply Text
-                    const replyHtml = data.reply ? `<div style="color:#ccc; line-height:1.7; margin-bottom:15px; font-size:1rem;">${data.reply}</div>` : '';
+                    const textId = 'text-' + Date.now();
+                    const moviesId = 'movies-' + Date.now();
+                    
+                    loader.innerHTML = `
+                        <div id="${textId}" style="color:#ccc; line-height:1.7; margin-bottom:15px; font-size:1rem;"></div>
+                        <div id="${moviesId}" class="zen-results-grid" style="display:none; opacity:0; transition: opacity 0.5s ease-in;"></div>
+                    `;
+                    
+                    const textContainer = document.getElementById(textId);
+                    const moviesContainer = document.getElementById(moviesId);
 
                     // Generate Movie Cards with titles
-                    let moviesHtml = '';
                     if (data.movies && data.movies.length > 0) {
-                        const movies = data.movies.map(m => `
-                            <div class="vod-card" style="position:relative;">
+                        const moviesHtml = data.movies.map((m, idx) => `
+                            <div class="vod-card" style="opacity:0; animation: fadeInUp 0.5s ease forwards ${idx * 0.1}s; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
                                 <a href="/${m.type || 'movie'}/${m.id}" style="text-decoration:none; color:inherit;">
                                     <img src="${m.poster_path || 'assets/images/media/placeholder.webp'}" alt="${m.title || ''}" loading="lazy">
-                                    <div style="position:absolute; bottom:0; left:0; right:0; padding:8px 6px; background:linear-gradient(transparent, rgba(0,0,0,0.9)); font-size:0.75rem; color:#eee; font-weight:600; text-align:center; line-height:1.2;">
+                                    <div style="position:absolute; bottom:0; left:0; right:0; padding:20px 10px 10px; background:linear-gradient(transparent, rgba(0,0,0,0.95)); font-size:0.85rem; color:#fff; font-weight:700; text-align:center; line-height:1.3; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
                                         ${m.title || ''}
-                                        ${m.rating ? '<div style=\"color:#ffc107; font-size:0.7rem; margin-top:3px;\">⭐ ' + Number(m.rating).toFixed(1) + '</div>' : ''}
+                                        ${m.rating ? '<div style="color:#ffc107; font-size:0.75rem; margin-top:5px; display:flex; justify-content:center; align-items:center; gap:3px;"><i class="ph-fill ph-star"></i> ' + Number(m.rating).toFixed(1) + '</div>' : ''}
+                                        ${m.available ? '<div style="color:#1dd1a1; font-size:0.7rem; margin-top:4px; display:flex; justify-content:center; align-items:center; gap:4px;"><i class="ph-fill ph-download-simple"></i> ' + (m.qualities ? String(m.qualities).split(',')[0] : 'Available') + '</div>' : ''}
                                     </div>
                                 </a>
                             </div>`).join('');
-                        moviesHtml = `<div class="zen-results-grid">${movies}</div>`;
+                        moviesContainer.innerHTML = moviesHtml;
                     }
 
-                    // Replace Loader with Result (Removed duplicate reply text from thinking box)
-                    loader.innerHTML = `
-                        ${replyHtml}
-                        ${moviesHtml}
-                    `;
+                    // Typewriter Effect for Text
+                    if (data.reply) {
+                        const fullText = data.reply;
+                        let i = 0;
+                        let isTag = false;
+                        let textAccumulator = '';
+                        const speed = 25; // ms per char
+                        
+                        function typeWriter() {
+                            if (i < fullText.length) {
+                                let char = fullText.charAt(i);
+                                if (char === '<') isTag = true;
+                                textAccumulator += char;
+                                i++;
+                                
+                                if (isTag) {
+                                    if (char === '>') isTag = false;
+                                    typeWriter(); // Skip delay for HTML tags
+                                } else {
+                                    textContainer.innerHTML = textAccumulator;
+                                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                                    // process next character with delay
+                                    setTimeout(typeWriter, speed);
+                                }
+                            } else {
+                                // Done typing text, now reveal movies
+                                if (data.movies && data.movies.length > 0) {
+                                    moviesContainer.style.display = 'grid';
+                                    setTimeout(() => {
+                                        moviesContainer.style.opacity = '1';
+                                        chatContainer.scrollTop = chatContainer.scrollHeight;
+                                    }, 50);
+                                }
+                            }
+                        }
+                        typeWriter();
+                    } else {
+                        if (data.movies && data.movies.length > 0) {
+                            moviesContainer.style.display = 'grid';
+                            setTimeout(() => {
+                                moviesContainer.style.opacity = '1';
+                                chatContainer.scrollTop = chatContainer.scrollHeight;
+                            }, 50);
+                        }
+                    }
+
                 } else {
                     const errorMsg = data.message || `No results found for "${query}".`;
                     loader.innerHTML = `<div class="text-danger p-3" style="font-weight: 500;"><i class="ph-bold ph-warning-circle"></i> ${errorMsg}</div>`;
@@ -559,33 +619,44 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
 
     // --- MIC LOGIC ---
     let recognition;
+    let isRecognizing = false;
+    
     function toggleMic() {
         if (!('webkitSpeechRecognition' in window)) return alert("Voice input not supported in this browser.");
         
         const btn = document.getElementById('zen-mic-btn');
         const input = document.getElementById('zen-input');
 
-        if (btn.classList.contains('listening')) {
+        if (isRecognizing && recognition) {
             recognition.stop();
             return;
         }
 
         recognition = new webkitSpeechRecognition();
         recognition.lang = 'en-US';
+        recognition.continuous = true;
+        recognition.interimResults = true;
         
         recognition.onstart = () => {
+            isRecognizing = true;
             btn.classList.add('listening');
-            input.placeholder = "Listening...";
+            input.placeholder = "Listening... (Click mic again to stop)";
+            input.value = ''; // Clear for new dictation
         };
         
         recognition.onend = () => {
+            isRecognizing = false;
             btn.classList.remove('listening');
             input.placeholder = "Ask ZEN AI...";
         };
         
         recognition.onresult = (e) => {
-            input.value = e.results[0][0].transcript;
-            handleZenSubmit(new Event('submit'));
+            let fullText = '';
+            for (let i = 0; i < e.results.length; ++i) {
+                fullText += e.results[i][0].transcript;
+            }
+            input.value = fullText;
+            // Removed automatic submission so the user can review and edit before consuming a token
         };
         
         recognition.start();

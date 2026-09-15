@@ -521,8 +521,8 @@ if ($ottData && !empty($ottData['results'])) {
 
         $seasonsData = [];
         $seasonCount = $details['number_of_seasons'];
-        // Limit to first 3 seasons only
-        $limitSeasons = min($seasonCount, 3); 
+        // Fetch all seasons instead of limiting to 3
+        $limitSeasons = $seasonCount; 
 
         for ($s = 1; $s <= $limitSeasons; $s++) {
             // Fetch specific season details to get episodes
@@ -531,8 +531,8 @@ if ($ottData && !empty($ottData['results'])) {
             if ($seasonDetails && !empty($seasonDetails['episodes'])) {
                 $seasonsData[] = [
                     'season_number' => $s,
-                    // Get first 3 episodes only
-                    'episodes' => array_slice($seasonDetails['episodes'], 0, 3)
+                    // Get all episodes
+                    'episodes' => $seasonDetails['episodes']
                 ];
             }
         }
@@ -1598,13 +1598,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                      
                                      <!-- Tab Headers (Season 1, Season 2...) -->
                                      <div class="tab-bottom-bordered border-0">
-                                        <ul class="nav nav-tabs nav-pills mb-3 overflow-x-scroll" role="tablist">
+                                        <ul class="nav nav-tabs nav-pills mb-3 flex-nowrap custom-scrollbar" role="tablist" style="overflow-x: auto; overflow-y: hidden;">
                                            <?php foreach ($show['seasons_data'] as $index => $season): ?>
                                            <li class="nav-item" role="presentation">
                                               <button class="nav-link <?php echo ($index === 0) ? 'active' : ''; ?>" 
                                                       data-bs-toggle="pill"
                                                       data-bs-target="#season-tab-<?php echo $show['id']; ?>-<?php echo $season['season_number']; ?>" 
                                                       type="button" role="tab"
+                                                      style="white-space: nowrap;"
                                                       aria-selected="<?php echo ($index === 0) ? 'true' : 'false'; ?>">
                                                   Season <?php echo $season['season_number']; ?>
                                               </button>
@@ -1621,23 +1622,28 @@ document.addEventListener('DOMContentLoaded', function() {
                                              id="season-tab-<?php echo $show['id']; ?>-<?php echo $season['season_number']; ?>"
                                              role="tabpanel" tabindex="0">
                                            
-                                           <ul class="list-inline m-0 p-0">
+                                           <ul class="list-inline m-0 p-0 pe-2 custom-scrollbar" style="max-height: 350px; overflow-y: auto;">
                                               <?php foreach ($season['episodes'] as $ep): ?>
-                                              <li class="d-flex align-items-center gap-3 mb-3">
-                                                 <div class="image-box flex-shrink-0">
-                                                    <!-- Episode Thumbnail -->
-                                                    <img src="<?php echo isset($ep['still_path']) ? 'https://image.tmdb.org/t/p/w300'.$ep['still_path'] : 'assets/images/media/placeholder.webp'; ?>" 
-                                                         alt="episode-img" class="img-fluid rounded" style="width: 80px; height: 45px; object-fit: cover;">
-                                                 </div>
-                                                 <div class="image-details">
-                                                    <h6 class="mb-1 text-capitalize font-size-14 line-count-1">
-                                                        <?php echo htmlspecialchars($ep['name']); ?>
-                                                    </h6>
-                                                    <div class="episode-time d-flex align-items-center gap-1">
-                                                       <i class="ph ph-clock font-size-12"></i>
-                                                       <small class="font-size-12"><?php echo $ep['runtime'] ?? '45'; ?>m</small>
-                                                    </div>
-                                                 </div>
+                                              <li class="mb-3">
+                                                 <a href="watch?id=<?php echo $show['id']; ?>&type=tv&season=<?php echo $season['season_number']; ?>&episode=<?php echo $ep['episode_number']; ?>" class="d-flex align-items-center gap-3 text-white text-decoration-none episode-link-hover">
+                                                     <div class="image-box flex-shrink-0 position-relative">
+                                                        <!-- Episode Thumbnail -->
+                                                        <img src="<?php echo isset($ep['still_path']) ? 'https://image.tmdb.org/t/p/w300'.$ep['still_path'] : 'assets/images/media/placeholder.webp'; ?>" 
+                                                             alt="episode-img" class="img-fluid rounded" style="width: 80px; height: 45px; object-fit: cover;">
+                                                        <div class="play-overlay position-absolute top-50 start-50 translate-middle" style="background: rgba(0,0,0,0.5); border-radius: 50%; padding: 5px; display: none;">
+                                                            <i class="ph-fill ph-play text-white font-size-12"></i>
+                                                        </div>
+                                                     </div>
+                                                     <div class="image-details">
+                                                        <h6 class="mb-1 text-capitalize font-size-14 line-count-1">
+                                                            E<?php echo $ep['episode_number']; ?>: <?php echo htmlspecialchars($ep['name']); ?>
+                                                        </h6>
+                                                        <div class="episode-time d-flex align-items-center gap-1 text-muted">
+                                                           <i class="ph ph-clock font-size-12"></i>
+                                                           <small class="font-size-12"><?php echo $ep['runtime'] ?? '45'; ?>m</small>
+                                                        </div>
+                                                     </div>
+                                                 </a>
                                               </li>
                                               <?php endforeach; ?>
                                            </ul>

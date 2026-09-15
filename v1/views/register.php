@@ -7,7 +7,7 @@
   <title>Sign Up</title>
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.css" />
-  <link rel="shortcut icon" href="assets/images/favicon.ico" />
+  <link rel="shortcut icon" href="/assets/images/favicon.ico" />
   <link rel="stylesheet" href="assets/css/core/libs.min.css" />
   <link rel="stylesheet" href="assets/vendor/font-awesome/css/all.min.css" />
   <link rel="stylesheet" href="assets/vendor/iconly/css/style.css" />

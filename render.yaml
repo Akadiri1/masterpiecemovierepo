@@ -1,0 +1,51 @@
+# Render Blueprint.
+# In the Render dashboard choose New > Blueprint and pick this repository.
+# After that, every `git push` to master redeploys the site automatically.
+#
+# Values marked `sync: false` are secrets: Render asks you to type them in
+# when the Blueprint is created, and they are never stored in this repo.
+
+services:
+  - type: web
+    name: masterpiecemovie
+    runtime: docker
+    plan: free
+    branch: master
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /login
+    envVars:
+      # --- Database: copy these from your Aiven MySQL service page ---
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        value: defaultdb
+      # Path of the CA certificate you add under Environment > Secret Files
+      # with the file name db-ca.pem.
+      - key: DB_SSL_CA
+        value: /etc/secrets/db-ca.pem
+      # The site was built against a permissive local MySQL. Hosted MySQL is
+      # strict by default and would reject some existing queries.
+      - key: DB_SQL_MODE
+        value: NO_ENGINE_SUBSTITUTION
+
+      # --- APIs ---
+      - key: TMDB_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: AI_MODEL_CHAT
+        value: openai/gpt-oss-120b
+      - key: AI_MODEL_HOOK
+        value: openai/gpt-oss-20b
+
+      # --- Optional ---
+      - key: EMAIL_PASSWORD
+        sync: false
+      - key: CLARITY_ID
+        sync: false

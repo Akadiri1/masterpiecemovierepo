@@ -1,3 +1,16 @@
+<?php
+// Already signed in -- including silently via the remember-me cookie, which
+// www/index.php restores before routing -- so skip the form entirely.
+if (!empty($_SESSION['user_id'])) {
+    $next = $_GET['next'] ?? '';
+    $safeNext = is_string($next)
+        && strpos($next, '/') === 0
+        && strpos($next, '//') !== 0
+        && stripos($next, 'http') === false;
+    header('Location: ' . ($safeNext ? $next : '/'));
+    exit;
+}
+?>
 <!doctype html>
 <html lang="en" data-bs-theme="dark">
 
@@ -14,7 +27,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.css" />
 
   <!-- Favicon -->
-  <link rel="shortcut icon" href="assets/images/favicon.ico" />
+  <link rel="shortcut icon" href="/assets/images/favicon.ico" />
   
   <!-- CSS Libraries -->
   <link rel="stylesheet" href="assets/css/core/libs.min.css" />
@@ -187,14 +200,14 @@
 
                                     <div class="mb-3">
                                         <label for="login-identity" class="mb-2 custom-form-label">Username or Email Address <span class="text-danger">*</span></label>
-                                        <input placeholder="Enter username or email" autocomplete="off" required type="text" id="login-identity" name="identity" class="form-control" />
+                                        <input placeholder="Enter username or email" autocomplete="username" required type="text" id="login-identity" name="identity" class="form-control" />
                                         <div class="invalid-feedback">Please enter your username or email.</div>
                                     </div>
 
                                     <div class="mb-3">
                                         <label for="login-password" class="mb-2 custom-form-label">Password <span class="text-danger">*</span></label>
                                         <div class="input-group">
-                                            <input placeholder="Password" required type="password" id="login-password" name="password" class="form-control">
+                                            <input placeholder="Password" required type="password" id="login-password" name="password" class="form-control" autocomplete="current-password">
                                             <span class="input-group-text" style="cursor: pointer;"><i class="ph ph-eye-slash" id="togglePassword"></i></span>
                                         </div>
                                         <div class="invalid-feedback">Please enter your password.</div>
@@ -202,7 +215,7 @@
 
                                     <div class="d-flex justify-content-between align-items-center mb-4">
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="remember-me" name="rememberMe">
+                                            <input class="form-check-input" type="checkbox" id="remember-me" name="rememberMe" checked>
                                             <label class="form-check-label text-muted" for="remember-me">Remember me</label>
                                         </div>
                                         <a href="/forgot-password" class="text-primary small">Forgot Password?</a>
@@ -244,7 +257,11 @@
             const response = await fetch('/social-backend', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ provider: provider, token: token })
+                body: JSON.stringify({
+                    provider: provider,
+                    token: token,
+                    rememberMe: !!(document.querySelector('#remember-me') || {}).checked
+                })
             });
             const data = await response.json();
             

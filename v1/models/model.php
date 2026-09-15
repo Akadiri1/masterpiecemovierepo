@@ -2,10 +2,34 @@
 define("DBNAME", getenv('DB_NAME') ?: 'masterpiecemovie');
 define("DBUSER", getenv('DB_USER') ?: 'root');
 define("DBPASS", getenv('DB_PASSWORD') ?: '');
+// Hosted MySQL runs on its own host and port. Unset locally, so WAMP keeps
+// using localhost:3306.
+define("DBHOST", getenv('DB_HOST') ?: 'localhost');
+define("DBPORT", getenv('DB_PORT') ?: '3306');
 
 try {
-    $conn = new PDO("mysql:host=localhost;dbname=" . DBNAME, DBUSER, DBPASS);
-    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $dbOptions = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
+
+    // Hosted MySQL (e.g. Aiven) requires an encrypted connection verified
+    // against the provider's CA certificate.
+    if ($dbCaFile = getenv('DB_SSL_CA')) {
+        $dbOptions[PDO::MYSQL_ATTR_SSL_CA] = $dbCaFile;
+    }
+
+    $conn = new PDO(
+        "mysql:host=" . DBHOST . ";port=" . DBPORT . ";dbname=" . DBNAME . ";charset=utf8mb4",
+        DBUSER,
+        DBPASS,
+        $dbOptions
+    );
+
+    // Local MySQL runs with an empty sql_mode, so the site's queries were
+    // never written for strict mode. Hosted MySQL is strict by default and
+    // would reject some of them; DB_SQL_MODE restores the permissive
+    // behaviour. Left untouched when the variable is not set.
+    if (($dbSqlMode = getenv('DB_SQL_MODE')) !== false) {
+        $conn->exec("SET SESSION sql_mode = " . $conn->quote($dbSqlMode));
+    }
     
     // Ensure watch_history table exists
     $conn->exec("CREATE TABLE IF NOT EXISTS watch_history (

@@ -1,5 +1,11 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) session_start();
+
+// Revoke this browser's remembered login first. Otherwise the cookie would
+// sign the user straight back in on the next page load.
+if (isset($conn) && function_exists('auth_remember_forget_current')) {
+    auth_remember_forget_current($conn);
+}
 
 // Destroy all session data
 session_unset();
