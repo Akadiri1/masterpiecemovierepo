@@ -11,8 +11,24 @@ try {
     $dbOptions = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
 
     // Hosted MySQL (e.g. Aiven) requires an encrypted connection verified
-    // against the provider's CA certificate.
-    if ($dbCaFile = getenv('DB_SSL_CA')) {
+    // against the provider's CA certificate. DB_SSL_CA can point at a file
+    // mounted at runtime, and the Docker image also bundles the certificate
+    // (DB_SSL_CA_BUNDLED). A missing, unreadable or incomplete file makes PDO
+    // fail with the unhelpful "Cannot connect to MySQL using SSL", so each
+    // candidate is checked and the first genuine certificate is used.
+    $dbCaCandidates = array_values(array_filter([getenv('DB_SSL_CA'), getenv('DB_SSL_CA_BUNDLED')]));
+    if ($dbCaCandidates) {
+        $dbCaFile = null;
+        foreach ($dbCaCandidates as $candidate) {
+            if (is_readable($candidate) && @openssl_x509_read((string) file_get_contents($candidate))) {
+                $dbCaFile = $candidate;
+                break;
+            }
+        }
+        if ($dbCaFile === null) {
+            throw new PDOException('No usable database CA certificate (missing, unreadable or incomplete): '
+                . implode(', ', $dbCaCandidates));
+        }
         $dbOptions[PDO::MYSQL_ATTR_SSL_CA] = $dbCaFile;
     }
 
@@ -79,6 +95,11 @@ try {
     } catch (PDOException $e) {}
     
 } catch (PDOException $e) {
-    echo "DB Connection failed: " . $e->getMessage();
+    // Full details always go to the error log (the Render logs in production).
+    // Visitors see them only where display_errors is on, i.e. local WAMP.
+    error_log('DB Connection failed: ' . $e->getMessage());
+    echo ini_get('display_errors')
+        ? "DB Connection failed: " . $e->getMessage()
+        : "The site can't reach its database right now. Please try again shortly.";
 }
 ?>

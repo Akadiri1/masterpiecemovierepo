@@ -27,6 +27,12 @@ RUN sed -i 's/^Listen 80$/Listen ${PORT}/' /etc/apache2/ports.conf
 COPY docker/apache-vhost.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/php.ini /usr/local/etc/php/conf.d/zz-app.ini
 
+# Aiven's CA certificate. It's public, not a secret. Bundling it means the
+# database connection doesn't depend on a Render Secret File being present,
+# readable by Apache's www-data user, and pasted in full.
+COPY docker/db-ca.pem /etc/ssl/certs/db-ca.pem
+ENV DB_SSL_CA_BUNDLED=/etc/ssl/certs/db-ca.pem
+
 WORKDIR /var/www/html
 COPY . .
 
@@ -35,4 +41,5 @@ COPY . .
 # environment variables set in the Render dashboard.
 RUN cp .env/config.env.php .env/config.php \
  && mkdir -p v1/cache/tmdb www/uploads/avatars \
- && chown -R www-data:www-data v1/cache www/uploads
+ && chown -R www-data:www-data v1/cache www/uploads \
+ && chmod 644 /etc/ssl/certs/db-ca.pem

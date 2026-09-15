@@ -33,9 +33,12 @@ database on **Aiven** (free MySQL). After the one-time setup, every
 2. In the Render dashboard: **New > Blueprint**, connect GitHub, pick this repo.
    Render reads `render.yaml` and asks for the secret values:
    `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `TMDB_API_KEY`, `GROQ_API_KEY`.
-3. Open the new service, go to **Environment > Secret Files**, and add a file
-   named `db-ca.pem` containing the contents of `Downloads\aiven-ca.pem`.
-4. Deploy. The first build takes a few minutes. Check **Logs** if it fails.
+3. Deploy. The first build takes a few minutes. Check **Logs** if it fails.
+
+The database certificate is bundled in the image as `docker/db-ca.pem`, so no
+Secret File is needed. It's Aiven's public CA certificate, not a secret. If you
+ever create a new Aiven project, replace that file with the new project's
+certificate.
 
 ## 3. Every update
 

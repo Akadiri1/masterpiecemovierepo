@@ -35,23 +35,26 @@ if (isset($conn)) {
 $_SESSION['color'] = "green";
 // $_SESSION['debug'] = true;
 //
-$site_name = $websiteInfo[0]['input_name'];
-$site_email = $websiteInfo[0]['input_email'];
-$site_email_2 = $websiteInfo[0]['input_email_2'];
-$site_email_from = $websiteInfo[0]['input_email_from'];
-$site_email_smtp_host = $websiteInfo[0]['input_email_smtp_host'];
-$site_email_smtp_secure_type = $websiteInfo[0]['input_email_smtp_secure_type'];
-$site_email_smtp_port = $websiteInfo[0]['input_email_smtp_port'];
-$site_email_password = $websiteInfo[0]['input_email_password'];
-$site_phone = $websiteInfo[0]['input_phone_number'];
-$site_phone_1 = $websiteInfo[0]['input_phone_number_1'];
-$site_address = $websiteInfo[0]['input_address'];
-$fbLink = $websiteInfo[0]['input_facebook'];
-$igLink = $websiteInfo[0]['input_instagram'];
-$linkedinLink = $websiteInfo[0]['input_linkedin'];
-$twitterLink = $websiteInfo[0]['input_twitter'];
-$description = $websiteInfo[0]['text_description'];
-$logo_directory = $websiteInfo[0]['image_1'];
+// $websiteInfo is never loaded (the query above is commented out), so these
+// have always been null. "?? null" keeps them null without logging a warning
+// for every line on every request.
+$site_name = $websiteInfo[0]['input_name'] ?? null;
+$site_email = $websiteInfo[0]['input_email'] ?? null;
+$site_email_2 = $websiteInfo[0]['input_email_2'] ?? null;
+$site_email_from = $websiteInfo[0]['input_email_from'] ?? null;
+$site_email_smtp_host = $websiteInfo[0]['input_email_smtp_host'] ?? null;
+$site_email_smtp_secure_type = $websiteInfo[0]['input_email_smtp_secure_type'] ?? null;
+$site_email_smtp_port = $websiteInfo[0]['input_email_smtp_port'] ?? null;
+$site_email_password = $websiteInfo[0]['input_email_password'] ?? null;
+$site_phone = $websiteInfo[0]['input_phone_number'] ?? null;
+$site_phone_1 = $websiteInfo[0]['input_phone_number_1'] ?? null;
+$site_address = $websiteInfo[0]['input_address'] ?? null;
+$fbLink = $websiteInfo[0]['input_facebook'] ?? null;
+$igLink = $websiteInfo[0]['input_instagram'] ?? null;
+$linkedinLink = $websiteInfo[0]['input_linkedin'] ?? null;
+$twitterLink = $websiteInfo[0]['input_twitter'] ?? null;
+$description = $websiteInfo[0]['text_description'] ?? null;
+$logo_directory = $websiteInfo[0]['image_1'] ?? null;
 $domain = $_SERVER['HTTP_HOST'];
 
 // die(var_dump($domain));

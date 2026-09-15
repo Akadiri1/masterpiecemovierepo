@@ -25,10 +25,8 @@ services:
         sync: false
       - key: DB_NAME
         value: defaultdb
-      # Path of the CA certificate you add under Environment > Secret Files
-      # with the file name db-ca.pem.
-      - key: DB_SSL_CA
-        value: /etc/secrets/db-ca.pem
+      # The database CA certificate is bundled in the image (docker/db-ca.pem),
+      # so no Secret File is needed. Set DB_SSL_CA only to override it.
       # The site was built against a permissive local MySQL. Hosted MySQL is
       # strict by default and would reject some existing queries.
       - key: DB_SQL_MODE
