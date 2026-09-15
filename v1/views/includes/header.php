@@ -597,8 +597,46 @@ document.addEventListener('DOMContentLoaded', () => {
         padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
+   </style><!-- Closes the <style> opened above. Without it, the next <style> tag
+        was read as CSS text and the rule after it was silently discarded. -->
    <!-- loader Start -->
      <style>
+      /* Header icon buttons (subscription plan and kids mode) on phones and
+         tablets, where their text labels are hidden. They rendered as two
+         mismatched shapes: a 34px tinted button with a 16px icon beside a
+         30px outlined box with a 12px blue icon. Give them one size, shape
+         and icon scale. The plan button keeps its own colour. */
+      @media (max-width: 1199.98px) {
+          .subscribe-btn,
+          #kids-mode-toggle {
+              /* 44px is the site minimum tap size (its .btn min-height rule). */
+              width: 44px;
+              height: 44px;
+              padding: 0 !important;
+              display: inline-flex !important;
+              align-items: center;
+              justify-content: center;
+              border-radius: 12px !important;
+          }
+          .subscribe-btn i,
+          #kids-mode-toggle i {
+              font-size: 20px !important;
+              line-height: 1;
+          }
+          #kids-mode-toggle {
+              background: rgba(255, 255, 255, 0.08) !important;
+              border: 1px solid rgba(255, 255, 255, 0.12) !important;
+              box-shadow: none !important;
+          }
+          #kids-mode-toggle:hover,
+          #kids-mode-toggle:focus,
+          #kids-mode-toggle:active {
+              background: rgba(255, 255, 255, 0.16) !important;
+              box-shadow: none !important;
+          }
+          #kids-mode-toggle .ph-smiley { color: #fff; }
+      }
+
       /* Kids Mode Styling */
       .kids-mode-active .navbar {
           border-bottom: 3px solid var(--bs-primary);
@@ -678,7 +716,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                             <!-- Small header toggle for Kids Mode (also available in profile dropdown) -->
                                             <div class="ms-2 d-flex align-items-center">
                                                 <button id="kids-mode-toggle" onclick="switchProfileMode();" class="btn btn-sm btn-outline-light py-1 px-2" title="Switch to Kids Mode">
-                                                    <i class="ph <?php echo $isKidsMode ? 'ph-user-switch text-warning' : 'ph-smiley text-info'; ?>"></i>
+                                                    <i class="ph <?php echo $isKidsMode ? 'ph-user-switch text-warning' : 'ph-smiley'; ?>"></i>
                                                     <span class="d-none d-xl-inline ms-1 fw-bold"><?php echo $isKidsMode ? 'Kids' : 'Kids'; ?></span>
                                                 </button>
                                             </div>
@@ -868,7 +906,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <!-- SWITCH PROFILE BUTTON: Visible toggle to enable/disable Kids mode -->
                         <li class="border-top border-bottom py-2 my-2">
                             <a href="" id="kids-mode-dropdown-toggle" onclick="switchProfileMode(); return false;" class="link-body-emphasis font-size-14 d-flex align-items-center gap-2">
-                                <i class="ph <?php echo $isKidsMode ? 'ph-user-switch text-warning' : 'ph-smiley text-info'; ?>"></i>
+                                <i class="ph <?php echo $isKidsMode ? 'ph-user-switch text-warning' : 'ph-smiley'; ?>"></i>
                                 <span class="fw-bold"><?php echo $isKidsMode ? 'Exit Kids Mode' : 'Switch to Kids'; ?></span>
                             </a>
                         </li>
@@ -977,11 +1015,11 @@ document.addEventListener('DOMContentLoaded', () => {
                const headerBtn = document.getElementById('kids-mode-toggle');
                const dropdownToggle = document.getElementById('kids-mode-dropdown-toggle');
                if (headerBtn) {
-                   headerBtn.querySelector('i').className = 'ph ' + (isKids ? 'ph-user-switch text-warning' : 'ph-smiley text-info');
+                   headerBtn.querySelector('i').className = 'ph ' + (isKids ? 'ph-user-switch text-warning' : 'ph-smiley');
                    const smallLabel = headerBtn.querySelector('span'); if (smallLabel) smallLabel.textContent = isKids ? 'Exit Kids' : 'Kids';
                }
                if (dropdownToggle) {
-                   const ddIcon = dropdownToggle.querySelector('i'); if (ddIcon) ddIcon.className = 'ph ' + (isKids ? 'ph-user-switch text-warning' : 'ph-smiley text-info');
+                   const ddIcon = dropdownToggle.querySelector('i'); if (ddIcon) ddIcon.className = 'ph ' + (isKids ? 'ph-user-switch text-warning' : 'ph-smiley');
                    const ddText = dropdownToggle.querySelector('span'); if (ddText) ddText.textContent = isKids ? 'Exit Kids Mode' : 'Switch to Kids';
                }
 

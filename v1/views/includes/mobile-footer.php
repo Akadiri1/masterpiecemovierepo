@@ -54,7 +54,7 @@
     <ul class="footer-menu list-inline d-flex align-items-center justify-content-between m-0">
         <li class="footer-menu-item">
             <a href="/" class="menu-link font-size-12">
-                <i class="fa fa-home d-block text-center"></i>
+                <i class="ph ph-house d-block text-center"></i>
                 Home</a>
         </li>
         <li class="footer-menu-item">
@@ -64,8 +64,8 @@
         </li>
         <li class="footer-menu-item">
             <a href="javascript:void(0)" class="menu-link font-size-12" onclick="toggleMobileSidebar()">
-                <i class="ph ph-list d-block text-center" style="font-size: 1.5rem; color: var(--primary);"></i>
-                <span style="color: var(--primary);">Menu</span>
+                <i class="ph ph-list d-block text-center"></i>
+                <span>Menu</span>
             </a>
         </li>
         <li class="footer-menu-item">

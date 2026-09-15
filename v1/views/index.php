@@ -7,7 +7,7 @@ if (!function_exists('formatRuntime')) {
         if ($minutes <= 0) return 'N/A';
         $hours = floor($minutes / 60);
         $rem_minutes = $minutes % 60;
-        return "{$hours}h : {$rem_minutes}m";
+        return "{$hours}h {$rem_minutes}m";
     }
 }
 
@@ -711,15 +711,15 @@ include ("includes/header.php");
                                     <div class="RightAnimate-three mt-2">
                                        <div class="text-primary font-size-14 fw-500 text-capitalize mb-1">
                                           Genres: 
-                                          <?php foreach($slide['genres'] as $genre): ?>
-                                             <a href="#" class="text-body text-decoration-none fw-normal ms-1"><?php echo $genre['name']; ?>,</a>
+                                          <?php $genreList = array_values($slide['genres']); foreach ($genreList as $gi => $genre): ?>
+                                             <a href="#" class="text-body text-decoration-none fw-normal ms-1"><?php echo htmlspecialchars($genre['name']); ?><?php echo $gi < count($genreList) - 1 ? ',' : ''; ?></a>
                                           <?php endforeach; ?>
                                        </div>
                                        
                                        <div class="text-primary font-size-14 fw-500 text-capitalize">
                                           Starring:
-                                          <?php foreach($slide['cast'] as $actor): ?>
-                                             <a href="#" class="text-body text-decoration-none fw-normal ms-1"><?php echo $actor; ?>,</a>
+                                          <?php $castList = array_values($slide['cast']); foreach ($castList as $ci => $actor): ?>
+                                             <a href="#" class="text-body text-decoration-none fw-normal ms-1"><?php echo htmlspecialchars($actor); ?><?php echo $ci < count($castList) - 1 ? ',' : ''; ?></a>
                                           <?php endforeach; ?>
                                        </div>
                                     </div>
@@ -1300,6 +1300,33 @@ document.addEventListener('DOMContentLoaded', function() {
             width: 32px; height: 32px; font-size: 14px;
         }
     }
+
+    /* ---------------------------------------------------------------
+       Mobile home page
+       --------------------------------------------------------------- */
+    @media (max-width: 991.98px) {
+        /* The IMDb logo rendered 63x32, twice the height of the rating
+           beside it, which pushed the number onto its own line. */
+        .imdb-img { height: 18px !important; width: auto !important; vertical-align: middle; }
+        .slider-content span:has(> .imdb-img) { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+
+        /* Touch screens swipe; the arrow buttons only covered the posters. */
+        .swiper-button { display: none !important; }
+
+        /* Swiper's default dots are iOS blue when active and black at 20%
+           otherwise, which disappears against this dark background. */
+        .swiper-pagination-bullet { background: #fff !important; opacity: 0.35 !important; transition: width 0.2s ease; }
+        .swiper-pagination-bullet-active { background: var(--bs-primary, #e50914) !important; opacity: 1 !important; width: 18px !important; border-radius: 4px !important; }
+
+        /* Floating AI and theme buttons: tuck them against the edge with
+           their centres lined up, and slide them away while scrolling down
+           so they don't cover posters and text. Scrolling up brings them back. */
+        .zen-ai-float { right: 14px !important; }
+        .theme-switcher-float { right: 19px !important; }
+        .zen-ai-float, .theme-switcher-float { transition: transform 0.25s ease, opacity 0.25s ease !important; }
+        body.floats-away .zen-ai-float,
+        body.floats-away .theme-switcher-float { transform: translateX(96px) !important; opacity: 0 !important; pointer-events: none !important; }
+    }
 </style>
 
 <div class="verticle-slider section-padding-bottom">
@@ -1869,4 +1896,27 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 </main>
+<script>
+// Mobile home: slide the floating AI and theme buttons out of the way while
+// the page scrolls down, and bring them back when it scrolls up.
+(function () {
+    const mobile = window.matchMedia('(max-width: 991.98px)');
+    let lastY = window.scrollY;
+    let ticking = false;
+    window.addEventListener('scroll', function () {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(function () {
+            const y = window.scrollY;
+            if (!mobile.matches) {
+                document.body.classList.remove('floats-away');
+            } else if (Math.abs(y - lastY) > 8) {
+                document.body.classList.toggle('floats-away', y > lastY && y > 120);
+                lastY = y;
+            }
+            ticking = false;
+        });
+    }, { passive: true });
+})();
+</script>
 <?php include 'includes/footer.php'; ?>
