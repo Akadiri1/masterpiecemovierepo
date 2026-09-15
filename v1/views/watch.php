@@ -288,6 +288,73 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
           .watch-right { position: static !important; display: block !important; width: 100% !important; transform: none !important; border-left: none; padding: 15px; }
       }
       
+      /* Phone landscape: the player fills the screen.
+         Turned sideways, a phone left the player taller than the screen and
+         80px below the page header, so the embedded server's seek bar and
+         fullscreen button sat off-screen and needed a scroll. On a touch
+         device in landscape the player now covers the viewport edge to edge,
+         like a native video app. Rotating back to portrait restores the page.
+         max-height keeps tablets and desktop windows out of this mode, and
+         :has(#playerIframe) keeps it off the "coming soon" layout. */
+      @media (orientation: landscape) and (max-height: 540px) and (pointer: coarse) {
+          html:has(#playerIframe),
+          html:has(#playerIframe) body {
+              overflow: hidden !important;
+              height: 100% !important;
+              overscroll-behavior: none;
+          }
+
+          /* A transform, filter or backdrop blur on any ancestor turns
+             position:fixed into "fixed to that ancestor", which would trap
+             the player inside the page instead of covering the screen. */
+          html:has(#playerIframe) :has(#videoArea) {
+              transform: none !important;
+              filter: none !important;
+              backdrop-filter: none !important;
+              -webkit-backdrop-filter: none !important;
+              perspective: none !important;
+              contain: none !important;
+              container-type: normal !important;
+              will-change: auto !important;
+          }
+
+          html:has(#playerIframe) #videoArea {
+              position: fixed !important;
+              inset: 0 !important;
+              width: 100vw !important;
+              height: 100vh !important;
+              height: 100dvh !important;
+              max-width: none !important;
+              margin: 0 !important;
+              border: 0 !important;
+              border-radius: 0 !important;
+              box-shadow: none !important;
+              transform: none !important;
+              background: #000 !important;
+              z-index: 2147483000 !important;
+              /* Keep the video and its edge controls clear of a notch. */
+              padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left) !important;
+              box-sizing: border-box !important;
+          }
+
+          html:has(#playerIframe) #videoArea > #playerIframe,
+          html:has(#playerIframe) #videoArea > .mp-shell,
+          html:has(#playerIframe) #videoArea > #playerVideo {
+              width: 100% !important;
+              height: 100% !important;
+              border-radius: 0 !important;
+          }
+
+          /* Floating buttons would sit on top of the video. The theme button
+             uses z-index 99999999, so hiding is the only reliable option. */
+          html:has(#playerIframe) .theme-switcher-float,
+          html:has(#playerIframe) #mobileAiBtn,
+          html:has(#playerIframe) #mobileEpToggle,
+          html:has(#playerIframe) .zen-ai-float {
+              display: none !important;
+          }
+      }
+
       /* Fullscreen Search Overlay */
       #searchOverlay {
           position: fixed !important; top: 0; left: 0; width: 100vw; height: 100vh;
@@ -896,8 +963,45 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         // gestures cannot reach them.
         let mobilePlayer = null;
         if (playerVideo && window.MobilePlayer) {
+            <?php
+            // Previous / next episode for the player's buttons. Walks the season
+            // lists the sidebar already loaded, so "next" moves from a season's
+            // last episode into the following season and disappears after the
+            // final one, instead of guessing episode + 1. Unaired episodes are
+            // skipped because they have nothing to play yet.
+            $playerEpisodes = [];
+            if ($mediaType === 'tv' && !empty($seasonsData)) {
+                $today = date('Y-m-d');
+                foreach ($seasonsData as $playerSeason) {
+                    foreach ($playerSeason['episodes'] as $playerEp) {
+                        if (!isset($playerEp['episode_number'])) continue;
+                        $sn = (int) $playerSeason['season_number'];
+                        $en = (int) $playerEp['episode_number'];
+                        $isCurrent = ($sn === (int) $seasonNum && $en === (int) $episodeNum);
+                        if (!$isCurrent && !empty($playerEp['air_date']) && $playerEp['air_date'] > $today) continue;
+                        $playerEpisodes[] = [$sn, $en];
+                    }
+                }
+            }
+            $playerPrevUrl = $playerNextUrl = null;
+            foreach ($playerEpisodes as $i => [$sn, $en]) {
+                if ($sn === (int) $seasonNum && $en === (int) $episodeNum) {
+                    $base = '/watch?id=' . rawurlencode((string) $mediaId) . '&type=tv';
+                    if (isset($playerEpisodes[$i - 1])) {
+                        $playerPrevUrl = $base . '&season=' . $playerEpisodes[$i - 1][0] . '&episode=' . $playerEpisodes[$i - 1][1];
+                    }
+                    if (isset($playerEpisodes[$i + 1])) {
+                        $playerNextUrl = $base . '&season=' . $playerEpisodes[$i + 1][0] . '&episode=' . $playerEpisodes[$i + 1][1];
+                    }
+                    break;
+                }
+            }
+            ?>
             mobilePlayer = MobilePlayer.attach(playerVideo, {
-                title: <?php echo json_encode($videoTitle . ($mediaType === 'tv' ? ' — ' . $videoSubTitle : '')); ?>
+                title: <?php echo json_encode($videoTitle . ($mediaType === 'tv' ? ' — ' . $videoSubTitle : '')); ?>,
+                // Buttons only appear when these are functions.
+                onPrev: <?php echo $playerPrevUrl ? 'function () { location.href = ' . json_encode($playerPrevUrl) . '; }' : 'null'; ?>,
+                onNext: <?php echo $playerNextUrl ? 'function () { location.href = ' . json_encode($playerNextUrl) . '; }' : 'null'; ?>
             });
         }
 
@@ -907,6 +1011,36 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
             const target = (mobilePlayer && mobilePlayer.shell) ? mobilePlayer.shell : playerVideo;
             if (target) target.style.display = visible ? 'block' : 'none';
         }
+
+        // --- Rotate to landscape when a streaming server goes fullscreen ---
+        // The servers run in a cross-origin iframe, so the page can't see
+        // their fullscreen button, but it can see the result: the iframe
+        // becomes the document's fullscreen element. On a phone held upright
+        // that fullscreen shows a widescreen video between large black bars,
+        // so ask the browser to rotate, as phone video apps do. Android Chrome
+        // honours the request; iPhone and desktop browsers refuse it, which is
+        // harmless. The direct-file player above handles its own rotation.
+        let rotatedForServer = false;
+        function onServerFullscreenChange() {
+            const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+            if (fsEl && fsEl === playerIframe && window.matchMedia('(pointer: coarse)').matches) {
+                try {
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock('landscape').catch(() => {});
+                        rotatedForServer = true;
+                    }
+                } catch (e) { /* not supported */ }
+            } else if (!fsEl && rotatedForServer) {
+                rotatedForServer = false;
+                try {
+                    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+                } catch (e) { /* not supported */ }
+            }
+        }
+        document.addEventListener(
+            'onfullscreenchange' in document ? 'fullscreenchange' : 'webkitfullscreenchange',
+            onServerFullscreenChange
+        );
 
         // --- Server switching ---
         function switchToServer(index) {
