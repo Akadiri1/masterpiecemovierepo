@@ -55,7 +55,8 @@
     pip:     '<i class="fa-solid fa-clone"></i>',
     timer:   '<i class="fa-solid fa-stopwatch"></i>',
     rotate:  '<i class="fa-solid fa-rotate"></i>',
-    cast:    '<i class="fa-solid fa-tv"></i>'
+    cast:    '<i class="fa-solid fa-tv"></i>',
+    episodes: '<i class="fa-solid fa-list"></i>'
   };
 
   var SEEK_TAP     = 10;    // seconds per double-tap or skip button
@@ -168,6 +169,7 @@
     var canCast = !!(v.remote && typeof v.remote.prompt === 'function' && !v.disableRemotePlayback);
     var hasPrev = typeof this.opts.onPrev === 'function';
     var hasNext = typeof this.opts.onNext === 'function';
+    var hasEpisodes = typeof this.opts.onEpisodes === 'function';
 
     function btn(cls, label, icon, extra) {
       return '<button type="button" class="mp-btn ' + cls + '" aria-label="' + label + '"' +
@@ -195,6 +197,7 @@
           btn('mp-navback', 'Back', ICON.navBack),
           '<span class="mp-title"></span>',
           canCast ? btn('mp-cast', 'Cast to a TV', ICON.cast) : '',
+          hasEpisodes ? btn('mp-episodes', 'Episodes', ICON.episodes) : '',
           btn('mp-more', 'More options', ICON.more, ' aria-expanded="false"'),
         '</div>',
         '<div class="mp-actions" role="toolbar" aria-label="Player options">',
@@ -863,6 +866,11 @@
     on('.mp-fit',    function () { self.cycleFit(); self.showControls(); });
     on('.mp-fs',     function () { self.toggleFullscreen(); self.showControls(); });
     on('.mp-more',   function () { self.toggleMenu(); });
+    on('.mp-episodes', function () {
+      self.closeMenu();
+      self.showControls(true);
+      self.opts.onEpisodes();
+    });
 
     on('.mp-navback', function () {
       // In fullscreen, back means "leave fullscreen", as in phone video apps.
@@ -965,8 +973,9 @@
    * Attach to a <video>, but only where it makes sense: a touch device with
    * an actual media file. Returns the instance, or null if skipped.
    *
-   * Options: title, onPrev, onNext, onBack (functions; prev/next buttons only
-   * appear when given), force (attach on non-touch devices too).
+   * Options: title, onPrev, onNext, onEpisodes, onBack (functions; the
+   * previous/next/episodes buttons only appear when given), force (attach on
+   * non-touch devices too).
    */
   MobilePlayer.attach = function (video, options) {
     if (!video) return null;

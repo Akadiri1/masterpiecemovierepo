@@ -146,7 +146,7 @@ $pageThemeClass = $pageThemeClass ?? '';
   <link rel="shortcut icon" href="/assets/images/favicon.ico" />
     <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#e50914">
-  <link rel="apple-touch-icon" href="assets/images/logo.png">
+  <link rel="apple-touch-icon" href="/assets/images/apple-touch-icon.png">
   <!-- Library / Plugin Css Build -->
   <link rel="stylesheet" href="assets/css/core/libs.min.css" />
 
@@ -690,17 +690,17 @@ document.addEventListener('DOMContentLoaded', () => {
                       </div>
                       <div class="logo-hotstar">
                           <a class="navbar-brand text-primary me-0" href="/"> <!-- Updated to root path -->
-                              <img class="img-fluid logo" src="assets/images/logo-hotstar.webp" loading="lazy" alt="streamit" />
+                              <span style="font-weight: 800; font-size: 1.5rem; letter-spacing: -1px;">ZEN</span>
                           </a>
                       </div>
                       <div class="logo-prime">
                           <a class="navbar-brand text-primary me-0" href="/"> <!-- Updated to root path -->
-                              <img class="img-fluid logo" src="assets/images/logo-prime.webp" loading="lazy" alt="streamit" />
+                              <span style="font-weight: 800; font-size: 1.5rem; letter-spacing: -1px;">ZEN</span>
                           </a>
                       </div>
                       <div class="logo-hulu">
                           <a class="navbar-brand text-primary me-0" href="/"> <!-- Updated to root path -->
-                              <img class="img-fluid logo" src="assets/images/logo-hulu.webp" loading="lazy" alt="streamit" />
+                              <span style="font-weight: 800; font-size: 1.5rem; letter-spacing: -1px;">ZEN</span>
                           </a>
                       </div>                  
                          <?php if (!$isKidsMode): ?>
@@ -729,7 +729,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="navbar-brand ms-3">
                 <div class="logo-default">
                     <a class="navbar-brand text-primary me-0" href="/"> 
-                        <img class="img-fluid logo" src="assets/images/logo.png" loading="lazy" alt="streamit" />
+                        <span style="font-weight: 800; font-size: 1.5rem; letter-spacing: -1px;">ZEN</span>
                     </a>
                 </div>
                 <!-- Other logos hidden for brevity but structure preserved -->

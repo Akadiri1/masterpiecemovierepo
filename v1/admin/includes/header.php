@@ -141,7 +141,7 @@ if (!in_array($adminDetails[0]['level'], $level_check)) {
 						<i class="fas fa-bolt"></i>
 					</div>
 					<span class="b-title">Flash Able</span> -->
-					<!-- <img src="/logo.png" width="50" height="50" alt="" class="logo images"> -->
+					<!-- <img src="/assets/images/app-icon-192.png" width="50" height="50" alt="ZEN" class="logo images"> -->
 					<!-- <img src="/logo.gif" width="50" height="50" alt="" class="logo-thumb images"> -->
            <span class="text-white logo images">ADMC</span>
            <!-- <span class="text-white logo-thumb images">ADMC</span> -->
@@ -155,7 +155,7 @@ if (!in_array($adminDetails[0]['level'], $level_check)) {
 
 				<ul class="nav pcoded-inner-navbar">
 					<li class="nav-item menu-caption" style="padding: 25px 15px 15px 10px;">
-            	<img src="/logo.png" width="50" height="50" alt="" class="logo images">
+            	<img src="/assets/images/app-icon-192.png" width="50" height="50" alt="ZEN" class="logo images">
 						<!-- <label>Navigation</label> -->
 					</li>
         <li data-username="sample page" class="nav-item"><a href="/admin" class="nav-link"><span class="micon"><i class="feather icon-home"></i></span><span class="mtext">Dashboard</span></a></li>

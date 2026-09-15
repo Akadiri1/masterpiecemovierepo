@@ -27,6 +27,7 @@ RUN sed -i 's/^Listen 80$/Listen ${PORT}/' /etc/apache2/ports.conf
 
 COPY docker/apache-vhost.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/php.ini /usr/local/etc/php/conf.d/zz-app.ini
+COPY docker/apache-mpm.conf /etc/apache2/conf-enabled/zz-mpm.conf
 
 # Aiven's CA certificate. It's public, not a secret. Bundling it means the
 # database connection doesn't depend on a Render Secret File being present,

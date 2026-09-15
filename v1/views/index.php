@@ -305,7 +305,7 @@ if ($topTenData && !empty($topTenData['results'])) {
     }
 }
 
-// --- 17. FETCH DATA FOR "ONLY ON STREAMIT" (Exclusives) ---
+// --- 17. FETCH DATA FOR "ONLY ON ZEN" (Exclusives) ---
 $exclusiveMovies = [];
 // Fetch Top Rated movies from Page 4 to get unique, high-quality content
 $exclusiveData = fetchTmdbApi('movie/top_rated', ['page' => 4, 'region' => 'US']);

@@ -128,7 +128,7 @@ if(count($record) > 0 && password_verify($clean['pword'],$record[0]['hash'])){
 
    	<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
    	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-  <script src="https://boardspeck.com/ui/js/jquery.min.js"></script>
+  <script src="/da/assets/js/vendor-all.min.js"></script><!-- local copy: boardspeck.com now redirects to an unrelated adult site -->
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
     <link rel="stylesheet" href="/da/assets/css/style.css">
    	<link rel="stylesheet" href="/da/assets/fonts/material/css/materialdesignicons.min.css">
@@ -148,7 +148,7 @@ if(count($record) > 0 && password_verify($clean['pword'],$record[0]['hash'])){
 
    <link href='//fonts.googleapis.com/css?family=Raleway:400,100,100italic,200,200italic,300,400italic,500,500italic,600,600italic,700,700italic,800,800italic,900,900italic' rel='stylesheet' type='text/css'>
    <link href='//fonts.googleapis.com/css?family=Open+Sans:400,300,300italic,400italic,600,600italic,700,700italic,800,800italic' rel='stylesheet' type='text/css'>
-   <script src="https://boardspeck.com/ui/bootstrap/js/bootstrap.min.js"></script>
+   <script src="/da/assets/plugins/bootstrap/js/bootstrap.min.js"></script>
    <!-- <link rel="stylesheet" type="text/css" href="ui/font/flaticon.css"> -->
    <link rel="manifest" href="/manifest.json" />
 

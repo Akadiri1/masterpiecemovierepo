@@ -544,8 +544,9 @@ if (count($uri) > 2) {
     include APP_PATH."/auth/login.php";
     break;
     case "signup":
-    include APP_PATH."/auth/signup.php";
-    break;
+    // /signup served a leftover page from another project. The real sign-up page is /register.
+    header("Location: /register", true, 301);
+    exit;
     case "secure":
     include APP_PATH."/auth/secure.php";
     break;

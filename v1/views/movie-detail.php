@@ -196,139 +196,17 @@ if (!empty($details['credits']['crew'])) {
 }
 
 // ==========================================
-// 1. CONFIGURATION & SITES LIST
+// 1. DOWNLOAD LINKS
 // ==========================================
+// Only links the site itself stores in media_downloads. This page used to
+// search five outside download sites on every visit, which held the whole
+// page back by several seconds.
 $downloadLinks = [];
-
-// ADD NEW SITES HERE.
-// 'query_param': usually '?s=' for WordPress, or specific search paths.
-$sites = [
-    [
-        'name'   => 'FzTvSeries', 
-        'url'    => 'https://fztvseries.ng/?s=', 
-        'domain' => 'fztvseries.ng'
-    ],
-    [
-        'name'   => 'Nkiri', 
-        'url'    => 'https://nkiri.com/?s=', 
-        'domain' => 'nkiri.com'
-    ],
-    [
-        'name'   => 'SabiShares', 
-        'url'    => 'https://sabishares.com/?s=', 
-        'domain' => 'sabishares.com'
-    ],
-    [
-        'name'   => 'TFPDL', 
-        'url'    => 'https://tfpdl.se/?s=', 
-        'domain' => 'tfpdl.se'
-    ],
-    [
-        'name'   => 'MobileTvShows', 
-        'url'    => 'https://mobiletvshows.net/search?q=', 
-        'domain' => 'mobiletvshows.net'
-    ]
-];
-
-// ==========================================
-// 2. HELPER FUNCTIONS
-// ==========================================
-
-if (!function_exists('curlGet')) {
-    function curlGet($url) {
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            // Randomize User Agent to avoid blocking
-            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_TIMEOUT => 10, // Fast timeout so we don't hang if one site is down
-            CURLOPT_FOLLOWLOCATION => true
-        ]);
-        $data = curl_exec($ch);
-        curl_close($ch);
-        return $data;
-    }
-}
-
-if (!function_exists('isValidLink')) {
-    function isValidLink($url, $domain, $existingUrls) {
-        if (stripos($url, $domain) === false) return false; 
-        if (stripos($url, '/tag/') !== false) return false;
-        if (stripos($url, '/category/') !== false) return false;
-        if (stripos($url, '/page/') !== false) return false; // Skip pagination links
-        if (stripos($url, '#respond') !== false) return false;
-        if (in_array($url, $existingUrls)) return false;
-        return true;
-    }
-}
-
-// ==========================================
-// 3. MAIN LOGIC (LOOP THROUGH SITES)
-// ==========================================
-
-// Check Local DB first (optional)
 if (isset($conn) && isset($mediaId) && isset($mediaType)) {
-    $dlSql = "SELECT quality, file_size, download_url, language FROM media_downloads 
-              WHERE tmdb_id = ? AND media_type = ? ORDER BY quality DESC";
-    $stmt = $conn->prepare($dlSql);
-    $stmt->execute([$mediaId, $mediaType]); 
-    $manualDownloads = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    if (!empty($manualDownloads)) $downloadLinks = $manualDownloads;
-}
-
-// If no local links, start scraping
-if (empty($downloadLinks)) {
-    
-    $cleanTitle = preg_replace('/[^a-zA-Z0-9\s]/', '', $title);
-    $addedUrls = []; 
-
-    foreach ($sites as $site) {
-        // Break loop if we have enough results (e.g., 15 links)
-        if (count($downloadLinks) >= 20) break;
-
-        // Skip MobileTvShows if it's a Movie (it only has Series)
-        if ($site['name'] === 'MobileTvShows' && $mediaType === 'movie') continue;
-
-        // Build URL
-        $searchUrl = $site['url'] . urlencode($cleanTitle);
-        $rawHtml = @curlGet($searchUrl);
-
-        if ($rawHtml) {
-            // Generic Regex for <a href="...">Title</a>
-            // This works for 95% of sites including WordPress and simple HTML sites
-            preg_match_all('/<a[^>]+href="([^"]+)"[^>]*>([^<]*' . preg_quote($cleanTitle, '/') . '[^<]*)<\/a>/i', $rawHtml, $matches, PREG_SET_ORDER);
-
-            foreach ($matches as $match) {
-                $linkUrl = $match[1];
-                $linkText = strip_tags($match[2]);
-
-                // Clean relative URLs (specifically for MobileTvShows)
-                if (strpos($linkUrl, 'http') === false) {
-                    if ($site['name'] === 'MobileTvShows') {
-                        $linkUrl = "https://mobiletvshows.net/" . $linkUrl;
-                    }
-                }
-
-                if (isValidLink($linkUrl, $site['domain'], $addedUrls)) {
-                    
-                    $isSeries = (preg_match('/S\d+|Season|Episode/i', $linkText));
-                    
-                    // Add to results
-                    $downloadLinks[] = [
-                        "quality"      => $site['name'], // Shows source name (e.g. "TFPDL")
-                        "file_size"    => $isSeries ? "Select Episode" : "Download Page",
-                        "language"     => "English",
-                        "seeds"        => 100 - count($downloadLinks), // Fake sorting priority
-                        "download_url" => $linkUrl
-                    ];
-                    
-                    $addedUrls[] = $linkUrl;
-                }
-            }
-        }
-    }
+    $stmt = $conn->prepare("SELECT quality, file_size, download_url, language FROM media_downloads
+              WHERE tmdb_id = ? AND media_type = ? ORDER BY quality DESC");
+    $stmt->execute([$mediaId, $mediaType]);
+    $downloadLinks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 ?>
 
@@ -345,7 +223,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover">
   <title><?php echo htmlspecialchars($title); ?> - Details</title>
   <link rel="shortcut icon" href="/assets/images/favicon.ico" />
-  <link rel="apple-touch-icon" href="/assets/images/logo.png">
+  <link rel="apple-touch-icon" href="/assets/images/apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -519,7 +397,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
       #searchOverlay {
           position: fixed !important; top: 0; left: 0; width: 100vw; height: 100vh;
           background: rgba(8, 8, 12, 0.97); backdrop-filter: blur(20px);
-          z-index: 999999; display: none !important; align-items: center; justify-content: center;
+          z-index: 2147483600; display: none !important; align-items: center; justify-content: center;
           flex-direction: column;
       }
       #searchOverlay.active { display: flex !important; }
@@ -795,7 +673,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
             <button class="dl-modal-close" data-bs-dismiss="modal" id="dlModalClose"><i class="fa-solid fa-times"></i></button>
         </div>
         <div class="dl-modal-body">
-            <p style="color:#ccc;">External sources for <strong style="color:#fff;"><?php echo htmlspecialchars($title); ?></strong></p>
+            <p style="color:#ccc;">Downloads for <strong style="color:#fff;"><?php echo htmlspecialchars($title); ?></strong></p>
 
             <?php if(!empty($downloadLinks)): ?>
                 <div class="d-flex flex-column gap-2" style="max-height: 400px; overflow-y:auto; overflow-x:hidden;">
@@ -810,7 +688,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                                     <span class="badge-format"><?php echo htmlspecialchars($link['language']); ?></span>
                                 </div>
                                 <span class="dl-quality-label"><?php echo htmlspecialchars($link['file_size']); ?></span>
-                                <span class="dl-quality-meta">External Link</span>
+                                <span class="dl-quality-meta">Download</span>
                             </div>
                             <div class="dl-quality-icon">
                                 <i class="fa-solid <?php echo $icon; ?>"></i>
@@ -821,7 +699,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
             <?php else: ?>
                 <div class="text-center p-4">
                     <i class="fa-solid fa-exclamation-triangle fa-2x mb-3 text-warning"></i>
-                    <p style="color:#888;">No external download links are available right now. Please check back later.</p>
+                    <p style="color:#888;">No download links are available for this title yet.</p>
                 </div>
             <?php endif; ?>
         </div>
@@ -930,6 +808,14 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 
     // Premium Search Modal Logic
     function openSearchModal() {
+        // Close the menu first. It is stacked above everything else, so on
+        // phones search used to open underneath it and looked broken.
+        var menu = document.getElementById('appSidebar');
+        if (menu) menu.classList.remove('mobile-open');
+        var menuShade = document.getElementById('sidebarOverlay');
+        if (menuShade) menuShade.classList.remove('active');
+        var watchMenu = document.querySelector('.watch-sidebar.open');
+        if (watchMenu) watchMenu.classList.remove('open');
         document.getElementById('searchOverlay').classList.add('active');
         setTimeout(function(){ document.getElementById('overlaySearchInput').focus(); }, 50);
     }
@@ -983,7 +869,8 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         const container = document.getElementById('ai-hook-container');
         const textDiv = document.getElementById('ai-hook-text');
 
-        if (mediaId) {
+        if (mediaId && <?php echo json_encode(!empty($_SESSION['user_id'])); ?>) {
+            // The pitch needs a signed-in user; for guests the request only returned 401.
             // Show loading state
             container.style.display = 'block';
 

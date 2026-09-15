@@ -183,7 +183,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover">
   <title>Watch: <?php echo htmlspecialchars($videoTitle); ?></title>
   <link rel="shortcut icon" href="/assets/images/favicon.ico" />
-  <link rel="apple-touch-icon" href="/assets/images/logo.png">
+  <link rel="apple-touch-icon" href="/assets/images/apple-touch-icon.png">
   <link rel="manifest" href="manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -355,11 +355,208 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
           }
       }
 
+      /* ---- Episode picker for the player ------------------------------------
+         A panel that slides in from the right. Opened by the EP tab over a
+         streaming server in landscape, or by the direct-file player's Episodes
+         button. It is fixed to the screen, so it works over the immersive
+         landscape player; when something is fullscreen the script moves it
+         inside the fullscreen element, the only part the browser draws. */
+      .ep-tab { display: none; }
+
+      @media (orientation: landscape) and (max-height: 540px) and (pointer: coarse) {
+          html:has(#playerIframe) #videoArea:not(.direct-playing) .ep-tab { display: flex; }
+      }
+
+      .ep-tab {
+          position: absolute;
+          top: 50%;
+          right: env(safe-area-inset-right, 0px);
+          transform: translateY(-50%);
+          z-index: 20;
+          width: 36px;
+          height: 76px;
+          padding: 0;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          background: rgba(0, 0, 0, 0.62);
+          color: #fff;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          border-right: 0;
+          border-radius: 12px 0 0 12px;
+          font-size: 0.62rem;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+      }
+      .ep-tab i { font-size: 1.15rem; }
+
+      .ep-backdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 2147483001;
+          background: rgba(0, 0, 0, 0.45);
+      }
+
+      .ep-panel {
+          position: fixed;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 2147483002;
+          width: min(360px, 88vw);
+          display: flex;
+          flex-direction: column;
+          background: rgba(12, 12, 16, 0.97);
+          color: #fff;
+          border-left: 1px solid rgba(255, 255, 255, 0.08);
+          padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) 0;
+          transform: translateX(100%);
+          transition: transform 0.22s ease;
+      }
+      .ep-panel.open { transform: translateX(0); }
+      .ep-backdrop[hidden], .ep-panel[hidden] { display: none !important; }
+
+      .ep-panel-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 12px 8px 16px;
+          font-size: 1rem;
+      }
+      .ep-panel-close {
+          width: 40px;
+          height: 40px;
+          border: 0;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.08);
+          color: #fff;
+          font-size: 1.1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+      }
+
+      .ep-seasons {
+          display: flex;
+          flex-shrink: 0;
+          gap: 6px;
+          padding: 0 14px 10px 16px;
+          overflow-x: auto;
+          scrollbar-width: none;
+          touch-action: pan-x;
+      }
+      .ep-seasons::-webkit-scrollbar { display: none; }
+      .ep-season {
+          flex: 0 0 auto;
+          min-width: 44px;
+          height: 34px;
+          padding: 0 12px;
+          border-radius: 17px;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          background: rgba(255, 255, 255, 0.05);
+          color: #ddd;
+          font-size: 0.8rem;
+          font-weight: 600;
+      }
+      .ep-season.active { background: var(--primary, #e50914); border-color: var(--primary, #e50914); color: #fff; }
+
+      .ep-lists {
+          flex: 1;
+          overflow-y: auto;
+          padding: 0 10px 14px 12px;
+          /* Its own scroller, so it still pans inside the player, which blocks touch panning. */
+          touch-action: pan-y;
+          overscroll-behavior: contain;
+      }
+      .ep-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 6px;
+          border-radius: 10px;
+          color: #fff;
+          text-decoration: none;
+      }
+      .ep-item:active { background: rgba(255, 255, 255, 0.08); }
+      .ep-item.current { background: rgba(229, 9, 20, 0.16); box-shadow: inset 3px 0 0 var(--primary, #e50914); }
+      .ep-item.unaired { opacity: 0.45; }
+      .ep-thumb {
+          position: relative;
+          flex: 0 0 96px;
+          height: 54px;
+          border-radius: 6px;
+          background: #222 center / cover no-repeat;
+          overflow: hidden;
+      }
+      .ep-num {
+          position: absolute;
+          left: 4px;
+          bottom: 3px;
+          padding: 1px 6px;
+          border-radius: 4px;
+          background: rgba(0, 0, 0, 0.7);
+          font-size: 0.7rem;
+          font-weight: 700;
+      }
+      .ep-meta { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+      .ep-name { font-size: 0.86rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .ep-sub { font-size: 0.72rem; color: #9aa0a6; }
+      .ep-item.current .ep-sub { color: var(--primary, #e50914); font-weight: 600; }
+
+      /* ---- Phone toolbar under the player ----------------------------------
+         The buttons were one wrapping row, and two carried inline widths, so on
+         a phone they broke into two ragged rows. Lay them out as a grid: for a
+         TV episode, previous / now playing / next take the first row, and the
+         six actions share the second row equally. */
+      @media (max-width: 767.98px) {
+          .bottom-controls-bar .control-actions {
+              display: grid !important;
+              grid-template-columns: repeat(6, minmax(0, 1fr));
+              gap: 6px;
+              width: 100%;
+              flex: 1 1 100% !important;
+              padding: 6px;
+          }
+          .bottom-controls-bar .control-actions > * { order: 4; min-width: 0; }
+          .bottom-controls-bar .control-actions > a.btn-action:first-of-type { order: 1; grid-column: 1; }
+          .bottom-controls-bar .control-actions > .now-playing-box {
+              order: 2;
+              grid-column: 2 / span 4;
+              align-self: stretch;
+              height: auto;
+              padding: 0;
+              border-radius: 8px;
+              background: rgba(255, 255, 255, 0.03);
+              align-items: center;
+          }
+          .bottom-controls-bar .control-actions > a.btn-action:last-of-type { order: 3; grid-column: 6; }
+          .bottom-controls-bar .control-actions .btn-action {
+              width: 100% !important;
+              padding: 0 !important;
+              gap: 0 !important;
+          }
+          /* The server menu used to open to the left of its button, off-screen. */
+          .bottom-controls-bar #serverDropdown { left: 0 !important; right: auto !important; }
+      }
+
+      /* Floating AI and theme buttons on phones: stack them in the corner with
+         their centres lined up, and slide them away while scrolling down so
+         they don't sit on the posters. Scrolling up brings them back. */
+      @media (max-width: 800px) {
+          #mobileAiBtn { right: 16px !important; bottom: 18px !important; transition: transform 0.25s ease, opacity 0.25s ease !important; }
+          .theme-switcher-float { right: 17px !important; bottom: 80px !important; transition: transform 0.25s ease, opacity 0.25s ease !important; }
+          body.floats-away #mobileAiBtn,
+          body.floats-away .theme-switcher-float { transform: translateX(96px) !important; opacity: 0 !important; pointer-events: none !important; }
+      }
+
       /* Fullscreen Search Overlay */
       #searchOverlay {
           position: fixed !important; top: 0; left: 0; width: 100vw; height: 100vh;
           background: rgba(8, 8, 12, 0.97); backdrop-filter: blur(20px);
-          z-index: 999999; display: none !important; align-items: center; justify-content: center;
+          z-index: 2147483600; display: none !important; align-items: center; justify-content: center;
           flex-direction: column;
       }
       #searchOverlay.active { display: flex !important; }
@@ -584,6 +781,11 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 
         <!-- Video Wrapper -->
         <div class="video-wrapper" id="videoArea">
+             <?php if ($mediaType === 'tv' && !empty($seasonsData)): ?>
+             <!-- Episodes tab: shown over a streaming server in phone landscape,
+                  where the page's own episode list is out of reach. -->
+             <button type="button" class="ep-tab" id="epTab" aria-label="Episodes" onclick="window.openEpisodePanel()"><i class="ph ph-list"></i><span>EP</span></button>
+             <?php endif; ?>
              <!-- Network Status Overlay -->
              <div class="network-banner" id="networkBanner" style="position:absolute; top:0; left:0; width:100%; z-index:9999;"></div>
              <!-- Loading overlay for server switches -->
@@ -898,7 +1100,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
     // --- PWA LOGIC ---
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js')
+            navigator.serviceWorker.register('/sw.js') // /service-worker.js does not exist; every other page uses /sw.js
                 .then(reg => console.log('SW Registered!', reg))
                 .catch(err => console.log('SW Fail', err));
         });
@@ -1001,7 +1203,8 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                 title: <?php echo json_encode($videoTitle . ($mediaType === 'tv' ? ' — ' . $videoSubTitle : '')); ?>,
                 // Buttons only appear when these are functions.
                 onPrev: <?php echo $playerPrevUrl ? 'function () { location.href = ' . json_encode($playerPrevUrl) . '; }' : 'null'; ?>,
-                onNext: <?php echo $playerNextUrl ? 'function () { location.href = ' . json_encode($playerNextUrl) . '; }' : 'null'; ?>
+                onNext: <?php echo $playerNextUrl ? 'function () { location.href = ' . json_encode($playerNextUrl) . '; }' : 'null'; ?>,
+                onEpisodes: <?php echo ($mediaType === 'tv' && !empty($seasonsData)) ? 'function () { window.openEpisodePanel(); }' : 'null'; ?>
             });
         }
 
@@ -1010,6 +1213,8 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         function setDirectVideoVisible(visible) {
             const target = (mobilePlayer && mobilePlayer.shell) ? mobilePlayer.shell : playerVideo;
             if (target) target.style.display = visible ? 'block' : 'none';
+            // Lets CSS hide the EP tab while the direct-file player (with its own button) is showing.
+            document.getElementById('videoArea').classList.toggle('direct-playing', !!visible);
         }
 
         // --- Rotate to landscape when a streaming server goes fullscreen ---
@@ -1284,6 +1489,14 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 
     // Premium Search Modal Logic
     function openSearchModal() {
+        // Close the menu first. It is stacked above everything else, so on
+        // phones search used to open underneath it and looked broken.
+        var menu = document.getElementById('appSidebar');
+        if (menu) menu.classList.remove('mobile-open');
+        var menuShade = document.getElementById('sidebarOverlay');
+        if (menuShade) menuShade.classList.remove('active');
+        var watchMenu = document.querySelector('.watch-sidebar.open');
+        if (watchMenu) watchMenu.classList.remove('open');
         document.getElementById('searchOverlay').classList.add('active');
         setTimeout(function(){ document.getElementById('overlaySearchInput').focus(); }, 50);
     }
@@ -1804,5 +2017,130 @@ function toggleCinematicMode() {
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<?php if ($mediaType === 'tv' && !empty($seasonsData)): ?>
+<!-- Episode picker used by the player: the EP tab in landscape, and the
+     direct-file player's Episodes button. -->
+<div class="ep-backdrop" id="epBackdrop" hidden></div>
+<aside class="ep-panel" id="epPanel" role="dialog" aria-modal="true" aria-label="Episodes" hidden>
+    <div class="ep-panel-head">
+        <strong>Episodes</strong>
+        <button type="button" class="ep-panel-close" id="epPanelClose" aria-label="Close episodes"><i class="ph ph-x"></i></button>
+    </div>
+    <div class="ep-seasons" role="tablist" aria-label="Seasons">
+        <?php foreach ($seasonsData as $epSeason): $epSn = (int) $epSeason['season_number']; ?>
+        <button type="button" class="ep-season<?php echo $epSn === (int) $seasonNum ? ' active' : ''; ?>" data-season="<?php echo $epSn; ?>" role="tab" aria-selected="<?php echo $epSn === (int) $seasonNum ? 'true' : 'false'; ?>">S<?php echo $epSn; ?></button>
+        <?php endforeach; ?>
+    </div>
+    <div class="ep-lists">
+        <?php $epToday = date('Y-m-d'); foreach ($seasonsData as $epSeason): $epSn = (int) $epSeason['season_number']; ?>
+        <div class="ep-list" data-season-list="<?php echo $epSn; ?>"<?php echo $epSn === (int) $seasonNum ? '' : ' hidden'; ?>>
+            <?php foreach ($epSeason['episodes'] as $epItem):
+                if (!isset($epItem['episode_number'])) continue;
+                $epEn = (int) $epItem['episode_number'];
+                $epIsCurrent = ($epSn === (int) $seasonNum && $epEn === (int) $episodeNum);
+                $epUnaired = !$epIsCurrent && !empty($epItem['air_date']) && $epItem['air_date'] > $epToday;
+                $epHref = '/watch?id=' . rawurlencode((string) $mediaId) . '&type=tv&season=' . $epSn . '&episode=' . $epEn;
+                $epStill = !empty($epItem['still_path']) ? 'https://image.tmdb.org/t/p/w185' . $epItem['still_path'] : '';
+                $epTag = $epUnaired ? 'div' : 'a';
+            ?>
+            <<?php echo $epTag; ?> class="ep-item<?php echo $epIsCurrent ? ' current' : ''; ?><?php echo $epUnaired ? ' unaired' : ''; ?>"<?php echo $epUnaired ? '' : ' href="' . htmlspecialchars($epHref) . '"'; ?><?php echo $epIsCurrent ? ' aria-current="true"' : ''; ?>>
+                <span class="ep-thumb"<?php echo $epStill ? ' style="background-image:url(' . htmlspecialchars($epStill) . ')"' : ''; ?>><span class="ep-num"><?php echo $epEn; ?></span></span>
+                <span class="ep-meta">
+                    <span class="ep-name"><?php echo htmlspecialchars($epItem['name'] ?? ('Episode ' . $epEn)); ?></span>
+                    <span class="ep-sub"><?php
+                        if ($epIsCurrent) echo 'Now playing';
+                        elseif ($epUnaired) echo 'Airs ' . htmlspecialchars(date('M j, Y', strtotime($epItem['air_date'])));
+                        elseif (!empty($epItem['runtime'])) echo (int) $epItem['runtime'] . ' min';
+                    ?></span>
+                </span>
+            </<?php echo $epTag; ?>>
+            <?php endforeach; ?>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</aside>
+<script>
+(function () {
+    const panel = document.getElementById('epPanel');
+    const backdrop = document.getElementById('epBackdrop');
+    const lists = panel.querySelector('.ep-lists');
+    const area = document.getElementById('videoArea');
+
+    // The EP tab only belongs over a streaming server; the direct-file player
+    // has its own Episodes button. Server switches update this class too.
+    if (area) area.classList.toggle('direct-playing', <?php echo json_encode(!empty($isDirectVideo)); ?>);
+
+    function showSeason(n) {
+        panel.querySelectorAll('.ep-season').forEach(function (b) {
+            const on = b.dataset.season === String(n);
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        panel.querySelectorAll('.ep-list').forEach(function (l) { l.hidden = l.dataset.seasonList !== String(n); });
+        lists.scrollTop = 0;
+    }
+
+    window.openEpisodePanel = function () {
+        // In fullscreen the browser only draws the fullscreen element, so the
+        // panel has to live inside it to be seen.
+        const fs = document.fullscreenElement || document.webkitFullscreenElement;
+        const host = (fs && fs.tagName !== 'IFRAME') ? fs : document.body;
+        if (panel.parentNode !== host) { host.appendChild(backdrop); host.appendChild(panel); }
+
+        showSeason(<?php echo (int) $seasonNum; ?>);
+        backdrop.hidden = false;
+        panel.hidden = false;
+        requestAnimationFrame(function () {
+            panel.classList.add('open');
+            const current = panel.querySelector('.ep-item.current');
+            if (current) lists.scrollTop = current.offsetTop - lists.clientHeight / 2 + current.offsetHeight / 2;
+        });
+    };
+
+    function closeEpisodePanel() {
+        panel.classList.remove('open');
+        backdrop.hidden = true;
+        panel.hidden = true;
+    }
+    window.closeEpisodePanel = closeEpisodePanel;
+
+    document.getElementById('epPanelClose').addEventListener('click', closeEpisodePanel);
+    backdrop.addEventListener('click', closeEpisodePanel);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) closeEpisodePanel(); });
+    panel.querySelectorAll('.ep-season').forEach(function (b) {
+        b.addEventListener('click', function () { showSeason(b.dataset.season); });
+    });
+})();
+</script>
+<?php endif; ?>
+<script>
+// Phones: slide the floating AI and theme buttons out of the way while the
+// page scrolls down, and bring them back when it scrolls up. Listens to every
+// scroller, because on phones this page may scroll inside a container rather
+// than the window.
+(function () {
+    var phone = window.matchMedia('(max-width: 800px)');
+    var last = new WeakMap();
+    var ticking = false;
+    document.addEventListener('scroll', function (e) {
+        var el = (e.target === document) ? document.scrollingElement : e.target;
+        if (!el || ticking) return;
+        ticking = true;
+        requestAnimationFrame(function () {
+            var y = el.scrollTop;
+            var prev = last.has(el) ? last.get(el) : y;
+            if (!phone.matches) {
+                document.body.classList.remove('floats-away');
+            } else if (Math.abs(y - prev) > 8) {
+                document.body.classList.toggle('floats-away', y > prev && y > 120);
+                last.set(el, y);
+            } else if (!last.has(el)) {
+                last.set(el, y);
+            }
+            ticking = false;
+        });
+    }, { passive: true, capture: true });
+})();
+</script>
 </body>
 </html>

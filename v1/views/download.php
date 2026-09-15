@@ -172,7 +172,7 @@ $subtitle = ($mediaType === 'tv' && $seasonNum && $episodeNum)
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Download Not Available</title>
     <link rel="shortcut icon" href="/assets/images/favicon.ico" />
-    <link rel="apple-touch-icon" href="/assets/images/logo.png">
+    <link rel="apple-touch-icon" href="/assets/images/apple-touch-icon.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }

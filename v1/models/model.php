@@ -7,6 +7,9 @@ define("DBPASS", getenv('DB_PASSWORD') ?: '');
 define("DBHOST", getenv('DB_HOST') ?: 'localhost');
 define("DBPORT", getenv('DB_PORT') ?: '3306');
 
+// Bump this when the schema checks below change, so they run again once.
+define("DB_SCHEMA_VERSION", '2026-09-16');
+
 try {
     $dbOptions = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
 
@@ -32,6 +35,24 @@ try {
         $dbOptions[PDO::MYSQL_ATTR_SSL_CA] = $dbCaFile;
     }
 
+    // A remote database costs several network round trips just to open an
+    // encrypted connection. Persistent connections let each Apache worker
+    // reuse its connection instead of reconnecting on every page. The app uses
+    // no transactions, so a reused connection carries nothing between
+    // requests. Local WAMP keeps ordinary connections.
+    if (getenv('DB_HOST')) {
+        $dbOptions[PDO::ATTR_PERSISTENT] = true;
+    }
+
+    // Local MySQL runs with an empty sql_mode, so the site's queries were
+    // never written for strict mode. Hosted MySQL is strict by default and
+    // would reject some of them; DB_SQL_MODE restores the permissive
+    // behaviour. Sent while connecting, so a reused connection doesn't pay
+    // for it again. Left untouched when the variable is not set.
+    if (($dbSqlMode = getenv('DB_SQL_MODE')) !== false) {
+        $dbOptions[PDO::MYSQL_ATTR_INIT_COMMAND] = "SET SESSION sql_mode = '" . str_replace("'", '', $dbSqlMode) . "'";
+    }
+
     $conn = new PDO(
         "mysql:host=" . DBHOST . ";port=" . DBPORT . ";dbname=" . DBNAME . ";charset=utf8mb4",
         DBUSER,
@@ -39,61 +60,65 @@ try {
         $dbOptions
     );
 
-    // Local MySQL runs with an empty sql_mode, so the site's queries were
-    // never written for strict mode. Hosted MySQL is strict by default and
-    // would reject some of them; DB_SQL_MODE restores the permissive
-    // behaviour. Left untouched when the variable is not set.
-    if (($dbSqlMode = getenv('DB_SQL_MODE')) !== false) {
-        $conn->exec("SET SESSION sql_mode = " . $conn->quote($dbSqlMode));
+    // Schema checks: make sure the tables and columns the site expects exist.
+    // These used to run on every page load -- nine statements that almost
+    // always changed nothing, and on the remote database cost over a second
+    // per page. They now run once per server (and per schema version), then
+    // leave a marker file. If the marker can't be written they simply run
+    // again next time, which is the old behaviour.
+    $schemaMarker = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'mpm-schema-'
+        . md5(DBHOST . '|' . DBPORT . '|' . DBNAME . '|' . DB_SCHEMA_VERSION) . '.ok';
+
+    if (!is_file($schemaMarker)) {
+        $conn->exec("CREATE TABLE IF NOT EXISTS watch_history (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `user_id` INT NOT NULL,
+            `tmdb_movie_id` INT NOT NULL,
+            `current_time` FLOAT DEFAULT 0,
+            `total_duration` FLOAT DEFAULT 0,
+            `last_watched` DATETIME,
+            UNIQUE KEY `user_movie` (`user_id`, `tmdb_movie_id`)
+        )");
+
+        $conn->exec("CREATE TABLE IF NOT EXISTS content_views (
+            `tmdb_id` INT NOT NULL,
+            `media_type` VARCHAR(10) NOT NULL DEFAULT 'movie',
+            `views` INT DEFAULT 0,
+            PRIMARY KEY (`tmdb_id`, `media_type`)
+        )");
+
+        $conn->exec("CREATE TABLE IF NOT EXISTS watchlist (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `user_id` INT NOT NULL,
+            `tmdb_movie_id` INT NOT NULL,
+            `media_type` VARCHAR(10) NOT NULL DEFAULT 'movie',
+            `date_added` DATETIME,
+            UNIQUE KEY `user_media_watchlist` (`user_id`, `tmdb_movie_id`, `media_type`)
+        )");
+
+        // Auto-upgrade schema to support TV Shows vs Movies
+        try {
+            $conn->exec("ALTER TABLE users ADD COLUMN ai_tokens_limit INT DEFAULT 10 AFTER is_admin");
+        } catch (PDOException $e) {}
+        try {
+            $conn->exec("ALTER TABLE zen_search_history ADD COLUMN is_deleted TINYINT(1) DEFAULT 0 AFTER is_pinned");
+        } catch (PDOException $e) {}
+        try {
+            $conn->exec("ALTER TABLE watch_history ADD COLUMN media_type VARCHAR(10) DEFAULT 'movie' AFTER tmdb_movie_id");
+        } catch (PDOException $e) {}
+        try {
+            $conn->exec("ALTER TABLE watch_history DROP INDEX unique_view");
+        } catch (PDOException $e) {}
+        try {
+            $conn->exec("ALTER TABLE watch_history DROP INDEX user_movie");
+        } catch (PDOException $e) {}
+        try {
+            $conn->exec("ALTER TABLE watch_history ADD UNIQUE KEY `user_media` (user_id, tmdb_movie_id, media_type)");
+        } catch (PDOException $e) {}
+
+        @file_put_contents($schemaMarker, date('c'));
     }
-    
-    // Ensure watch_history table exists
-    $conn->exec("CREATE TABLE IF NOT EXISTS watch_history (
-        `id` INT AUTO_INCREMENT PRIMARY KEY,
-        `user_id` INT NOT NULL,
-        `tmdb_movie_id` INT NOT NULL,
-        `current_time` FLOAT DEFAULT 0,
-        `total_duration` FLOAT DEFAULT 0,
-        `last_watched` DATETIME,
-        UNIQUE KEY `user_movie` (`user_id`, `tmdb_movie_id`)
-    )");
 
-    $conn->exec("CREATE TABLE IF NOT EXISTS content_views (
-        `tmdb_id` INT NOT NULL,
-        `media_type` VARCHAR(10) NOT NULL DEFAULT 'movie',
-        `views` INT DEFAULT 0,
-        PRIMARY KEY (`tmdb_id`, `media_type`)
-    )");
-
-    $conn->exec("CREATE TABLE IF NOT EXISTS watchlist (
-        `id` INT AUTO_INCREMENT PRIMARY KEY,
-        `user_id` INT NOT NULL,
-        `tmdb_movie_id` INT NOT NULL,
-        `media_type` VARCHAR(10) NOT NULL DEFAULT 'movie',
-        `date_added` DATETIME,
-        UNIQUE KEY `user_media_watchlist` (`user_id`, `tmdb_movie_id`, `media_type`)
-    )");
-
-    // Auto-upgrade schema to support TV Shows vs Movies
-    try {
-        $conn->exec("ALTER TABLE users ADD COLUMN ai_tokens_limit INT DEFAULT 10 AFTER is_admin");
-    } catch (PDOException $e) {}
-    try {
-        $conn->exec("ALTER TABLE zen_search_history ADD COLUMN is_deleted TINYINT(1) DEFAULT 0 AFTER is_pinned");
-    } catch (PDOException $e) {}
-    try {
-        $conn->exec("ALTER TABLE watch_history ADD COLUMN media_type VARCHAR(10) DEFAULT 'movie' AFTER tmdb_movie_id");
-    } catch (PDOException $e) {}
-    try {
-        $conn->exec("ALTER TABLE watch_history DROP INDEX unique_view");
-    } catch (PDOException $e) {}
-    try {
-        $conn->exec("ALTER TABLE watch_history DROP INDEX user_movie");
-    } catch (PDOException $e) {}
-    try {
-        $conn->exec("ALTER TABLE watch_history ADD UNIQUE KEY `user_media` (user_id, tmdb_movie_id, media_type)");
-    } catch (PDOException $e) {}
-    
 } catch (PDOException $e) {
     // Full details always go to the error log (the Render logs in production).
     // Visitors see them only where display_errors is on, i.e. local WAMP.

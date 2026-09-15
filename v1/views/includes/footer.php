@@ -178,7 +178,7 @@
   <!-- Setting Script -->
   <script src="assets/js/setting.js"></script>
   <script src="assets/js/setting-init.js" defer></script>
-  <!-- Streamit Script -->
+  <!-- Theme script -->
   <script src="assets/js/streamit.js" defer></script>
   <script src="assets/js/swiper.js" defer></script>
 
@@ -187,7 +187,7 @@
     #searchOverlay {
         position: fixed !important; top: 0; left: 0; width: 100vw; height: 100vh;
         background: rgba(8, 8, 12, 0.97); backdrop-filter: blur(20px);
-        z-index: 999999; display: none !important; align-items: center; justify-content: center;
+        z-index: 2147483600; display: none !important; align-items: center; justify-content: center;
         flex-direction: column;
     }
     #searchOverlay.active { display: flex !important; }
@@ -240,6 +240,14 @@
 <script>
     // Premium Search Modal
     function openSearchModal() {
+        // Close the menu first. It is stacked above everything else, so on
+        // phones search used to open underneath it and looked broken.
+        var menu = document.getElementById('appSidebar');
+        if (menu) menu.classList.remove('mobile-open');
+        var menuShade = document.getElementById('sidebarOverlay');
+        if (menuShade) menuShade.classList.remove('active');
+        var watchMenu = document.querySelector('.watch-sidebar.open');
+        if (watchMenu) watchMenu.classList.remove('open');
         document.getElementById('searchOverlay').classList.add('active');
         setTimeout(function(){ document.getElementById('overlaySearchInput').focus(); }, 50);
     }

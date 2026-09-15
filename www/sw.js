@@ -1,10 +1,10 @@
-const CACHE_NAME = 'zenmovies-cache-v1';
+const CACHE_NAME = 'zenmovies-cache-v2'; // v2: drops the cached theme logo
 const urlsToCache = [
   '/',
   'assets/css/core/libs.min.css',
   'assets/css/core/custom.min.css',
   'assets/css/core/zen.min.css',
-  'assets/images/logo.png'
+  'assets/images/app-icon-192.png'
 ];
 
 // 1. Install Event (with better error handling)

@@ -10,6 +10,10 @@ services:
     name: masterpiecemovie
     runtime: docker
     plan: free
+    # The database (Aiven) is in Amsterdam. Render's default region is Oregon,
+    # which put an ocean between the server and every query. The region is
+    # fixed when a service is created, so this applies to a new service.
+    region: frankfurt
     branch: master
     dockerfilePath: ./Dockerfile
     healthCheckPath: /login
