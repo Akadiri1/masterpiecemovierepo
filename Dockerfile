@@ -9,13 +9,14 @@
 FROM php:8.3-apache
 
 # gd        - avatar and image resizing
+# intl      - language names on the home and movie pages (locale_get_display_language)
 # pdo_mysql - database access
 # opcache   - caches compiled PHP; matters with this many includes per request
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-        libfreetype6-dev libjpeg62-turbo-dev libpng-dev libwebp-dev ca-certificates \
+        libfreetype6-dev libjpeg62-turbo-dev libpng-dev libwebp-dev libicu-dev ca-certificates \
  && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
- && docker-php-ext-install -j"$(nproc)" gd pdo_mysql opcache \
+ && docker-php-ext-install -j"$(nproc)" gd intl pdo_mysql opcache \
  && a2enmod rewrite headers \
  && rm -rf /var/lib/apt/lists/*
 
