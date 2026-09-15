@@ -1,12 +1,25 @@
 <?php
+/**
+ * Cache file for a TMDB request. Shared by fetchTmdbApi() and prefetchTmdbApi().
+ */
+function tmdbCacheFile(string $endpoint, array $params = []): string
+{
+    return __DIR__ . '/../cache/tmdb/' . md5($endpoint . http_build_query($params)) . '.json';
+}
+
+function tmdbRequestUrl(string $endpoint, array $params = []): string
+{
+    return 'https://api.themoviedb.org/3/' . $endpoint . '?'
+        . http_build_query(array_merge(['api_key' => TMDB_API_KEY], $params));
+}
+
 function fetchTmdbApi(string $endpoint, array $params = [], int $cacheDuration = 86400): ?array
 {
     $cacheDir = __DIR__ . '/../cache/tmdb/';
     if (!is_dir($cacheDir)) {
         mkdir($cacheDir, 0755, true);
     }
-    $cacheKey = md5($endpoint . http_build_query($params));
-    $cacheFile = $cacheDir . $cacheKey . '.json';
+    $cacheFile = tmdbCacheFile($endpoint, $params);
 
     if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $cacheDuration) {
         $cachedData = file_get_contents($cacheFile);
@@ -18,18 +31,24 @@ function fetchTmdbApi(string $endpoint, array $params = [], int $cacheDuration =
         return null;
     }
 
-    $baseUrl = 'https://api.themoviedb.org/3/';
-    $defaultParams = ['api_key' => TMDB_API_KEY];
-    $queryParams = http_build_query(array_merge($defaultParams, $params));
-    $fullUrl = $baseUrl . $endpoint . '?' . $queryParams;
+    $fullUrl = tmdbRequestUrl($endpoint, $params);
 
-    $ch = curl_init();
+    // One handle for the whole page request. curl keeps the connection to
+    // TMDB open between calls, so only the first call pays for the DNS lookup
+    // and the TCP and TLS handshakes -- on pages that make many calls, that
+    // was a large share of the time.
+    static $ch = null;
+    if ($ch === null) {
+        $ch = curl_init();
+    } else {
+        curl_reset($ch);
+    }
     curl_setopt_array($ch, [
         CURLOPT_URL            => $fullUrl,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_TIMEOUT        => 10,
         // We remove FAILONERROR to get the error body from TMDB
-        // CURLOPT_FAILONERROR    => true, 
+        // CURLOPT_FAILONERROR    => true,
         CURLOPT_HTTPHEADER     => ['Accept: application/json']
     ]);
 
@@ -44,7 +63,6 @@ function fetchTmdbApi(string $endpoint, array $params = [], int $cacheDuration =
     // Check for cURL-specific errors (e.g., couldn't connect)
     if (curl_errno($ch)) {
         error_log('cURL Error in fetchTmdbApi: ' . curl_error($ch));
-        curl_close($ch);
         return null;
     }
 
@@ -52,11 +70,8 @@ function fetchTmdbApi(string $endpoint, array $params = [], int $cacheDuration =
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     if ($httpCode >= 400) {
         error_log("HTTP Error {$httpCode} for URL: {$fullUrl}. Response: {$response}");
-        curl_close($ch);
         return null; // Return null on error
     }
-
-    curl_close($ch);
 
     $data = json_decode($response, true);
     if (json_last_error() === JSON_ERROR_NONE && !empty($data)) {
@@ -67,6 +82,110 @@ function fetchTmdbApi(string $endpoint, array $params = [], int $cacheDuration =
     return null;
 }
 
+/**
+ * Downloads many TMDB responses at once, in parallel, into the cache that
+ * fetchTmdbApi() reads.
+ *
+ * Pages such as the home page call fetchTmdbApi() dozens of times in a row.
+ * With an empty cache (after every deploy, and whenever the free server has
+ * been asleep) each call waited for the one before, and the home page could
+ * take minutes. Calling this first with the requests a page is about to make
+ * fetches the uncached ones side by side; the page's own fetchTmdbApi() calls
+ * then come from the cache. Anything that fails is left uncached, so the
+ * normal call simply retries it.
+ *
+ * @param array $requests List of [endpoint, params] pairs, exactly as they
+ *                        will be passed to fetchTmdbApi().
+ */
+function prefetchTmdbApi(array $requests, int $cacheDuration = 86400, int $concurrency = 12): void
+{
+    if (!defined('TMDB_API_KEY') || TMDB_API_KEY === 'YOUR_API_KEY_GOES_HERE' || !function_exists('curl_multi_init')) {
+        return;
+    }
+
+    $cacheDir = __DIR__ . '/../cache/tmdb/';
+    if (!is_dir($cacheDir)) {
+        mkdir($cacheDir, 0755, true);
+    }
+
+    // Skip anything already freshly cached, and duplicates.
+    $queue = [];
+    foreach ($requests as $request) {
+        $endpoint = $request[0];
+        $params = $request[1] ?? [];
+        $file = tmdbCacheFile($endpoint, $params);
+        if (isset($queue[$file]) || (file_exists($file) && (time() - filemtime($file)) < $cacheDuration)) {
+            continue;
+        }
+        $queue[$file] = tmdbRequestUrl($endpoint, $params);
+    }
+    if (!$queue) {
+        return;
+    }
+
+    require_once __DIR__ . '/../lib/tls.php';
+    $multi = curl_multi_init();
+    $running = [];                       // spl_object_id(handle) => [handle, cache file]
+    $deadline = microtime(true) + 20;    // never hold a page longer than this
+
+    $startNext = function () use (&$queue, &$running, $multi) {
+        $file = array_key_first($queue);
+        $ch = curl_init();
+        curl_setopt_array($ch, [
+            CURLOPT_URL            => $queue[$file],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 10,
+            CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+        ]);
+        app_apply_tls($ch);
+        unset($queue[$file]);
+        curl_multi_add_handle($multi, $ch);
+        $running[spl_object_id($ch)] = [$ch, $file];
+    };
+
+    while ($queue && count($running) < $concurrency) {
+        $startNext();
+    }
+
+    while ($running && microtime(true) < $deadline) {
+        do {
+            $status = curl_multi_exec($multi, $active);
+        } while ($status === CURLM_CALL_MULTI_PERFORM);
+        if ($status !== CURLM_OK) {
+            break;
+        }
+
+        while ($done = curl_multi_info_read($multi)) {
+            $ch = $done['handle'];
+            $file = $running[spl_object_id($ch)][1];
+            unset($running[spl_object_id($ch)]);
+
+            $body = curl_multi_getcontent($ch);
+            if ($done['result'] === CURLE_OK && curl_getinfo($ch, CURLINFO_HTTP_CODE) < 400 && $body) {
+                $data = json_decode($body, true);
+                if (json_last_error() === JSON_ERROR_NONE && !empty($data)) {
+                    file_put_contents($file, $body);
+                }
+            }
+            curl_multi_remove_handle($multi, $ch);
+            curl_close($ch);
+
+            if ($queue) {
+                $startNext();
+            }
+        }
+
+        if ($running && curl_multi_select($multi, 0.5) === -1) {
+            usleep(10000);
+        }
+    }
+
+    foreach ($running as [$ch]) {
+        curl_multi_remove_handle($multi, $ch);
+        curl_close($ch);
+    }
+    curl_multi_close($multi);
+}
 
 function MCK_Clarity()
 {

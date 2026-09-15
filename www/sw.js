@@ -45,6 +45,12 @@ self.addEventListener('activate', event => {
 
 // 3. Fetch Event
 self.addEventListener('fetch', event => {
+  // Only this site's own GET requests go through the worker. Posters from
+  // TMDB, video players and form posts load directly: routing dozens of
+  // images per page through here only added a delay to each one.
+  const url = new URL(event.request.url);
+  if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
+
   event.respondWith(
     fetch(event.request)
       .catch(() => {

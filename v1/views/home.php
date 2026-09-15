@@ -83,7 +83,7 @@ if ($nowPlayingData && !empty($nowPlayingData['results'])) {
             'id'           => $details['id'],
             'title'        => $details['title'] ?? 'Title Unavailable',
             'overview'     => $details['overview'] ?? '',
-            'backdrop_url' => isset($details['backdrop_path']) ? 'https://image.tmdb.org/t/p/original' . $details['backdrop_path'] : '/assets/images/media/placeholder.svg',
+            'backdrop_url' => isset($details['backdrop_path']) ? 'https://image.tmdb.org/t/p/w1280' . $details['backdrop_path'] : '/assets/images/media/placeholder.svg',
             'rating'       => $details['vote_average'] ?? 0,
             'runtime'      => formatRuntime($details['runtime'] ?? 0),
             'genres'       => array_slice($details['genres'] ?? [], 0, 3), // Get first 3 genres
@@ -353,7 +353,7 @@ if ($parallaxData && !empty($parallaxData['results'])) {
             'title'        => $details['title'],
             'overview'     => $details['overview'],
             'backdrop_url' => isset($details['backdrop_path']) 
-                              ? 'https://image.tmdb.org/t/p/original' . $details['backdrop_path'] 
+                              ? 'https://image.tmdb.org/t/p/w1280' . $details['backdrop_path'] 
                               : '/assets/images/media/placeholder.svg',
             'poster_url'   => isset($details['poster_path']) 
                               ? 'https://image.tmdb.org/t/p/w1280' . $details['poster_path'] 
@@ -391,7 +391,7 @@ if ($trendingData && !empty($trendingData['results'])) {
             'id'           => $details['id'],
             'title'        => $details['name'],
             'overview'     => $details['overview'],
-            'backdrop_url' => isset($details['backdrop_path']) ? 'https://image.tmdb.org/t/p/original' . $details['backdrop_path'] : '',
+            'backdrop_url' => isset($details['backdrop_path']) ? 'https://image.tmdb.org/t/p/w1280' . $details['backdrop_path'] : '',
             'poster_url'   => isset($details['poster_path']) ? 'https://image.tmdb.org/t/p/w1280' . $details['poster_path'] : '',
             'year'         => isset($details['first_air_date']) ? date('Y', strtotime($details['first_air_date'])) : '',
             'seasons_count'=> $details['number_of_seasons'] ?? 1,

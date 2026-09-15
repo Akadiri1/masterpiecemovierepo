@@ -80,6 +80,86 @@ if (session_status() !== PHP_SESSION_ACTIVE) session_start();
 $isKidsModeActive = !empty($_SESSION['is_kids_mode']) && $_SESSION['is_kids_mode'];
 
 // ==========================================
+// 1b. DOWNLOAD TMDB DATA IN PARALLEL
+// ==========================================
+// The sections below make about seventy TMDB requests. With an empty cache
+// (after every deploy, or once the free server has been asleep) they ran one
+// after another and the page could take minutes. Fetch everything they are
+// about to ask for in three parallel rounds first, so their own
+// fetchTmdbApi() calls come straight from the cache. The endpoints and
+// parameters here must match those calls exactly, or the cache is missed.
+if (function_exists('prefetchTmdbApi')) {
+    $movieExtras = ['append_to_response' => 'release_dates,content_ratings'];
+    $prefetchLists = [
+        'hero'        => ['trending/all/day', []],
+        'topTen'      => ['trending/movie/day', []],
+        'exclusive'   => ['movie/top_rated', ['page' => 4, 'region' => 'US']],
+        'fresh'       => ['trending/movie/week', ['page' => 2]],
+        'upcoming'    => ['discover/movie', [
+            'region' => 'US',
+            'sort_by' => 'popularity.desc',
+            'primary_release_date.gte' => date('Y-m-d', strtotime('+1 day')),
+            'primary_release_date.lte' => date('Y-m-d', strtotime('+3 months')),
+            'with_release_type' => '2|3',
+            'page' => 1
+        ]],
+        'vertical'    => ['movie/top_rated', ['region' => 'US', 'page' => 1]],
+        'people'      => ['person/popular', ['page' => 1]],
+        'popular'     => ['movie/popular', ['page' => 2]],
+        'ott'         => ['trending/tv/week', []],
+        'recommended' => ['movie/now_playing', ['page' => 2, 'region' => 'US']],
+        'picks'       => ['movie/popular', ['page' => 5, 'region' => 'US']],
+    ];
+
+    // Round 1: the lists each section starts from, plus Continue Watching.
+    $prefetchRound = array_values($prefetchLists);
+    if (isset($_SESSION['user_id']) && isset($conn)) {
+        try {
+            $prefetchStmt = $conn->prepare("SELECT tmdb_movie_id, media_type FROM watch_history WHERE user_id = ? ORDER BY last_watched DESC LIMIT 20");
+            $prefetchStmt->execute([$_SESSION['user_id']]);
+            foreach ($prefetchStmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $prefetchRound[] = [($row['media_type'] ?? 'movie') . '/' . $row['tmdb_movie_id'], $movieExtras];
+            }
+        } catch (Exception $e) {
+            // Continue Watching below handles its own errors.
+        }
+    }
+    prefetchTmdbApi($prefetchRound);
+
+    // Round 2: details for the titles in those lists.
+    $listResults = function (string $key, int $limit) use ($prefetchLists): array {
+        $data = fetchTmdbApi($prefetchLists[$key][0], $prefetchLists[$key][1]);
+        return array_slice($data['results'] ?? [], 0, $limit);
+    };
+    $prefetchRound = [];
+    foreach ($listResults('hero', 50) as $item) {
+        $prefetchRound[] = ["{$item['media_type']}/{$item['id']}", ['append_to_response' => 'credits,release_dates,content_ratings']];
+    }
+    foreach (['exclusive' => 10, 'fresh' => 10, 'upcoming' => 12, 'vertical' => 6, 'recommended' => 10, 'picks' => 10] as $key => $limit) {
+        foreach ($listResults($key, $limit) as $item) {
+            $prefetchRound[] = ["movie/{$item['id']}", $movieExtras];
+        }
+    }
+    $trendingShows = $listResults('ott', 3);
+    foreach ($trendingShows as $item) {
+        $prefetchRound[] = ["tv/{$item['id']}", ['append_to_response' => 'content_ratings,credits']];
+    }
+    prefetchTmdbApi($prefetchRound);
+
+    // Round 3: every season of the trending shows, for their episode lists.
+    $prefetchRound = [];
+    foreach ($trendingShows as $item) {
+        $show = fetchTmdbApi("tv/{$item['id']}", ['append_to_response' => 'content_ratings,credits']);
+        for ($s = 1; $s <= (int) ($show['number_of_seasons'] ?? 0); $s++) {
+            $prefetchRound[] = ["tv/{$item['id']}/season/{$s}", []];
+        }
+    }
+    prefetchTmdbApi($prefetchRound);
+
+    unset($movieExtras, $prefetchLists, $prefetchRound, $prefetchStmt, $listResults, $trendingShows, $item, $show, $s, $row, $key, $limit, $data);
+}
+
+// ==========================================
 // 2. DATA FETCHING LOGIC
 // ==========================================
 
@@ -150,7 +230,7 @@ if ($heroData && !empty($heroData['results'])) {
         $castList = [];
         if (!empty($details['credits']['cast'])) {
             foreach (array_slice($details['credits']['cast'], 0, 3) as $actor) {
-                $castList[] = $actor['name'];
+                $castList[] = ['id' => $actor['id'], 'name' => $actor['name']];
             }
         }
 
@@ -182,13 +262,13 @@ if ($heroData && !empty($heroData['results'])) {
             'type'         => $mediaType,
             'title'        => $details['title'] ?? $details['name'],
             'overview'     => $details['overview'],
-            // 4K Ultra HD Background
+            // Backdrop. w1280 is sharp on any screen; "original" files were several MB each.
             'bg_url'       => isset($details['backdrop_path']) 
-                              ? 'https://image.tmdb.org/t/p/original' . $details['backdrop_path'] 
+                              ? 'https://image.tmdb.org/t/p/w1280' . $details['backdrop_path'] 
                               : '/assets/images/media/placeholder.svg',
             // Standard HD Thumb
             'thumb_url'    => isset($details['poster_path']) 
-                              ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
+                              ? 'https://image.tmdb.org/t/p/w500' . $details['poster_path'] 
                               : '/assets/images/media/placeholder-portrait.svg',
             'rating'       => $details['vote_average'] ?? 0,
             'stars'        => round(($details['vote_average'] ?? 0) / 2),
@@ -299,7 +379,7 @@ if ($topTenData && !empty($topTenData['results'])) {
         $topTenList[] = [
             'id'           => $item['id'],
             'title'        => $item['title'] ?? ($item['name'] ?? ''),
-            'poster_url'   => isset($item['poster_path']) ? 'https://image.tmdb.org/t/p/w780' . $item['poster_path'] : '/assets/images/media/placeholder-portrait.svg',
+            'poster_url'   => isset($item['poster_path']) ? 'https://image.tmdb.org/t/p/w500' . $item['poster_path'] : '/assets/images/media/placeholder-portrait.svg',
             'rank'         => $rank++
         ];
     }
@@ -322,9 +402,9 @@ if ($exclusiveData && !empty($exclusiveData['results'])) {
         $exclusiveMovies[] = [
             'id'           => $details['id'],
             'title'        => $details['title'],
-            // Using w780 for sharp High HD quality (good compromise between 4K and speed)
+            // w500: sharp on phones and in desktop rows, about half the size of w780
             'poster_url'   => isset($details['poster_path']) 
-                              ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
+                              ? 'https://image.tmdb.org/t/p/w500' . $details['poster_path'] 
                               : '/assets/images/media/placeholder-portrait.svg', 
             'genre'        => $details['genres'][0]['name'] ?? 'Movie',
             'language'     => isset($details['original_language']) 
@@ -351,9 +431,9 @@ if ($freshData && !empty($freshData['results'])) {
         $freshPicks[] = [
             'id'           => $details['id'],
             'title'        => $details['title'],
-            // Using w780 for High HD quality
+            // w500: sharp on phones and in desktop rows, about half the size of w780
             'poster_url'   => isset($details['poster_path']) 
-                              ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
+                              ? 'https://image.tmdb.org/t/p/w500' . $details['poster_path'] 
                               : '/assets/images/media/placeholder-portrait.svg', 
             'genre'        => $details['genres'][0]['name'] ?? 'Movie',
             'language'     => isset($details['original_language']) 
@@ -403,7 +483,7 @@ if ($upcomingData && !empty($upcomingData['results'])) {
             'title'        => $details['title'],
             // High Quality Poster
             'poster_url'   => isset($details['poster_path']) 
-                              ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
+                              ? 'https://image.tmdb.org/t/p/w500' . $details['poster_path'] 
                               : '/assets/images/media/placeholder-portrait.svg', 
             'genre'        => $details['genres'][0]['name'] ?? 'Movie', 
             'language'     => isset($details['original_language']) 
@@ -440,11 +520,11 @@ if ($verticalData && !empty($verticalData['results'])) {
             'overview'     => $details['overview'],
             // Big image for the right side (High Quality)
             'backdrop_url' => isset($details['backdrop_path']) 
-                              ? 'https://image.tmdb.org/t/p/original' . $details['backdrop_path'] 
+                              ? 'https://image.tmdb.org/t/p/w1280' . $details['backdrop_path'] 
                               : '/assets/images/media/placeholder.svg',
             // Smaller image for the left thumb (Optimized)
             'poster_url'   => isset($details['poster_path']) 
-                              ? 'https://image.tmdb.org/t/p/w1280' . $details['poster_path'] 
+                              ? 'https://image.tmdb.org/t/p/w500' . $details['poster_path'] 
                               : '/assets/images/media/placeholder-portrait.svg',
             'runtime'      => formatRuntime($details['runtime'] ?? 0),
             'rating'       => $details['vote_average'] ?? 0,
@@ -477,7 +557,7 @@ if ($peopleData && !empty($peopleData['results'])) {
             'name'         => $person['name'],
             // PHP Check: If API has no path, use default immediately
             'profile_url'  => !empty($person['profile_path']) 
-                              ? 'https://image.tmdb.org/t/p/w1280' . $person['profile_path'] 
+                              ? 'https://image.tmdb.org/t/p/w300' . $person['profile_path'] 
                               : $defaultCastImage, 
             'role'         => $role,
         ];
@@ -494,7 +574,7 @@ if ($peopleData && !empty($peopleData['results'])) {
                      $popMoviesList[] = [
                          'id' => $pm['id'],
                          'title' => $pm['title'],
-                         'poster_url' => 'https://image.tmdb.org/t/p/w780' . $pm['poster_path'],
+                         'poster_url' => 'https://image.tmdb.org/t/p/w500' . $pm['poster_path'],
                          'genre' => 'Movie', // Simplified for speed
                          'lang' => 'English' // Simplified
                      ];
@@ -542,7 +622,7 @@ if ($ottData && !empty($ottData['results'])) {
             'title'        => $details['name'],
             'overview'     => $details['overview'],
             'backdrop_url' => isset($details['backdrop_path']) 
-                              ? 'https://image.tmdb.org/t/p/original' . $details['backdrop_path'] 
+                              ? 'https://image.tmdb.org/t/p/w1280' . $details['backdrop_path'] 
                               : '/assets/images/media/placeholder.svg',
             'rank'         => $rank++,
             'date'         => date('F Y', strtotime($details['first_air_date'])),
@@ -569,9 +649,9 @@ if ($recData && !empty($recData['results'])) {
         $recommendedBlockMovies[] = [
             'id'           => $details['id'],
             'title'        => $details['title'],
-            // Using w780 for high quality
+            // w500: sharp on phones and in desktop rows, about half the size of w780
             'poster_url'   => isset($details['poster_path']) 
-                              ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
+                              ? 'https://image.tmdb.org/t/p/w500' . $details['poster_path'] 
                               : '/assets/images/media/placeholder-portrait.svg', 
             'genre'        => $details['genres'][0]['name'] ?? 'Movie',
             'language'     => isset($details['original_language']) 
@@ -598,9 +678,9 @@ if ($picksData && !empty($picksData['results'])) {
         $topPicks[] = [
             'id'           => $details['id'],
             'title'        => $details['title'],
-            // Using w780 for high quality
+            // w500: sharp on phones and in desktop rows, about half the size of w780
             'poster_url'   => isset($details['poster_path']) 
-                              ? 'https://image.tmdb.org/t/p/w780' . $details['poster_path'] 
+                              ? 'https://image.tmdb.org/t/p/w500' . $details['poster_path'] 
                               : '/assets/images/media/placeholder-portrait.svg', 
             'genre'        => $details['genres'][0]['name'] ?? 'Movie',
             'language'     => isset($details['original_language']) 
@@ -659,7 +739,7 @@ include ("includes/header.php");
             <div class="swiper-container" data-swiper="slider-images-inner-ott">
                <ul class="swiper-wrapper m-0 list-inline">
                   
-                  <?php foreach ($heroSlides as $slide): ?>
+                  <?php foreach ($heroSlides as $heroIndex => $slide): ?>
                   <li class="swiper-slide banner-bg p-0">
                      <div class="slider--image block-images" style="background-image: url(<?php echo $slide['bg_url']; ?>);">
                         <div class="container-fluid position-relative">
@@ -667,71 +747,71 @@ include ("includes/header.php");
                               <div class="col-lg-5 col-md-12">
                                  <div class="slider-content">
                                     
+                                    <!-- Rank and type -->
+                                    <div class="hero-eyebrow RightAnimate-two">
+                                       <span class="hero-rank">#<?php echo $heroIndex + 1; ?> Trending</span>
+                                       <span class="hero-type"><?php echo $slide['type'] === 'tv' ? 'Series' : 'Movie'; ?></span>
+                                    </div>
+
                                     <!-- Title -->
-                                    <h2 class="texture-text big-font letter-spacing-1 line-count-1 RightAnimate-two mb-1 mb-md-3">
+                                    <h2 class="texture-text big-font letter-spacing-1 line-count-2 RightAnimate-two mb-1 mb-md-3 hero-title">
                                         <?php echo htmlspecialchars($slide['title']); ?>
                                     </h2>
 
-                                    <!-- Metadata Row -->
-                                    <div class="d-flex flex-wrap align-items-center gap-3 py-2 RightAnimate-three">
-                                       <span class="badge rounded-0 text-white text-uppercase bg-secondary mr-3 fw-bold">
-                                           <?php echo $slide['age_rating']; ?>
-                                       </span>
-
-                                       <div class="d-flex align-items-center gap-3">
-                                          <ul class="ratting-start p-0 m-0 list-inline text-warning d-flex align-items-center justify-content-left gap-1">
-                                             <?php for($i=1; $i<=5; $i++): ?>
-                                                <li><i class="ph<?php echo ($i <= $slide['stars']) ? '-fill' : ''; ?> ph-star"></i></li>
-                                             <?php endfor; ?>
-                                          </ul>
-                                          <span>
-                                             <img src="/assets/images/pages/imdb-logo.svg" alt="imdb logo" class="img-fluid imdb-img">
-                                             <span class="ms-1 text-white fw-bold"><?php echo number_format($slide['rating'], 1); ?></span>
+                                    <!-- Facts: age rating, score, length, release date -->
+                                    <div class="hero-meta d-flex flex-wrap align-items-center gap-3 py-2 RightAnimate-three">
+                                       <?php if (!empty($slide['age_rating'])): ?>
+                                       <span class="badge rounded-0 text-white text-uppercase bg-secondary fw-bold hero-age"><?php echo htmlspecialchars($slide['age_rating']); ?></span>
+                                       <?php endif; ?>
+                                       <span class="hero-rating">
+                                          <!-- Stars shaded to the exact score (TMDB scores out of 10). -->
+                                          <span class="star-meter" style="--score: <?php echo round(min(10, max(0, (float) $slide['rating'])) * 10); ?>%;" role="img" aria-label="Rated <?php echo number_format($slide['rating'], 1); ?> out of 10">
+                                             <span class="star-meter-base" aria-hidden="true">★★★★★</span>
+                                             <span class="star-meter-fill" aria-hidden="true">★★★★★</span>
                                           </span>
-                                       </div>
-                                       
-                                       <div class="d-flex align-items-center gap-1">
-                                          <i class="ph ph-clock"></i>
-                                          <span class="font-size-16 fw-500"><?php echo $slide['duration']; ?></span>
-                                       </div>
-
-                                        <!-- Release Date (Added) -->
-                                       <div class="d-flex align-items-center gap-1">
-                                          <i class="ph ph-calendar-dots"></i>
-                                          <span class="font-size-16 fw-500"><?php echo $slide['date']; ?></span>
-                                       </div>
+                                          <img loading="lazy" decoding="async" src="/assets/images/pages/imdb-logo.svg" alt="IMDb" class="img-fluid imdb-img d-none d-md-inline-block">
+                                          <span class="text-white fw-bold"><?php echo number_format($slide['rating'], 1); ?></span>
+                                       </span>
+                                       <?php if (!empty($slide['duration'])): ?>
+                                       <span class="hero-fact"><i class="ph ph-clock"></i><?php echo htmlspecialchars($slide['duration']); ?></span>
+                                       <?php endif; ?>
+                                       <?php if (!empty($slide['date'])): ?>
+                                       <span class="hero-fact"><i class="ph ph-calendar-dots"></i><?php echo htmlspecialchars($slide['date']); ?></span>
+                                       <?php endif; ?>
                                     </div>
 
+                                    <!-- Genres, linking to their lists -->
+                                    <?php if (!empty($slide['genres'])): ?>
+                                    <ul class="hero-genres list-unstyled m-0 mt-2 RightAnimate-three">
+                                       <?php foreach (array_slice(array_values($slide['genres']), 0, 3) as $genre): ?>
+                                       <li><a href="/view-all?type=discover&amp;with_genres=<?php echo (int) $genre['id']; ?>"><?php echo htmlspecialchars($genre['name']); ?></a></li>
+                                       <?php endforeach; ?>
+                                    </ul>
+                                    <?php endif; ?>
+
                                     <!-- Overview -->
-                                    <p class="line-count-3 my-3 RightAnimate-two">
+                                    <p class="line-count-3 my-3 RightAnimate-two hero-overview">
                                         <?php echo htmlspecialchars($slide['overview']); ?>
                                     </p>
 
-                                    <!-- Tags/Genres & Cast -->
-                                    <div class="RightAnimate-three mt-2">
-                                       <div class="text-primary font-size-14 fw-500 text-capitalize mb-1">
-                                          Genres: 
-                                          <?php $genreList = array_values($slide['genres']); foreach ($genreList as $gi => $genre): ?>
-                                             <a href="#" class="text-body text-decoration-none fw-normal ms-1"><?php echo htmlspecialchars($genre['name']); ?><?php echo $gi < count($genreList) - 1 ? ',' : ''; ?></a>
-                                          <?php endforeach; ?>
-                                       </div>
-                                       
-                                       <div class="text-primary font-size-14 fw-500 text-capitalize">
-                                          Starring:
-                                          <?php $castList = array_values($slide['cast']); foreach ($castList as $ci => $actor): ?>
-                                             <a href="#" class="text-body text-decoration-none fw-normal ms-1"><?php echo htmlspecialchars($actor); ?><?php echo $ci < count($castList) - 1 ? ',' : ''; ?></a>
-                                          <?php endforeach; ?>
-                                       </div>
-                                    </div>
+                                    <!-- Cast, linking to each person's page -->
+                                    <?php if (!empty($slide['cast'])): ?>
+                                    <p class="hero-cast RightAnimate-three">
+                                       <span class="hero-cast-label">Starring</span>
+                                       <?php foreach ($slide['cast'] as $ci => $actor): ?><a href="/person-detail?id=<?php echo (int) $actor['id']; ?>"><?php echo htmlspecialchars($actor['name']); ?></a><?php echo $ci < count($slide['cast']) - 1 ? '<span class="hero-sep">, </span>' : ''; ?><?php endforeach; ?>
+                                    </p>
+                                    <?php endif; ?>
 
-                                    <!-- Play Button -->
-                                    <div class="RightAnimate-four mt-4 pt-2">
-                                       <a href="/<?php echo $slide['type']; ?>/<?php echo $slide['id']; ?>" 
-                                          class="btn btn-primary text-capitalize position-relative rounded-3">
-                                          <span class="d-flex align-items-center gap-2">
-                                             <span class="button-text">Play Now</span>
+                                    <!-- Actions -->
+                                    <div class="hero-actions RightAnimate-four mt-4 pt-2">
+                                       <a href="/watch?id=<?php echo (int) $slide['id']; ?>&amp;type=<?php echo htmlspecialchars($slide['type']); ?><?php echo $slide['type'] === 'tv' ? '&amp;season=1&amp;episode=1' : ''; ?>" class="btn btn-primary text-capitalize position-relative rounded-3 hero-play">
+                                          <span class="d-flex align-items-center justify-content-center gap-2">
                                              <i class="ph-fill ph-play fs-6"></i>
+                                             <span class="button-text">Play</span>
                                           </span>
+                                       </a>
+                                       <a href="/<?php echo htmlspecialchars($slide['type']); ?>/<?php echo (int) $slide['id']; ?>" class="hero-more">
+                                          <i class="ph ph-info"></i><span>More info</span>
                                        </a>
                                     </div>
 
@@ -753,6 +833,50 @@ include ("includes/header.php");
    </div>
 </div>
 
+<!-- Phones: the featured titles as a strip under the banner, with arrows. -->
+<div class="hero-strip d-md-none" aria-label="Featured titles">
+   <button type="button" class="hero-nav hero-nav-prev" aria-label="Previous title"><i class="ph ph-caret-left"></i></button>
+   <div class="hero-strip-track">
+      <?php foreach ($heroSlides as $heroIndex => $slide): ?>
+      <button type="button" class="hero-thumb<?php echo $heroIndex === 0 ? ' is-active' : ''; ?>" data-index="<?php echo $heroIndex; ?>" aria-label="<?php echo htmlspecialchars($slide['title']); ?>">
+         <img src="<?php echo htmlspecialchars(str_replace('/t/p/w500/', '/t/p/w185/', $slide['thumb_url'])); ?>" alt="" loading="lazy" decoding="async">
+      </button>
+      <?php endforeach; ?>
+   </div>
+   <button type="button" class="hero-nav hero-nav-next" aria-label="Next title"><i class="ph ph-caret-right"></i></button>
+</div>
+<script>
+(function () {
+   var strip = document.querySelector('.hero-strip');
+   var sliderEl = document.querySelector('[data-swiper="slider-images-inner-ott"]');
+   if (!strip || !sliderEl) return;
+   var thumbs = Array.prototype.slice.call(strip.querySelectorAll('.hero-thumb'));
+   var track = strip.querySelector('.hero-strip-track');
+
+   function mark(index) {
+      thumbs.forEach(function (thumb, i) { thumb.classList.toggle('is-active', i === index); });
+      var active = thumbs[index];
+      if (active) track.scrollTo({ left: active.offsetLeft - (track.clientWidth - active.offsetWidth) / 2, behavior: 'smooth' });
+   }
+
+   function connect(swiper) {
+      swiper.on('slideChange', function () { mark(swiper.realIndex); });
+      thumbs.forEach(function (thumb, i) {
+         thumb.addEventListener('click', function () { swiper.slideToLoop(i); });
+      });
+      strip.querySelector('.hero-nav-prev').addEventListener('click', function () { swiper.slidePrev(); });
+      strip.querySelector('.hero-nav-next').addEventListener('click', function () { swiper.slideNext(); });
+      mark(swiper.realIndex || 0);
+   }
+
+   // The banner's Swiper is created by a script further down the page.
+   var tries = 0;
+   (function waitForSwiper() {
+      if (sliderEl.swiper) return connect(sliderEl.swiper);
+      if (++tries < 100) setTimeout(waitForSwiper, 100);
+   })();
+})();
+</script>
 <div class="container-fluid">
    <div class="overflow-hidden">
      <div class="continue-watching-block home-continue-watch section-padding-top">
@@ -761,7 +885,7 @@ include ("includes/header.php");
     </div>
     
     <div class="position-relative swiper swiper-card" data-slide="6" data-laptop="3" data-tab="3" data-mobile="2"
-         data-mobile-sm="2" data-autoplay="false" data-loop="true" data-navigation="true" data-pagination="false">
+         data-mobile-sm="2" data-autoplay="false" data-loop="false" data-navigation="true" data-pagination="false">
          
         <ul class="p-0 swiper-wrapper m-0 list-inline">
             
@@ -796,7 +920,7 @@ include ("includes/header.php");
                                             <span><?php echo $item['last_viewed']; ?></span>
                                         </li>
                                     </ul>
-                                    <a href="/movie/<?php echo $item['id']; ?>">
+                                    <a href="/<?php echo $item['type']; ?>/<?php echo $item['id']; ?>">
                                         <i class="ph-fill ph-play iq-preogress-play-btn fs-6"></i>
                                     </a>
                                 </div>
@@ -1327,6 +1451,75 @@ document.addEventListener('DOMContentLoaded', function() {
         body.floats-away .zen-ai-float,
         body.floats-away .theme-switcher-float { transform: translateX(96px) !important; opacity: 0 !important; pointer-events: none !important; }
     }
+    /* Continue Watching: the title and progress strip covers the lower part
+       of each card but wasn't a link, so taps there did nothing. Let taps
+       pass through to the card link underneath; the play and remove
+       buttons stay tappable. */
+    .continue-watching-block .iq-preogress { pointer-events: none; }
+    .continue-watching-block .iq-preogress a { pointer-events: auto; }
+
+    /* ---- Home hero -------------------------------------------------------- */
+    .hero-eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .hero-rank { padding: 4px 10px; border-radius: 999px; background: var(--bs-primary, #e50914); color: #fff; }
+    .hero-type { padding: 4px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.14); color: #e0e0ea; backdrop-filter: blur(6px); }
+    .hero-meta { color: #e6e6ee; }
+    .hero-rating { display: inline-flex; align-items: center; gap: 6px; }
+    .hero-fact { display: inline-flex; align-items: center; gap: 5px; font-weight: 500; }
+    .hero-genres { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; }
+    .hero-genres a { display: inline-flex; align-items: center; min-height: 0; padding: 4px 12px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.06); color: #e6e6ee; font-size: 0.8rem; text-decoration: none; backdrop-filter: blur(6px); }
+    .hero-genres a:hover { border-color: var(--bs-primary, #e50914); color: #fff; }
+    .hero-cast { margin: 0; color: #cfcfd8; font-size: 0.88rem; line-height: 1.6; }
+    .hero-cast-label { margin-right: 6px; color: var(--bs-primary, #e50914); font-weight: 600; }
+    .hero-cast a { display: inline; min-height: 0; color: #fff; text-decoration: none; border-bottom: 1px solid rgba(255, 255, 255, 0.25); }
+    .hero-cast a:hover { border-bottom-color: var(--bs-primary, #e50914); }
+    .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+    /* Centre the icon and label: on phones the site-wide button rule makes this
+       a flex box, which otherwise lines its content up on the left. */
+    .hero-actions .hero-play { display: inline-flex; align-items: center; justify-content: center; min-width: 140px; }
+    .hero-more { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 20px; border-radius: 0.5rem; border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.1); color: #fff; font-weight: 600; text-decoration: none; backdrop-filter: blur(8px); }
+    .hero-more:hover { background: rgba(255, 255, 255, 0.2); color: #fff; }
+    .hero-more i { font-size: 1.15rem; }
+
+    /* Five stars shaded to the exact score. The icon-font stars always drew
+       as outlines, so every film looked unrated. */
+    .star-meter { position: relative; display: inline-block; font-size: 15px; line-height: 1; letter-spacing: 1px; white-space: nowrap; vertical-align: middle; }
+    .star-meter-base { color: rgba(255, 255, 255, 0.28); }
+    .star-meter-fill { position: absolute; top: 0; left: 0; bottom: 0; width: var(--score, 0%); overflow: hidden; color: #f5c518; }
+
+    /* Title strip under the banner (phones) */
+    .hero-strip { display: flex; align-items: center; gap: 8px; padding: 10px 12px 2px; background: #0b0c15; }
+    .hero-strip-track { position: relative; flex: 1; display: flex; gap: 8px; padding: 4px 2px 6px; overflow-x: auto; scrollbar-width: none; }
+    .hero-strip-track::-webkit-scrollbar { display: none; }
+    .hero-thumb { flex: 0 0 54px; aspect-ratio: 2 / 3; padding: 0; overflow: hidden; border: 2px solid transparent; border-radius: 10px; background: #1a1a24; opacity: 0.5; transition: opacity 0.2s, border-color 0.2s, transform 0.2s; }
+    .hero-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .hero-thumb.is-active { opacity: 1; border-color: var(--bs-primary, #e50914); transform: translateY(-2px); }
+    .hero-nav { flex-shrink: 0; display: grid; place-items: center; width: 36px; height: 36px; min-height: 36px; padding: 0; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.06); color: #fff; font-size: 1.1rem; }
+    .hero-nav:active { transform: scale(0.92); }
+
+    /* The hero on phones: full-bleed picture, everything grouped at the
+       bottom and centred like a poster, then the title strip. */
+    @media (max-width: 767.98px) {
+        .iq-banner-thumb-slider .slider--image { height: min(76vh, 600px) !important; min-height: 540px; background-position: center 20% !important; }
+        .iq-banner-thumb-slider .slider--image::before { background: linear-gradient(180deg, rgba(11, 12, 21, 0.55) 0%, rgba(11, 12, 21, 0) 18%, rgba(11, 12, 21, 0) 30%, rgba(11, 12, 21, 0.9) 64%, #0b0c15 100%) !important; }
+        .iq-banner-thumb-slider .slider--image > .container-fluid,
+        .iq-banner-thumb-slider .slider-content-full-height { height: 100% !important; }
+        /* The row also holds an empty desktop column, so on phones it wraps into
+           two lines; align-content keeps both at the bottom. */
+        .iq-banner-thumb-slider .slider-content-full-height { align-items: flex-end !important; align-content: flex-end !important; padding-top: 0 !important; padding-bottom: 18px !important; }
+        .iq-banner-thumb-slider .slider-content { text-align: center; }
+        .iq-banner-thumb-slider .swiper-pagination { display: none !important; }
+        .hero-eyebrow, .hero-meta, .hero-genres, .hero-actions { justify-content: center; }
+        .iq-banner-thumb-slider .hero-title { margin-bottom: 6px !important; background: none !important; color: #fff !important; -webkit-text-fill-color: #fff !important; font-size: 2.05rem !important; line-height: 1.08 !important; letter-spacing: -0.5px !important; text-shadow: 0 2px 18px rgba(0, 0, 0, 0.55); }
+        .hero-meta { gap: 6px 12px !important; padding: 2px 0 !important; font-size: 0.85rem; }
+        .hero-meta .hero-age { padding: 3px 6px; font-size: 0.68rem; }
+        .hero-genres { margin-top: 8px !important; }
+        .hero-genres a { padding: 3px 10px; font-size: 0.74rem; }
+        .iq-banner-thumb-slider .hero-overview { margin: 10px 0 8px !important; color: #c9c9d3; font-size: 0.88rem; -webkit-line-clamp: 2 !important; }
+        .hero-cast { font-size: 0.8rem; }
+        .hero-actions { gap: 10px; margin-top: 14px !important; padding-top: 0 !important; }
+        .hero-actions .hero-play,
+        .hero-actions .hero-more { flex: 1 1 0; min-width: 0; max-width: 175px; min-height: 48px; }
+    }
 </style>
 
 <div class="verticle-slider section-padding-bottom">
@@ -1411,7 +1604,7 @@ document.addEventListener('DOMContentLoaded', function() {
                               </div>
                               <div class="d-flex align-items-center gap-1">
                                  <p class="mb-0"><?php echo number_format($movie['rating'], 1); ?></p>
-                                 <img class="imdb-img" alt="imdb-logo" src="/assets/images/pages/imdb-logo.svg">
+                                 <img loading="lazy" decoding="async" class="imdb-img" alt="imdb-logo" src="/assets/images/pages/imdb-logo.svg">
                               </div>
                               <div class="d-flex align-items-center gap-1">
                                  <i class="ph ph-clock font-size-14"></i>
@@ -1592,7 +1785,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                   <div class="tab-left-details">
                                      <div class="d-flex align-items-center gap-3 mb-4">
                                         <a href="javascript:void(0);">
-                                            <img src="assets/images/pages/trending-label.webp" class="img-fluid trending-label-img rounded-3" alt="img">
+                                            <img loading="lazy" decoding="async" src="assets/images/pages/trending-label.webp" class="img-fluid trending-label-img rounded-3" alt="img">
                                         </a>
                                         <span class="text-gold fw-bold font-size-18">#<?php echo $show['rank']; ?> in Series today</span>
                                      </div>
@@ -1655,8 +1848,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                                  <a href="watch?id=<?php echo $show['id']; ?>&type=tv&season=<?php echo $season['season_number']; ?>&episode=<?php echo $ep['episode_number']; ?>" class="d-flex align-items-center gap-3 text-white text-decoration-none episode-link-hover">
                                                      <div class="image-box flex-shrink-0 position-relative">
                                                         <!-- Episode Thumbnail -->
-                                                        <img src="<?php echo isset($ep['still_path']) ? 'https://image.tmdb.org/t/p/w300'.$ep['still_path'] : 'assets/images/media/placeholder.webp'; ?>" 
-                                                             alt="episode-img" class="img-fluid rounded" style="width: 80px; height: 45px; object-fit: cover;">
+                                                        <img src="<?php echo isset($ep['still_path']) ? 'https://image.tmdb.org/t/p/w185'.$ep['still_path'] : 'assets/images/media/placeholder.webp'; ?>" 
+                                                             alt="" loading="lazy" decoding="async" class="img-fluid rounded" style="width: 80px; height: 45px; object-fit: cover;">
                                                         <div class="play-overlay position-absolute top-50 start-50 translate-middle" style="background: rgba(0,0,0,0.5); border-radius: 50%; padding: 5px; display: none;">
                                                             <i class="ph-fill ph-play text-white font-size-12"></i>
                                                         </div>

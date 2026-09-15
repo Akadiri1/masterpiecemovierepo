@@ -1,123 +1,95 @@
 <?php
+// Switches the signed-in account between the main profile and Kids Mode.
+// Turning Kids Mode on needs a parental PIN to exist; turning it off needs
+// that PIN. Always answers with JSON; includes/kids-mode.php shows the steps.
 
-// 2. Start Session & Headers
 if (session_status() === PHP_SESSION_NONE) session_start();
 header('Content-Type: application/json');
+require_once __DIR__ . '/../lib/pin_guard.php';
 
-// 3. Check Login
+function kidsModeResponse(array $body): void
+{
+    echo json_encode($body);
+    exit;
+}
+
+function setKidsMode(PDO $conn, int $userId, bool $on): void
+{
+    $conn->prepare("UPDATE users SET is_kids_mode = ? WHERE id = ?")->execute([$on ? 1 : 0, $userId]);
+    $_SESSION['is_kids_mode'] = $on;
+    $_SESSION['is_kid'] = $on ? 1 : 0; // older code reads this
+}
+
+$unavailable = "Kids Mode can't be changed right now. Please try again shortly.";
+
 if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['status' => 'error', 'message' => 'Please login first.']);
-    exit;
+    kidsModeResponse(['status' => 'login', 'message' => 'Sign in to use Kids Mode.']);
+}
+if (!isset($conn)) {
+    kidsModeResponse(['status' => 'error', 'message' => $unavailable]);
 }
 
-$userId = $_SESSION['user_id'];
+$userId = (int) $_SESSION['user_id'];
 
-// 4. GET FRESH DATA FROM DB (Crucial Fix)
-// We fetch the plan_id directly from DB because the session might be stale or missing it.
-if (isset($conn)) {
-    try {
-        $stmt = $conn->prepare("SELECT current_plan_id, parental_pin_hash, is_kids_mode FROM users WHERE id = ?");
-        $stmt->execute([$userId]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+try {
+    // Read from the database: the session copy can be stale.
+    $stmt = $conn->prepare("SELECT current_plan_id, parental_pin_hash, is_kids_mode FROM users WHERE id = ?");
+    $stmt->execute([$userId]);
+    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    if (!$user) {
+        kidsModeResponse(['status' => 'login', 'message' => 'Sign in to use Kids Mode.']);
+    }
 
-        if (!$user) {
-            echo json_encode(['status' => 'error', 'message' => 'User not found.']);
-            exit;
+    $pinHash = $user['parental_pin_hash'];
+    $inKidsMode = (int) ($user['is_kids_mode'] ?? 0) === 1;
+    $_SESSION['is_kids_mode'] = $inKidsMode;
+    $_SESSION['is_kid'] = $inKidsMode ? 1 : 0;
+
+    // ---- Turning Kids Mode on -------------------------------------------
+    if (!$inKidsMode) {
+        // Premium only, unless ALLOW_FREE_KIDS is set in the config. Checked
+        // only when turning it on, so nobody is stuck in Kids Mode after
+        // their plan ends.
+        $allowFreeKids = defined('ALLOW_FREE_KIDS') ? (bool) ALLOW_FREE_KIDS : getenv('ALLOW_FREE_KIDS') === '1';
+        if (!$allowFreeKids && (int) ($user['current_plan_id'] ?? 1) <= 1) {
+            kidsModeResponse(['status' => 'upgrade', 'message' => 'Kids Mode is a Premium feature.']);
         }
-
-        // Set variables from DB
-        $currentPlanId = $user['current_plan_id'] ?? 1;
-        $pinHash = $user['parental_pin_hash'];
-        $dbKidsMode = $user['is_kids_mode'] ?? 0;
-        
-        // Sync session with DB (Self-Correction)
-        $_SESSION['is_kids_mode'] = ($dbKidsMode == 1);
-
-    } catch (PDOException $e) {
-        echo json_encode(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
-        exit;
+        // A PIN must exist first, or a child could simply switch back.
+        if (empty($pinHash)) {
+            kidsModeResponse(['status' => 'no_pin', 'message' => 'Create a parental PIN first.']);
+        }
+        setKidsMode($conn, $userId, true);
+        kidsModeResponse(['status' => 'success', 'mode' => 'kid', 'message' => 'Kids Mode is on.']);
     }
-} else {
-    echo json_encode(['status' => 'error', 'message' => 'Database connection failed.']);
-    exit;
-}
 
-// 5. PREMIUM CHECK (The Gatekeeper)
-// Production behavior: block free users (current_plan_id <= 1).
-// For testing/dev we support a safe override. Set environment variable ALLOW_FREE_KIDS=1
-// or define('ALLOW_FREE_KIDS', true) in your config to bypass this check.
-
-// Resolve the override from a constant first, then environment variable fallback.
-$allowFreeKids = false;
-if (defined('ALLOW_FREE_KIDS')) {
-    $allowFreeKids = (bool) ALLOW_FREE_KIDS;
-} elseif (getenv('ALLOW_FREE_KIDS') !== false) {
-    $allowFreeKids = (string) getenv('ALLOW_FREE_KIDS') === '1';
-}
-
-if (!$allowFreeKids && $currentPlanId <= 1) {
-    echo json_encode([
-        'status' => 'error', 
-        'message' => 'Kids Mode is a Premium feature. Please upgrade to access.'
-    ]);
-    exit;
-}
-
-// 6. TOGGLE LOGIC
-
-// Helper function to update DB
-function setKidsMode($conn, $uid, $status) {
-    $val = $status ? 1 : 0;
-    $stmt = $conn->prepare("UPDATE users SET is_kids_mode = ? WHERE id = ?");
-    $stmt->execute([$val, $uid]);
-}
-
-// A. If NOT in Kids Mode -> ENTER IT
-if (empty($_SESSION['is_kids_mode'])) {
-    // Require a parental PIN to be set BEFORE enabling Kids Mode. This prevents kids from later switching
-    // back to the parent profile and seeing adult content without a PIN.
+    // ---- Turning Kids Mode off ------------------------------------------
     if (empty($pinHash)) {
-        echo json_encode(['status' => 'no_pin', 'message' => 'Please set a Parental PIN before enabling Kids Mode.']);
-        exit;
-    }
-
-    $_SESSION['is_kids_mode'] = true;
-    $_SESSION['is_kid'] = 1; // Legacy support
-    setKidsMode($conn, $userId, true);
-
-    echo json_encode(['status' => 'success', 'message' => 'Switched to Kids Profile', 'mode' => 'kid']);
-    exit;
-}
-
-// B. If IN Kids Mode -> EXIT IT
-// B1. If no PIN set, exit immediately
-if (empty($pinHash)) {
-    $_SESSION['is_kids_mode'] = false;
-    $_SESSION['is_kid'] = 0;
-    setKidsMode($conn, $userId, false);
-
-    echo json_encode(['status' => 'success', 'message' => 'Switched to Parent Profile', 'mode' => 'parent']);
-    exit;
-}
-
-// B2. If PIN exists, Verify it
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['parent_pin'])) {
-    $enteredPin = trim($_POST['parent_pin']);
-    
-    if (password_verify($enteredPin, $pinHash)) {
-        // Correct PIN
-        $_SESSION['is_kids_mode'] = false;
-        $_SESSION['is_kid'] = 0;
         setKidsMode($conn, $userId, false);
-        echo json_encode(['status' => 'success', 'message' => 'Switched to Parent Profile', 'mode' => 'parent']);
-    } else {
-        // Wrong PIN
-        echo json_encode(['status' => 'error', 'message' => 'Incorrect PIN.']);
+        kidsModeResponse(['status' => 'success', 'mode' => 'parent', 'message' => 'Switched to the main profile.']);
     }
-    exit;
-}
 
-// B3. Ask for PIN — respond with JSON (was previously commented out which returned an empty page)
-echo json_encode(['status' => 'need_pin', 'message' => 'Parental PIN required.']);
-exit;
-?>
+    if ($wait = pinLockSeconds()) {
+        kidsModeResponse(['status' => 'locked', 'retry_after' => $wait, 'message' => 'Too many wrong PINs. Try again in ' . pinWaitText($wait) . '.']);
+    }
+
+    $pin = trim((string) ($_POST['parent_pin'] ?? ''));
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST' || $pin === '') {
+        kidsModeResponse(['status' => 'need_pin', 'message' => 'Enter the parental PIN.']);
+    }
+
+    if (!password_verify($pin, $pinHash)) {
+        $left = pinRecordFailure();
+        if ($left === 0) {
+            $wait = pinLockSeconds();
+            kidsModeResponse(['status' => 'locked', 'retry_after' => $wait, 'message' => 'Too many wrong PINs. Try again in ' . pinWaitText($wait) . '.']);
+        }
+        kidsModeResponse(['status' => 'wrong_pin', 'attempts_left' => $left, 'message' => "That PIN isn't right. {$left} " . ($left === 1 ? 'try' : 'tries') . ' left.']);
+    }
+
+    pinRecordSuccess();
+    setKidsMode($conn, $userId, false);
+    kidsModeResponse(['status' => 'success', 'mode' => 'parent', 'message' => 'Switched to the main profile.']);
+} catch (PDOException $e) {
+    error_log('switch-mode: ' . $e->getMessage());
+    kidsModeResponse(['status' => 'error', 'message' => $unavailable]);
+}

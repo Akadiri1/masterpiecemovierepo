@@ -84,7 +84,7 @@ if (!$details) {
 // ==========================================
 $title = $details['title'] ?? $details['name'];
 $overview = $details['overview'];
-$backdrop = !empty($details['backdrop_path']) ? 'https://image.tmdb.org/t/p/original' . $details['backdrop_path'] : $backdropPlaceholder;
+$backdrop = !empty($details['backdrop_path']) ? 'https://image.tmdb.org/t/p/w1280' . $details['backdrop_path'] : $backdropPlaceholder;
 $rating = number_format($details['vote_average'] ?? 0, 1);
 $releaseDate = $details['release_date'] ?? $details['first_air_date'] ?? '';
 $year = $releaseDate ? date('Y', strtotime($releaseDate)) : 'N/A';
@@ -162,6 +162,19 @@ if (isset($conn)) {
     $movieReviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+// The signed-in user's own review (the review panel edits it) and the average score.
+$myReview = null;
+$reviewAverage = null;
+if ($movieReviews) {
+    $reviewAverage = number_format(array_sum(array_column($movieReviews, 'rating')) / count($movieReviews), 1);
+    foreach ($movieReviews as $r) {
+        if (isset($_SESSION['user_id']) && (int) $r['user_id'] === (int) $_SESSION['user_id']) {
+            $myReview = $r;
+            break;
+        }
+    }
+}
+
 // --- WATCHLIST ---
 $isInWatchlist = false;
 if (isset($conn) && isset($_SESSION['user_id'])) {
@@ -200,11 +213,14 @@ if (!empty($details['credits']['crew'])) {
 // ==========================================
 // Only links the site itself stores in media_downloads. This page used to
 // search five outside download sites on every visit, which held the whole
-// page back by several seconds.
+// page back by several seconds. These are files the site may share: titles
+// published by the licensed ingestion pipeline (v1/ingest) and links added
+// under Admin > Download Links.
 $downloadLinks = [];
 if (isset($conn) && isset($mediaId) && isset($mediaType)) {
-    $stmt = $conn->prepare("SELECT quality, file_size, download_url, language FROM media_downloads
-              WHERE tmdb_id = ? AND media_type = ? ORDER BY quality DESC");
+    $stmt = $conn->prepare("SELECT quality, file_size, download_url, language, season, episode, license_label FROM media_downloads
+              WHERE tmdb_id = ? AND media_type = ? AND is_active = 1
+              ORDER BY season, episode, quality DESC");
     $stmt->execute([$mediaId, $mediaType]);
     $downloadLinks = $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -237,6 +253,11 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
   <link rel="stylesheet" href="assets/css/core/watch-theme.css?v=<?php echo time() + 2; ?>">
   <link rel="stylesheet" href="assets/vendor/phosphor-icons/Fonts/regular/style.css">
   <link rel="stylesheet" href="assets/vendor/phosphor-icons/Fonts/fill/style.css">
+  <!-- Posters and backdrops come from TMDB's image server: connect early. -->
+  <link rel="preconnect" href="https://image.tmdb.org">
+  <!-- Loading placeholders for images and page changes -->
+  <link rel="stylesheet" href="/assets/css/core/skeleton.css?v=1">
+  <script src="/assets/js/skeleton.js?v=1" defer></script>
 
   <script>
     // Apply saved theme immediately to prevent flashing
@@ -260,25 +281,6 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
             .watch-app {
                 overflow: visible !important;
                 height: auto !important;
-            }
-            .meta-actions {
-                flex-direction: column;
-                align-items: stretch !important;
-            }
-            .btn-play-now {
-                width: 100% !important;
-                justify-content: center !important;
-                margin-left: 0 !important;
-            }
-            .meta-actions-circles {
-                display: flex;
-                gap: 15px;
-                justify-content: center;
-                width: 100%;
-                margin-top: 5px;
-            }
-            .btn-circle-action {
-                margin-left: 0 !important;
             }
         }
 
@@ -380,13 +382,13 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
       .meta-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; }
       .meta-tag { background: rgba(255,255,255,0.1); backdrop-filter: blur(4px); padding: 5px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; color: #eee; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.05); }
       .meta-desc { font-size: 0.95rem; color: #ccc; max-width: 800px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 20px; line-height: 1.6; }
-      .meta-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-      .meta-actions-circles { display: flex; gap: 12px; align-items: center; }
+      .meta-actions { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+      
       
       .btn-play-now { background: var(--primary); color: #fff; border: none; padding: 12px 28px; border-radius: 8px; font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 8px; text-decoration: none; transition: 0.2s; box-shadow: 0 4px 15px var(--primary-glow); }
       .btn-play-now:hover { background: var(--primary-hover); color: #fff; transform: translateY(-2px); }
-      .btn-circle-action { width: 45px; height: 45px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: 0.2s; cursor: pointer; text-decoration: none; }
-      .btn-circle-action:hover { background: var(--primary); color: #fff; transform: translateY(-2px); border-color: var(--primary); box-shadow: 0 4px 15px var(--primary-glow); }
+      
+      
       
       /* Sidebar Toggle & Cast Link */
       .cast-row-link { display: block; text-decoration: none; transition: transform 0.2s; }
@@ -474,6 +476,127 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
       }
       
       .sidebar-brand .logo-text { color: #fff !important; font-weight: 800; letter-spacing: -1px; }
+
+      /* ---- Title, actions and reviews ---------------------------------------
+         For every screen size; phones are tuned further in the block below. */
+      .center-top-bar { display: flex; align-items: center; gap: 8px; }
+      /* Search and ZEN AI sit together on the right of the top bar. */
+      .top-search-btn { margin-left: auto; }
+      .top-search-btn + .top-ai-btn { margin-left: 0; }
+      .top-ai-btn {
+          margin-left: auto;
+          border: 1px solid transparent !important;
+          border-radius: 10px;
+          background: linear-gradient(#12121a, #12121a) padding-box,
+                      linear-gradient(135deg, #00e0ff, #7b2cbf) border-box !important;
+          color: #8ff0ff !important;
+          cursor: pointer;
+      }
+      .section-heading { margin: 0; color: #fff; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.2px; }
+
+      /* Backdrop with a "Watch trailer" button; the player loads when pressed. */
+      .detail-hero { background-color: #0d0d14; background-size: cover; background-position: center 25%; }
+      .detail-hero-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 10, 15, 0.05) 0%, rgba(10, 10, 15, 0.2) 50%, rgba(10, 10, 15, 0.7) 100%); pointer-events: none; }
+      .detail-trailer-btn { position: absolute; left: 50%; top: 50%; display: inline-flex; align-items: center; gap: 12px; padding: 7px 20px 7px 7px; border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 999px; background: rgba(12, 12, 18, 0.55); color: #fff; font-size: 0.95rem; font-weight: 700; white-space: nowrap; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transform: translate(-50%, -50%); cursor: pointer; transition: background 0.2s, transform 0.2s; }
+      .detail-trailer-btn:hover { background: rgba(12, 12, 18, 0.78); transform: translate(-50%, -50%) scale(1.03); }
+      .detail-trailer-icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: var(--primary); box-shadow: 0 6px 18px -6px var(--primary-glow); font-size: 1.05rem; }
+      .detail-trailer-icon i { margin-left: 2px; }
+
+      #ai-hook-container {
+          background: linear-gradient(135deg, rgba(0, 224, 255, 0.07), rgba(123, 44, 191, 0.16)) !important;
+          border: 1px solid rgba(123, 44, 191, 0.35) !important;
+          border-radius: 14px !important;
+          padding: 14px 16px !important;
+          line-height: 1.55;
+      }
+
+      .meta-more { margin: -12px 0 20px; padding: 0; border: 0; background: none; color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+      .meta-more:hover { color: var(--primary); }
+      .meta-desc.is-open { display: block; -webkit-line-clamp: unset; overflow: visible; }
+
+      .btn-play-now { justify-content: center; min-height: 56px; border-radius: 12px; }
+      .meta-tiles { display: flex; gap: 10px; }
+      .meta-tile {
+          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+          min-width: 76px; height: 56px; padding: 0 12px;
+          border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.06);
+          color: #e8e8ef; font-size: 0.72rem; font-weight: 600; text-decoration: none; cursor: pointer;
+          transition: background 0.2s, border-color 0.2s, transform 0.2s;
+      }
+      .meta-tile i { font-size: 1.3rem; line-height: 1; }
+      .meta-tile:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.16); color: #fff; transform: translateY(-1px); }
+      .meta-tile-ai i { background: linear-gradient(135deg, #00e0ff, #b46cff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+      .reviews-section { margin: 28px 0 16px; }
+      .reviews-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+      .reviews-count { display: inline-block; margin-left: 6px; padding: 2px 9px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); color: #bbb; font-size: 0.8rem; font-weight: 700; vertical-align: middle; }
+      .reviews-write { display: inline-flex; align-items: center; gap: 6px; min-height: 0; padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.04); color: #fff !important; font-size: 0.85rem; font-weight: 600; text-decoration: none; white-space: nowrap; cursor: pointer; transition: background 0.2s, border-color 0.2s; }
+      .reviews-write:hover { background: var(--primary); border-color: var(--primary); }
+      .reviews-empty { border: 1px dashed rgba(255, 255, 255, 0.12); border-radius: 14px; background: rgba(255, 255, 255, 0.02); }
+      .comments-list .reviews-empty.p-4 { padding: 28px 16px !important; }
+      .reviews-empty-icon { width: 48px; height: 48px; margin: 0 auto 10px; display: grid; place-items: center; border-radius: 50%; background: rgba(255, 255, 255, 0.06); color: #9a9aa6; font-size: 1.5rem; }
+      .reviews-empty-title { margin: 0 0 4px; color: #fff; font-weight: 600; }
+      .reviews-empty-text { margin: 0; color: #8a8a96; font-size: 0.9rem; }
+      .review-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+      .review-avatar { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+      .review-who { flex: 1; min-width: 0; }
+      .review-who h6 { margin: 0; overflow: hidden; color: #fff; font-size: 0.95rem; white-space: nowrap; text-overflow: ellipsis; }
+      .review-who small { color: #888; font-size: 0.78rem; }
+      .review-stars { flex-shrink: 0; font-size: 0.85rem; }
+      .review-text { margin: 0; color: #ccc; font-size: 0.95rem; line-height: 1.55; }
+      .reviews-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 12px; min-width: 0; }
+      .reviews-avg { color: #9a9aa6; font-size: 0.85rem; }
+      .reviews-avg strong { color: #fff; }
+      .reviews-avg-star { color: #f5c518; }
+      .reviews-empty { padding: 26px 16px; text-align: center; }
+      .review-you { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); color: #ddd; font-size: 0.66rem; font-weight: 700; vertical-align: middle; }
+      .review-stars { letter-spacing: 1px; line-height: 1; font-size: 0.95rem; }
+      .review-stars .on { color: #f5c518; }
+      .review-stars .off { color: #3b3b48; }
+      .review-text { white-space: pre-line; }
+      .review-card.is-new { animation: reviewIn 0.45s ease-out; border-color: rgba(245, 197, 24, 0.35); }
+      @keyframes reviewIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+      /* Keep the floating buttons out of the review panel's way. */
+      body.zen-sheet-open .zen-ai-float, body.zen-sheet-open .theme-switcher-float { display: none !important; }
+
+      /* Details on phones (see the markup). Shown only where the right-hand
+         panel is squeezed out, below 800px. */
+      .mobile-details { display: none; }
+      .md-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; overflow: hidden; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.08); }
+      .md-fact { min-width: 0; padding: 12px; background: #101017; }
+      .md-fact:last-child:nth-child(3n + 2) { grid-column: span 2; }
+      .md-fact span { display: block; margin-bottom: 2px; color: #8a8a96; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+      .md-fact strong { display: block; color: #fff; font-size: 0.9rem; font-weight: 600; overflow-wrap: anywhere; }
+      .md-heading { margin: 24px 0 12px; }
+      .md-people { display: flex; gap: 14px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+      .md-people::-webkit-scrollbar { display: none; }
+      .md-person { flex: 0 0 76px; text-align: center; text-decoration: none; }
+      .md-person img { display: block; width: 72px; height: 72px; margin: 0 auto 8px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.08); background: #1a1a24; object-fit: cover; }
+      .md-person strong { display: -webkit-box; overflow: hidden; color: #fff; font-size: 0.78rem; font-weight: 600; line-height: 1.25; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      .md-person span { display: block; margin-top: 2px; overflow: hidden; color: #8a8a96; font-size: 0.7rem; line-height: 1.25; white-space: nowrap; text-overflow: ellipsis; }
+
+      @media (max-width: 800px) {
+          /* The desktop side panel. Its content is in .mobile-details on phones, and
+             even squeezed to zero width its padding showed as a strip on the right. */
+          .watch-right { display: none !important; }
+          /* Just enough room above the bottom bar. */
+          .watch-center { padding-bottom: 16px !important; }
+          .reviews-section { margin-bottom: 0; }
+          .mobile-details { display: block; margin: 4px 0 8px; }
+          .detail-stage { margin-bottom: 16px; border-radius: 14px; }
+          .detail-meta-card { margin-bottom: 8px; padding: 2px 0 4px; border: 0; background: transparent; }
+          .meta-tags { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-bottom: 12px; padding-bottom: 2px; }
+          .meta-tags::-webkit-scrollbar { display: none; }
+          .meta-tag { flex-shrink: 0; padding: 4px 10px; border-radius: 999px; font-size: 0.7rem; }
+          .meta-title { margin-bottom: 8px; font-size: 1.9rem; }
+          .meta-desc { margin-bottom: 16px; font-size: 0.92rem; }
+          .meta-actions { flex-direction: column; gap: 12px; }
+          .btn-play-now { width: 100%; min-height: 52px; font-size: 1.05rem; }
+          .meta-tiles { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; width: 100%; }
+          .meta-tile { min-width: 0; height: 60px; padding: 0 4px; }
+          .section-heading { font-size: 1.2rem; }
+          .reviews-write { padding: 7px 12px; font-size: 0.8rem; }
+      }
   </style>
 </head>
 <body>
@@ -487,16 +610,23 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         <div class="center-top-bar" style="position: relative; background: transparent; padding: 0 0 15px 0;">
             <button class="back-btn" id="sidebarToggleBtn" style="border:none; cursor:pointer;"><i class="ph ph-list"></i></button>
             <a href="javascript:history.back()" class="back-btn text-decoration-none" style="background: rgba(255,255,255,0.05); border-radius: 8px;"><i class="ph ph-arrow-left"></i></a>
+            <!-- ZEN AI on phones and tablets, instead of the floating button that covered the page. -->
+            <button type="button" class="back-btn top-search-btn d-xl-none" onclick="openSearchModal();" title="Search" aria-label="Search" style="background: rgba(255,255,255,0.05); border-radius: 10px;"><i class="ph ph-magnifying-glass"></i></button>
+            <button type="button" class="back-btn top-ai-btn d-xl-none" onclick="if (typeof triggerZenAI === 'function') triggerZenAI();" title="Ask ZEN AI" aria-label="Ask ZEN AI"><i class="ph-fill ph-sparkle"></i></button>
         </div>
 
-        <?php if ($trailerEmbed): ?>
-        <div class="detail-stage">
-            <iframe src="<?php echo htmlspecialchars($trailerEmbed); ?>" allowfullscreen></iframe>
+        <!-- Backdrop with a "Watch trailer" button. The YouTube player (about a
+             megabyte of scripts, plus YouTube's own title bar) only loads when
+             someone presses it. -->
+        <div class="detail-stage detail-hero" style="background-image: url('<?php echo htmlspecialchars($backdrop); ?>');">
+            <div class="detail-hero-shade" aria-hidden="true"></div>
+            <?php if ($trailerEmbed): ?>
+            <button type="button" class="detail-trailer-btn" id="detailTrailerBtn" data-embed="<?php echo htmlspecialchars($trailerEmbed); ?>" aria-label="Watch the trailer for <?php echo htmlspecialchars($title); ?>">
+                <span class="detail-trailer-icon"><i class="ph-fill ph-play"></i></span>
+                <span class="detail-trailer-label">Watch trailer</span>
+            </button>
+            <?php endif; ?>
         </div>
-        <?php else: ?>
-        <div class="detail-stage" style="background-image: url('<?php echo htmlspecialchars($backdrop); ?>'); background-size: cover; background-position: center;"></div>
-        <?php endif; ?>
-
         <div class="detail-meta-card">
             <?php if (!empty($details['genres'])): ?>
             <div class="meta-tags">
@@ -516,39 +646,80 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                 <div id="ai-hook-text">Thinking...</div>
             </div>
 
-            <p class="meta-desc"><?php echo htmlspecialchars($overview); ?></p>
-            
+            <p class="meta-desc" id="metaDesc"><?php echo htmlspecialchars($overview); ?></p>
+            <button type="button" class="meta-more" id="metaMore" hidden>More</button>
+
             <div class="meta-actions">
                 <a href="watch?id=<?php echo $mediaId; ?>&type=<?php echo $mediaType; ?>" class="btn-play-now">
-                    <i class="ph-fill ph-play-circle" style="font-size: 1.5rem;"></i> Play Now
+                    <i class="ph-fill ph-play" style="font-size: 1.25rem;"></i> Play Now
                 </a>
-                
-                <button class="btn-play-now" onclick="triggerZenAI('Find 5 movies that are extremely similar to <?php echo addslashes($title); ?>')" style="background: linear-gradient(135deg, #00e0ff, #7b2cbf); border: none; padding: 12px 24px; color: #fff; font-weight: 600; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 10px; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
-                    <i class="ph-fill ph-sparkle"></i> AI: Find Similar
-                </button>
-                
-                <div class="meta-actions-circles">
-                    <a href="#" class="btn-circle-action watchlist-btn" style="margin-left: 10px;" data-id="<?php echo $mediaId; ?>" data-type="<?php echo $mediaType; ?>" title="Add to Watchlist">
+
+                <div class="meta-tiles">
+                    <a href="#" class="meta-tile watchlist-btn" data-id="<?php echo $mediaId; ?>" data-type="<?php echo $mediaType; ?>" title="<?php echo $isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'; ?>">
                         <i class="<?php echo $isInWatchlist ? 'ph ph-check text-success' : 'ph ph-plus'; ?>"></i>
+                        <span>My List</span>
                     </a>
-                    
-                    <?php if (!$isUpcoming): ?>
-                    <button class="btn-circle-action" data-bs-target="#downloadModal" title="Download">
-                        <i class="fa-solid fa-download"></i>
+                    <?php $similarPrompt = ($mediaType === 'tv' ? 'Find 5 TV shows that are extremely similar to ' : 'Find 5 movies that are extremely similar to ') . $title; ?>
+                    <button type="button" class="meta-tile meta-tile-ai" onclick="triggerZenAI(<?php echo htmlspecialchars(json_encode($similarPrompt), ENT_QUOTES); ?>)" title="Ask ZEN AI for similar titles">
+                        <i class="ph-fill ph-sparkle"></i>
+                        <span>Similar</span>
+                    </button>
+                    <?php if (!$isUpcoming && !empty($downloadLinks)): ?>
+                    <!-- Only for titles the site has files for; others just don't show it. -->
+                    <button type="button" class="meta-tile" data-bs-target="#downloadModal" title="Download">
+                        <i class="ph ph-download-simple"></i>
+                        <span>Download</span>
                     </button>
                     <?php endif; ?>
-
-                    <button class="btn-circle-action" onclick="navigator.share({title: document.title, url: window.location.href})" title="Share">
+                    <button type="button" class="meta-tile" onclick="navigator.share({title: document.title, url: window.location.href})" title="Share">
                         <i class="ph ph-share-network"></i>
+                        <span>Share</span>
                     </button>
                 </div>
             </div>
         </div>
 
+        <!-- Details on phones. Wider screens show these in the right-hand panel,
+             which has no room on a phone and was simply hidden there. -->
+        <section class="mobile-details">
+            <div class="md-facts">
+                <div class="md-fact"><span>Status</span><strong><?php echo htmlspecialchars($details['status'] ?? 'Released'); ?></strong></div>
+                <div class="md-fact"><span>Aired</span><strong><?php echo htmlspecialchars($year); ?></strong></div>
+                <div class="md-fact"><span>Duration</span><strong><?php echo htmlspecialchars($duration); ?></strong></div>
+                <div class="md-fact"><span>Language</span><strong><?php echo htmlspecialchars($originalLang); ?></strong></div>
+                <div class="md-fact"><span>Views</span><strong><?php echo number_format($viewCount); ?></strong></div>
+            </div>
+
+            <?php if (!empty($castList)): ?>
+            <h4 class="section-heading md-heading">Cast</h4>
+            <div class="md-people">
+                <?php foreach (array_slice($castList, 0, 12) as $actor): ?>
+                <a href="person-detail?id=<?php echo $actor['id']; ?>" class="md-person">
+                    <img src="<?php echo !empty($actor['profile_path']) ? 'https://image.tmdb.org/t/p/w185'.$actor['profile_path'] : 'assets/images/user/userblank.jpg'; ?>" loading="lazy" decoding="async" alt="">
+                    <strong><?php echo htmlspecialchars($actor['name']); ?></strong>
+                    <span><?php echo htmlspecialchars($actor['character'] ?? ''); ?></span>
+                </a>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($crewList)): ?>
+            <h4 class="section-heading md-heading">Crew</h4>
+            <div class="md-people">
+                <?php foreach ($crewList as $crew): ?>
+                <a href="person-detail?id=<?php echo $crew['id']; ?>" class="md-person">
+                    <img src="<?php echo !empty($crew['profile_path']) ? 'https://image.tmdb.org/t/p/w185'.$crew['profile_path'] : 'assets/images/user/userblank.jpg'; ?>" loading="lazy" decoding="async" alt="">
+                    <strong><?php echo htmlspecialchars($crew['name']); ?></strong>
+                    <span><?php echo htmlspecialchars($crew['job'] ?? 'Crew'); ?></span>
+                </a>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+        </section>
         <!-- Recommended Section -->
         <?php if (!empty($relatedList)): ?>
         <div class="recommended-section mx-0 px-0 mt-4 mb-4">
-            <h4 class="mb-3" style="font-weight: 700; font-size: 1.4rem; color:#fff;">Related Content</h4>
+            <h4 class="section-heading mb-3">More like this</h4>
             <div class="rec-cards">
                 <?php foreach ($relatedList as $rec): ?>
                 <a href="<?php echo ($mediaType === 'tv' ? 'tv/' : 'movie/') . $rec['id']; ?>" class="rec-card text-decoration-none">
@@ -562,50 +733,50 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         <?php endif; ?>
         
         <!-- Reviews Section -->
-        <div class="reviews-section mx-0 px-0 mt-4 mb-3">
-             <div class="d-flex align-items-center justify-content-between mb-3 border-bottom border-secondary pb-2">
-                 <h4 style="font-weight: 700; font-size: 1.4rem; color:#fff; margin:0;">Reviews (<?php echo count($movieReviews); ?>)</h4>
-                 <div>
-                     <?php if(isset($_SESSION['user_id'])): ?>
-                         <button class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="offcanvas" data-bs-target="#offcanvasReview">Add Review</button>
-                     <?php else: ?>
-                         <a href="login" class="btn btn-sm btn-outline-light rounded-pill px-3">Login to Review</a>
-                     <?php endif; ?>
-                 </div>
-             </div>
-             
-             <div class="comments-list">
-                 <?php if(!empty($movieReviews)): ?>
-                     <?php foreach($movieReviews as $review): 
-                         $rAvatar = !empty($review['avatar_url']) ? $review['avatar_url'] : 'assets/images/user/user.jpg';
-                     ?>
-                     <div class="review-card">
-                         <div class="d-flex justify-content-between align-items-center mb-2">
-                             <div class="d-flex align-items-center gap-2">
-                                 <img src="<?php echo $rAvatar; ?>" alt="user" style="width:40px; height:40px; object-fit:cover; border-radius:50%;">
-                                 <div>
-                                     <h6 style="margin:0; font-size:1rem; color:#fff;"><?php echo htmlspecialchars($review['username']); ?></h6>
-                                     <small style="color:#888; font-size:0.8rem;"><?php echo date('M d, Y', strtotime($review['created_at'])); ?></small>
-                                 </div>
-                             </div>
-                             <div>
-                                 <?php for($i=1; $i<=5; $i++): ?>
-                                     <i class="ph ph-star" style="<?php echo ($i <= $review['rating']) ? "font-family:'Phosphor-Fill' !important; color:#ffc107;" : "color:#666;"; ?>"></i>
-                                 <?php endfor; ?>
-                             </div>
-                         </div>
-                         <p style="margin:0; color:#ccc; font-size:0.95rem; line-height:1.5;"><?php echo nl2br(htmlspecialchars($review['review_text'])); ?></p>
-                     </div>
-                     <?php endforeach; ?>
-                 <?php else: ?>
-                     <div class="text-center p-4">
-                         <i class="ph-light ph-chat-centered-text text-secondary mb-2" style="font-size:3rem;"></i>
-                         <p style="color:#888;">No reviews yet. Be the first to share your thoughts!</p>
-                     </div>
-                 <?php endif; ?>
-             </div>
-        </div>
-    </main>
+        <section class="reviews-section" id="reviews">
+            <div class="reviews-head">
+                <div class="reviews-title">
+                    <h4 class="section-heading">Reviews <span class="reviews-count" id="reviewsCount"><?php echo count($movieReviews); ?></span></h4>
+                    <span class="reviews-avg" id="reviewsAvg"<?php echo $reviewAverage ? '' : ' hidden'; ?>><span class="reviews-avg-star">★</span> <strong><?php echo $reviewAverage ?? ''; ?></strong> average</span>
+                </div>
+                <?php if (isset($_SESSION['user_id'])): ?>
+                    <button type="button" class="reviews-write" id="reviewWriteBtn" data-bs-toggle="offcanvas" data-bs-target="#offcanvasReview"><i class="ph ph-pencil-simple-line"></i> <span><?php echo $myReview ? 'Edit your review' : 'Write a review'; ?></span></button>
+                <?php else: ?>
+                    <a href="/login?next=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>" class="reviews-write"><i class="ph ph-sign-in"></i> <span>Log in to review</span></a>
+                <?php endif; ?>
+            </div>
+
+            <div class="comments-list">
+                <?php if (!empty($movieReviews)): ?>
+                    <?php foreach ($movieReviews as $review):
+                        $rAvatar = !empty($review['avatar_url']) ? $review['avatar_url'] : '/assets/images/user/user.jpg';
+                        if (!preg_match('~^(https?:)?/~', $rAvatar)) {
+                            $rAvatar = '/' . $rAvatar;
+                        }
+                        $isMine = isset($_SESSION['user_id']) && (int) $review['user_id'] === (int) $_SESSION['user_id'];
+                        $stars = max(0, min(5, (int) $review['rating']));
+                    ?>
+                    <div class="review-card" data-user="<?php echo (int) $review['user_id']; ?>">
+                        <div class="review-top">
+                            <img src="<?php echo htmlspecialchars($rAvatar); ?>" alt="" class="review-avatar">
+                            <div class="review-who">
+                                <h6><?php echo htmlspecialchars($review['username']); ?><?php if ($isMine): ?><span class="review-you">You</span><?php endif; ?></h6>
+                                <small><?php echo date('M d, Y', strtotime($review['created_at'])); ?></small>
+                            </div>
+                            <span class="review-stars" role="img" aria-label="<?php echo $stars; ?> out of 5 stars"><span class="on"><?php echo str_repeat('★', $stars); ?></span><span class="off"><?php echo str_repeat('★', 5 - $stars); ?></span></span>
+                        </div>
+                        <p class="review-text"><?php echo htmlspecialchars($review['review_text']); ?></p>
+                    </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="reviews-empty">
+                        <div class="reviews-empty-icon"><i class="ph ph-chat-centered-text"></i></div>
+                        <p class="reviews-empty-title">No reviews yet</p>
+                        <p class="reviews-empty-text">Watched it? Be the first to share what you thought.</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </section>        </section>    </main>
 
     <!-- 3. Right Panel -->
     <aside class="watch-right custom-scrollbar" id="sidebar">
@@ -669,7 +840,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 <div class="dl-modal-overlay" id="downloadModal">
     <div class="dl-modal">
         <div class="dl-modal-header">
-            <h3><i class="fa-solid fa-download" style="color:#4cd137;margin-right:8px;"></i> Sources</h3>
+            <h3><i class="ph ph-download-simple" style="color:#4cd137;margin-right:8px;"></i> Download</h3>
             <button class="dl-modal-close" data-bs-dismiss="modal" id="dlModalClose"><i class="fa-solid fa-times"></i></button>
         </div>
         <div class="dl-modal-body">
@@ -677,22 +848,26 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 
             <?php if(!empty($downloadLinks)): ?>
                 <div class="d-flex flex-column gap-2" style="max-height: 400px; overflow-y:auto; overflow-x:hidden;">
-                    <?php foreach ($downloadLinks as $link): 
-                        $isMagnet = (strpos($link['download_url'], 'magnet:') !== false);
-                        $icon = $isMagnet ? 'fa-magnet' : 'fa-external-link-alt';
+                    <?php foreach ($downloadLinks as $link):
+                        // Through /download, which records the download and sends the file.
+                        $dlQuery = ['id' => $mediaId, 'type' => $mediaType, 'quality' => $link['quality']];
+                        $isEpisode = $mediaType === 'tv' && !empty($link['season']);
+                        if ($isEpisode) {
+                            $dlQuery['season'] = $link['season'];
+                            $dlQuery['episode'] = $link['episode'];
+                        }
+                        $dlLabel = $isEpisode ? 'Season ' . (int) $link['season'] . ', episode ' . (int) $link['episode'] : 'Full ' . ($mediaType === 'tv' ? 'series' : 'movie');
                     ?>
-                        <a href="<?php echo htmlspecialchars($link['download_url']); ?>" class="dl-quality-item" target="_blank" rel="noopener">
+                        <a href="/download?<?php echo htmlspecialchars(http_build_query($dlQuery)); ?>" class="dl-quality-item" target="_blank" rel="noopener">
                             <div class="dl-quality-info">
                                 <div class="dl-quality-badge">
                                     <span class="badge-res"><?php echo htmlspecialchars($link['quality']); ?></span>
-                                    <span class="badge-format"><?php echo htmlspecialchars($link['language']); ?></span>
+                                    <?php if (!empty($link['language'])): ?><span class="badge-format"><?php echo htmlspecialchars($link['language']); ?></span><?php endif; ?>
                                 </div>
-                                <span class="dl-quality-label"><?php echo htmlspecialchars($link['file_size']); ?></span>
-                                <span class="dl-quality-meta">Download</span>
+                                <span class="dl-quality-label"><?php echo htmlspecialchars($dlLabel); ?><?php echo !empty($link['file_size']) ? ' · ' . htmlspecialchars($link['file_size']) : ''; ?></span>
+                                <?php if (!empty($link['license_label'])): ?><span class="dl-quality-meta"><?php echo htmlspecialchars($link['license_label']); ?></span><?php endif; ?>
                             </div>
-                            <div class="dl-quality-icon">
-                                <i class="fa-solid <?php echo $icon; ?>"></i>
-                            </div>
+                            <div class="dl-quality-icon"><i class="ph ph-download-simple"></i></div>
                         </a>
                     <?php endforeach; ?>
                 </div>
@@ -707,60 +882,91 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 </div>
 <?php endif; ?>
 
-<!-- REVIEW OFFCANVAS -->
-<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasReview" aria-labelledby="offcanvasReviewLabel">
-  <div class="offcanvas-header">
-    <h5 class="offcanvas-title" id="offcanvasReviewLabel">Add Review</h5>
+<!-- REVIEW PANEL -->
+<div class="offcanvas offcanvas-end review-sheet" tabindex="-1" id="offcanvasReview" aria-labelledby="offcanvasReviewLabel">
+  <div class="offcanvas-header review-sheet-head">
+    <div class="review-sheet-title">
+      <img src="<?php echo htmlspecialchars(!empty($details['poster_path']) ? 'https://image.tmdb.org/t/p/w185' . $details['poster_path'] : $posterPlaceholder); ?>" alt="" class="review-sheet-poster">
+      <div class="review-sheet-heading">
+        <h5 class="offcanvas-title" id="offcanvasReviewLabel"><?php echo $myReview ? 'Edit your review' : 'Write a review'; ?></h5>
+        <p class="review-sheet-sub"><?php echo htmlspecialchars($title); ?><?php echo $year !== 'N/A' ? ' · ' . htmlspecialchars($year) : ''; ?></p>
+      </div>
+    </div>
     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
   </div>
   <div class="offcanvas-body">
-      <form action="" method="POST" id="addReviewForm">
-          <input type="hidden" name="media_id" value="<?php echo $mediaId; ?>">
-          <input type="hidden" name="media_type" value="<?php echo $mediaType; ?>">
-          
-          <div class="mb-4 text-center">
-              <label class="form-label d-block text-start mb-2 text-secondary">Your Rating</label>
-              <div class="star-rating d-flex justify-content-center gap-2 flex-row-reverse" style="background:#1a1a1a; padding:15px; border-radius:12px;">
-                    <input type="radio" id="star5" name="rating" value="5"><label for="star5" style="cursor:pointer;"><i class="ph ph-star fs-1 text-secondary"></i></label>
-                    <input type="radio" id="star4" name="rating" value="4"><label for="star4" style="cursor:pointer;"><i class="ph ph-star fs-1 text-secondary"></i></label>
-                    <input type="radio" id="star3" name="rating" value="3"><label for="star3" style="cursor:pointer;"><i class="ph ph-star fs-1 text-secondary"></i></label>
-                    <input type="radio" id="star2" name="rating" value="2"><label for="star2" style="cursor:pointer;"><i class="ph ph-star fs-1 text-secondary"></i></label>
-                    <input type="radio" id="star1" name="rating" value="1"><label for="star1" style="cursor:pointer;"><i class="ph ph-star fs-1 text-secondary"></i></label>
-              </div>
-          </div>
-          <div class="mb-4">
-              <label class="form-label text-secondary" for="review_text">Your Review</label>
-              <textarea id="review_text" name="review_text" class="form-control" rows="6" required placeholder="What did you think of this?"></textarea>
-          </div>
-          <button type="submit" class="btn w-100" style="background:var(--primary); color:#fff; font-weight:700; padding:12px;">Submit Review</button>
-      </form>
+    <form id="addReviewForm" novalidate>
+      <input type="hidden" name="media_id" value="<?php echo (int) $mediaId; ?>">
+      <input type="hidden" name="media_type" value="<?php echo htmlspecialchars($mediaType); ?>">
+
+      <fieldset class="review-field">
+        <legend class="review-label">Your rating</legend>
+        <div class="review-stars-input" id="reviewStars">
+          <?php for ($s = 1; $s <= 5; $s++): ?>
+          <input type="radio" id="rate-<?php echo $s; ?>" name="rating" value="<?php echo $s; ?>"<?php echo ($myReview && (int) $myReview['rating'] === $s) ? ' checked' : ''; ?>>
+          <label for="rate-<?php echo $s; ?>" aria-label="<?php echo $s; ?> star<?php echo $s > 1 ? 's' : ''; ?>">★</label>
+          <?php endfor; ?>
+        </div>
+        <p class="review-rating-word" id="reviewRatingWord" aria-live="polite">Tap a star to rate</p>
+        <p class="review-error" id="reviewRatingError" hidden>Choose a rating from 1 to 5 stars.</p>
+      </fieldset>
+
+      <div class="review-field">
+        <label class="review-label" for="review_text">Your review</label>
+        <textarea id="review_text" name="review_text" class="review-textarea" rows="6" maxlength="2000" placeholder="What did you like or dislike? Please keep it spoiler-free."><?php echo $myReview ? htmlspecialchars($myReview['review_text']) : ''; ?></textarea>
+        <div class="review-textarea-foot">
+          <p class="review-error" id="reviewTextError" hidden>Write a few words about it.</p>
+          <span class="review-count" id="reviewCount">0 / 2000</span>
+        </div>
+      </div>
+
+      <p class="review-error review-error-box" id="reviewFormError" role="alert" hidden></p>
+
+      <button type="submit" class="review-submit" id="reviewSubmit">
+        <span class="review-submit-text"><?php echo $myReview ? 'Update review' : 'Post review'; ?></span>
+      </button>
+    </form>
   </div>
 </div>
 
 <style>
-/* CSS Fix for Review Stars */
-.star-rating input[type="radio"] {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-    width: 0;
-    height: 0;
-}
-.star-rating label i {
-    color: #6c757d !important; /* Force unselected to gray */
-}
-.star-rating input:checked ~ label i,
-.star-rating label:hover i,
-.star-rating label:hover ~ label i { 
-    color: #ffc107 !important; 
-}
-.star-rating input:checked ~ label i::before,
-.star-rating label:hover i::before,
-.star-rating label:hover ~ label i::before { 
-    font-family: "Phosphor-Fill" !important;
-}
-</style>
+/* ---- Review panel ------------------------------------------------------------ */
+.review-sheet.offcanvas { width: min(440px, 100vw) !important; background: #111118 !important; border-left: 1px solid rgba(255, 255, 255, 0.08) !important; color: #fff; }
+.review-sheet .review-sheet-head { gap: 12px; padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+.review-sheet-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.review-sheet-poster { flex-shrink: 0; width: 44px; height: 66px; border-radius: 8px; object-fit: cover; background: #1c1c26; }
+.review-sheet-heading { min-width: 0; }
+.review-sheet-head .offcanvas-title { margin: 0; font-size: 1.1rem; font-weight: 700; }
+.review-sheet-sub { margin: 2px 0 0; overflow: hidden; color: #8f8f9b; font-size: 0.85rem; white-space: nowrap; text-overflow: ellipsis; }
+.review-sheet .offcanvas-body { padding: 20px; }
 
+.review-field { min-width: 0; margin: 0 0 22px; padding: 0; border: 0; }
+.review-label { display: block; float: none; width: auto; margin-bottom: 10px; color: #c9c9d3; font-size: 0.85rem; font-weight: 600; }
+
+.review-stars-input { position: relative; display: flex; justify-content: center; gap: 4px; padding: 12px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.06); background: rgba(255, 255, 255, 0.04); }
+.review-stars-input.has-error { border-color: rgba(255, 90, 90, 0.5); }
+.review-stars-input input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.review-stars-input label { padding: 2px 6px; color: #3b3b48; font-size: 2.3rem; line-height: 1; cursor: pointer; transition: color 0.15s, transform 0.15s; user-select: none; }
+.review-stars-input label.is-on { color: #f5c518; }
+.review-stars-input label:active { transform: scale(0.88); }
+.review-stars-input input:focus-visible + label { outline: 2px solid #f5c518; outline-offset: 2px; border-radius: 6px; }
+.review-rating-word { min-height: 1.3em; margin: 8px 0 0; color: #8f8f9b; font-size: 0.85rem; text-align: center; }
+.review-rating-word.is-set { color: #f5c518; font-weight: 600; }
+
+.review-textarea { display: block; width: 100%; min-height: 150px; padding: 14px; resize: vertical; border-radius: 14px; border: 1px solid #2a2a36; background: #0c0c12; color: #fff; font-size: 0.95rem; line-height: 1.5; }
+.review-textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+.review-textarea::placeholder { color: #666674; }
+.review-textarea.has-error { border-color: rgba(255, 90, 90, 0.6); }
+.review-textarea-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 6px; }
+.review-count { margin-left: auto; color: #6f6f7b; font-size: 0.75rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.review-error { margin: 6px 0 0; color: #ff7a7a; font-size: 0.8rem; }
+.review-error-box { margin: 0 0 14px; padding: 10px 12px; border-radius: 10px; background: rgba(255, 90, 90, 0.1); }
+
+.review-submit { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 50px; border: 0; border-radius: 12px; background: var(--primary); color: #fff; font-size: 1rem; font-weight: 700; transition: filter 0.2s; }
+.review-submit:hover { filter: brightness(1.08); }
+.review-submit:disabled { opacity: 0.7; cursor: default; }
+</style>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     // --- DOWNLOAD MODAL LOGIC ---
@@ -862,6 +1068,34 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         });
     });
 
+    // --- Trailer: swap the button for the YouTube player when pressed ---
+    (function () {
+        var button = document.getElementById('detailTrailerBtn');
+        if (!button) return;
+        button.addEventListener('click', function () {
+            var frame = document.createElement('iframe');
+            frame.src = button.dataset.embed.replace('autoplay=0', 'autoplay=1');
+            frame.title = 'Trailer';
+            frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+            frame.allowFullscreen = true;
+            var shade = button.parentElement.querySelector('.detail-hero-shade');
+            if (shade) shade.remove();
+            button.replaceWith(frame);
+        });
+    })();
+
+    // --- "More" for long descriptions ---
+    (function () {
+        var desc = document.getElementById('metaDesc');
+        var more = document.getElementById('metaMore');
+        if (!desc || !more) return;
+        if (desc.scrollHeight > desc.clientHeight + 2) more.hidden = false;
+        more.addEventListener('click', function () {
+            var open = desc.classList.toggle('is-open');
+            more.textContent = open ? 'Less' : 'More';
+        });
+    })();
+
     // --- FETCH AI HOOK ---
     document.addEventListener("DOMContentLoaded", function() {
         const mediaId = <?php echo json_encode($mediaId); ?>;
@@ -898,89 +1132,157 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         }
     });
 
-    // --- ADD REVIEW AJAX ---
-    const addReviewForm = document.getElementById('addReviewForm');
-    if (addReviewForm) {
-        addReviewForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
-            
-            const formData = new FormData(this);
-            fetch('/process-reviews', {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-                
-                if (data.status === 'success') {
-                    // Close the offcanvas
-                    const offcanvasEl = document.getElementById('offcanvasReview');
-                    if (offcanvasEl) {
-                        const offcanvasInstance = bootstrap.Offcanvas.getInstance(offcanvasEl);
-                        if (offcanvasInstance) offcanvasInstance.hide();
-                    }
-                    
-                    // Reset the form
-                    addReviewForm.reset();
-                    
-                    // Dynamically prepend the review
-                    const reviewsList = document.querySelector('.comments-list');
-                    if (reviewsList) {
-                        const rating = parseInt(formData.get('rating')) || 0;
-                        const reviewText = formData.get('review_text') || '';
-                        const username = '<?php echo addslashes($_SESSION["username"] ?? "Guest"); ?>';
-                        const avatarUrl = '<?php echo addslashes($_SESSION["avatar_url"] ?? "assets/images/user/user.jpg"); ?>';
-                        
-                        const noReviews = reviewsList.querySelector('.text-center.p-4');
-                        if (noReviews) noReviews.remove();
-                        
-                        let starsHtml = '';
-                        for(let i=1; i<=5; i++) {
-                            starsHtml += `<i class="ph ph-star" style="${i <= rating ? "font-family:'Phosphor-Fill' !important; color:#ffc107;" : "color:#666;"}"></i>`;
-                        }
-                        
-                        const safeText = reviewText.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
-                        const newReviewHTML = `
-                        <div class="review-card" style="animation: fadeIn 0.5s;">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <img src="${avatarUrl}" alt="user" style="width:40px; height:40px; object-fit:cover; border-radius:50%;">
-                                    <div>
-                                        <h6 style="margin:0; font-size:1rem; color:#fff;">${username}</h6>
-                                        <small style="color:#888; font-size:0.8rem;">Just now</small>
-                                    </div>
-                                </div>
-                                <div>${starsHtml}</div>
-                            </div>
-                            <p style="margin:0; color:#ccc; font-size:0.95rem; line-height:1.5;">${safeText}</p>
-                        </div>
-                        `;
-                        
-                        reviewsList.insertAdjacentHTML('afterbegin', newReviewHTML);
-                    } else {
-                        // Fallback reload if structure missing
-                        window.location.reload();
-                    }
-                } else {
-                    alert('Error: ' + data.message);
-                }
-            })
-            .catch(err => {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
-                alert('An error occurred while submitting your review.');
-            });
-        });
-    }
-</script>
+    // --- REVIEWS: star rating, checks, and saving without reloading the page ---
+    (function () {
+        const form = document.getElementById('addReviewForm');
+        if (!form) return;
 
+        const panel = document.getElementById('offcanvasReview');
+        const starBox = document.getElementById('reviewStars');
+        const labels = Array.from(starBox.querySelectorAll('label'));
+        const radios = Array.from(starBox.querySelectorAll('input'));
+        const word = document.getElementById('reviewRatingWord');
+        const text = document.getElementById('review_text');
+        const counter = document.getElementById('reviewCount');
+        const ratingError = document.getElementById('reviewRatingError');
+        const textError = document.getElementById('reviewTextError');
+        const formError = document.getElementById('reviewFormError');
+        const submit = document.getElementById('reviewSubmit');
+        const submitText = submit.querySelector('.review-submit-text');
+        const WORDS = ['Tap a star to rate', 'Awful', 'Poor', 'Okay', 'Good', 'Loved it'];
+
+        const selected = () => {
+            const checked = radios.find(r => r.checked);
+            return checked ? Number(checked.value) : 0;
+        };
+        const paint = value => {
+            labels.forEach((label, i) => label.classList.toggle('is-on', i < value));
+            word.textContent = WORDS[value] || WORDS[0];
+            word.classList.toggle('is-set', value > 0);
+        };
+        const count = () => { counter.textContent = text.value.length + ' / ' + text.maxLength; };
+
+        labels.forEach((label, i) => {
+            label.addEventListener('mouseenter', () => paint(i + 1));
+            label.addEventListener('mouseleave', () => paint(selected()));
+        });
+        radios.forEach(radio => radio.addEventListener('change', () => {
+            paint(selected());
+            ratingError.hidden = true;
+            starBox.classList.remove('has-error');
+        }));
+        text.addEventListener('input', () => {
+            count();
+            if (text.value.trim()) {
+                textError.hidden = true;
+                text.classList.remove('has-error');
+            }
+        });
+        paint(selected());
+        count();
+
+        panel.addEventListener('show.bs.offcanvas', () => document.body.classList.add('zen-sheet-open'));
+        panel.addEventListener('hidden.bs.offcanvas', () => document.body.classList.remove('zen-sheet-open'));
+
+        // A review card built with DOM methods, so names and review text are
+        // never interpreted as HTML.
+        function reviewCard(review) {
+            const make = (tag, className, content) => {
+                const node = document.createElement(tag);
+                if (className) node.className = className;
+                if (content !== undefined) node.textContent = content;
+                return node;
+            };
+            const card = make('div', 'review-card is-new');
+            card.dataset.user = review.user_id;
+
+            const top = make('div', 'review-top');
+            const avatar = make('img', 'review-avatar');
+            avatar.src = review.avatar_url;
+            avatar.alt = '';
+            const who = make('div', 'review-who');
+            const name = make('h6', null, review.username);
+            name.appendChild(make('span', 'review-you', 'You'));
+            who.append(name, make('small', null, review.date_label));
+            const stars = make('span', 'review-stars');
+            stars.setAttribute('role', 'img');
+            stars.setAttribute('aria-label', review.rating + ' out of 5 stars');
+            stars.append(make('span', 'on', '★'.repeat(review.rating)), make('span', 'off', '★'.repeat(5 - review.rating)));
+            top.append(avatar, who, stars);
+
+            card.append(top, make('p', 'review-text', review.review_text));
+            return card;
+        }
+
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            formError.hidden = true;
+
+            const rating = selected();
+            let valid = true;
+            if (!rating) {
+                ratingError.hidden = false;
+                starBox.classList.add('has-error');
+                valid = false;
+            }
+            if (!text.value.trim()) {
+                textError.hidden = false;
+                text.classList.add('has-error');
+                valid = false;
+            }
+            if (!valid) return;
+
+            const idleLabel = submitText.textContent;
+            submit.disabled = true;
+            submitText.textContent = 'Saving…';
+
+            try {
+                const response = await fetch('/process-reviews', {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json().catch(() => ({}));
+                if (data.status !== 'success') {
+                    throw new Error(data.message || 'Your review could not be saved. Please try again.');
+                }
+
+                // Show it straight away: replace this user's earlier review, or add it on top.
+                const list = document.querySelector('.comments-list');
+                const empty = list.querySelector('.reviews-empty');
+                if (empty) empty.remove();
+                const card = reviewCard(data.review);
+                const earlier = list.querySelector('.review-card[data-user="' + data.review.user_id + '"]');
+                if (earlier) earlier.replaceWith(card); else list.prepend(card);
+
+                document.getElementById('reviewsCount').textContent = data.count;
+                const average = document.getElementById('reviewsAvg');
+                if (average && data.average) {
+                    average.hidden = false;
+                    average.querySelector('strong').textContent = data.average;
+                }
+
+                // From now on the panel edits this review.
+                document.getElementById('offcanvasReviewLabel').textContent = 'Edit your review';
+                const writeButton = document.querySelector('#reviewWriteBtn span');
+                if (writeButton) writeButton.textContent = 'Edit your review';
+                submitText.textContent = 'Update review';
+
+                bootstrap.Offcanvas.getOrCreateInstance(panel).hide();
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (window.Toastify) {
+                    Toastify({ text: data.action === 'updated' ? 'Review updated' : 'Review posted', style: { background: '#00b09b' } }).showToast();
+                }
+            } catch (error) {
+                submitText.textContent = idleLabel;
+                formError.textContent = error.message;
+                formError.hidden = false;
+            } finally {
+                submit.disabled = false;
+            }
+        });
+    })();
+</script>
 <!-- Fullscreen Search Overlay -->
 <div id="searchOverlay" class="search-overlay">
     <button class="search-close-btn" onclick="closeSearchModal()"><i class="ph ph-x"></i></button>
@@ -997,6 +1299,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 
 <?php include __DIR__ . '/zen-ai.php'; ?>
 <?php include __DIR__ . '/includes/theme-modal.php'; ?>
+<?php include __DIR__ . '/includes/kids-mode.php'; ?>
 <?php include __DIR__ . '/includes/mobile-footer.php'; ?>
 </body>
 </html>

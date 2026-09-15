@@ -279,48 +279,38 @@ if ($data && !empty($data['results'])) {
         letter-spacing: 0.5px;
     }
 
-    /* 4. Modern Pagination (Pills) */
-    .pagination-wrapper {
-        margin-top: 40px;
-        margin-bottom: 40px;
+    /* 4. Pagination
+       One compact row at every screen size: previous, the first page, the
+       pages either side of the current one, the last page, next. The old
+       large round buttons wrapped onto a second line on phones. */
+    .zen-pager { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 32px 0 8px; }
+    .zen-pager-list { display: flex; flex-wrap: nowrap; align-items: center; justify-content: center; gap: 6px; margin: 0; padding: 0; list-style: none; }
+    .zen-pager-link {
+        display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        min-width: 40px; height: 40px; min-height: 0; padding: 0 10px;
+        border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04); color: #d6d6de;
+        font-size: 0.9rem; font-weight: 600; font-variant-numeric: tabular-nums;
+        text-decoration: none; transition: background 0.2s, border-color 0.2s, color 0.2s;
     }
-    
-    .pagination-modern .page-item { margin: 0 3px; }
+    .zen-pager-link:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.18); color: #fff; }
+    .zen-pager-link.is-current { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 8px 20px -10px var(--accent); pointer-events: none; }
+    .zen-pager-link.is-disabled { opacity: 0.35; pointer-events: none; }
+    .zen-pager-arrow { padding: 0 14px; }
+    .zen-pager-arrow i { font-size: 1rem; }
+    .zen-pager-gap { min-width: 18px; text-align: center; color: #6b6b76; font-weight: 700; user-select: none; }
+    .zen-pager-status { color: #8a8a96; font-size: 0.8rem; }
+    .zen-pager-status strong { color: #fff; font-weight: 600; }
 
-    .pagination-modern .page-link {
-        background: transparent; 
-        border: 1px solid rgba(255,255,255,0.1);
-        color: var(--text-main);
-        border-radius: 50px !important; /* Full Pill Shape */
-        min-width: 40px; height: 40px;
-        padding: 0 15px;
-        display: flex; align-items: center; justify-content: center;
-        font-weight: 600;
-        transition: all 0.2s ease;
-        text-decoration: none;
-        font-size: 0.9rem;
-    }
-
-    .pagination-modern .page-link:hover {
-        background: rgba(255,255,255,0.1);
-        color: #fff;
-        border-color: rgba(255,255,255,0.3);
-        transform: translateY(-2px);
-    }
-
-    .pagination-modern .page-item.active .page-link {
-        background: var(--accent);
-        border-color: var(--accent);
-        color: #000;
-        box-shadow: 0 0 15px rgba(0, 224, 255, 0.4);
+    @media (max-width: 575.98px) {
+        .zen-pager { margin-top: 24px; }
+        .zen-pager-list { gap: 4px; }
+        .zen-pager-link { min-width: 34px; height: 36px; padding: 0 6px; border-radius: 10px; font-size: 0.85rem; }
+        .zen-pager-arrow { padding: 0 9px; }
+        .zen-pager-arrow span { display: none; }
+        .zen-pager-gap { min-width: 12px; }
     }
 
-    .pagination-modern .page-item.disabled .page-link {
-        border-color: transparent;
-        color: #444;
-        cursor: default;
-    }
-    
     .kids-indicator {
         background: linear-gradient(45deg, #00d2ff, #3a7bd5);
         color: white;
@@ -373,7 +363,7 @@ if ($data && !empty($data['results'])) {
                    if (isset($item['media_type']) && $item['media_type'] === 'person') continue;
                    $itemId = $item['id'];
                    $itemTitle = $item['title'] ?? $item['name'] ?? 'Unknown';
-                   $itemPoster = !empty($item['poster_path']) ? 'https://image.tmdb.org/t/p/w1280'.$item['poster_path'] : '/assets/images/media/placeholder-portrait.svg';
+                   $itemPoster = !empty($item['poster_path']) ? 'https://image.tmdb.org/t/p/w500'.$item['poster_path'] : '/assets/images/media/placeholder-portrait.svg';
                    $itemType = $item['media_type'] ?? ((isset($item['title']) ? 'movie' : 'tv'));
                    $date = $item['release_date'] ?? $item['first_air_date'] ?? '';
                    $year = $date ? date('Y', strtotime($date)) : 'N/A';
@@ -444,65 +434,56 @@ if ($data && !empty($data['results'])) {
             <?php endif; ?>
 
             <!-- ==========================================
-                 PAGINATION (MODERN PILLS)
+                 PAGINATION
                  ========================================== -->
-            <?php if ($totalPages > 1): ?>
-            <div class="d-flex justify-content-center align-items-center pagination-wrapper">
-               <nav aria-label="Page navigation">
-                  <ul class="pagination pagination-modern justify-content-center flex-wrap">
-                      
-                      <?php 
-                      $range = 2; 
-                      $start = max(1, $page - $range);
-                      $end = min($totalPages, $page + $range);
-                      ?>
-
-                      <!-- Prev Button -->
-                      <li class="page-item <?php echo ($page <= 1) ? 'disabled' : ''; ?>">
-                         <a class="page-link" href="<?php echo '?' . http_build_query(array_merge($_GET, ['page' => $page - 1])); ?>">
-                            <i class="fa-solid fa-chevron-left"></i>
-                         </a>
-                      </li>
-
-                      <!-- First Page -->
-                      <?php if($start > 1): ?>
-                         <li class="page-item">
-                            <a class="page-link" href="<?php echo '?' . http_build_query(array_merge($_GET, ['page' => 1])); ?>">1</a>
-                         </li>
-                         <?php if($start > 2): ?>
-                            <li class="page-item disabled"><span class="page-link">...</span></li>
-                         <?php endif; ?>
-                      <?php endif; ?>
-
-                      <!-- Numbered Loop -->
-                      <?php for ($i = $start; $i <= $end; $i++): ?>
-                         <li class="page-item <?php echo ($page == $i) ? 'active' : ''; ?>">
-                            <a class="page-link" href="<?php echo '?' . http_build_query(array_merge($_GET, ['page' => $i])); ?>">
-                               <?php echo $i; ?>
-                            </a>
-                         </li>
-                      <?php endfor; ?>
-
-                      <!-- Last Page -->
-                      <?php if($end < $totalPages): ?>
-                         <?php if($end < $totalPages - 1): ?>
-                            <li class="page-item disabled"><span class="page-link">...</span></li>
-                         <?php endif; ?>
-                         <li class="page-item">
-                            <a class="page-link" href="<?php echo '?' . http_build_query(array_merge($_GET, ['page' => $totalPages])); ?>"><?php echo $totalPages; ?></a>
-                         </li>
-                      <?php endif; ?>
-
-                      <!-- Next Button -->
-                      <li class="page-item <?php echo ($page >= $totalPages) ? 'disabled' : ''; ?>">
-                         <a class="page-link" href="<?php echo '?' . http_build_query(array_merge($_GET, ['page' => $page + 1])); ?>">
-                            <i class="fa-solid fa-chevron-right"></i>
-                         </a>
-                      </li>
-
-                  </ul>
-               </nav>
-            </div>
+            <?php if ($totalPages > 1):
+                // Which page numbers to show: the first, the last, and one either
+                // side of the current page. A gap of several pages becomes "…";
+                // a gap of exactly one page shows that page instead.
+                $pagerUrl = function ($p) { return '?' . http_build_query(array_merge($_GET, ['page' => $p])); };
+                $pagerPages = array_unique(array_filter(
+                    [1, $page - 1, $page, $page + 1, $totalPages],
+                    function ($p) use ($totalPages) { return $p >= 1 && $p <= $totalPages; }
+                ));
+                sort($pagerPages);
+                $pagerItems = [];
+                $pagerLast = 0;
+                foreach ($pagerPages as $p) {
+                    if ($p - $pagerLast === 2) {
+                        $pagerItems[] = $p - 1;
+                    } elseif ($p - $pagerLast > 2) {
+                        $pagerItems[] = null;
+                    }
+                    $pagerItems[] = $p;
+                    $pagerLast = $p;
+                }
+                $onFirstPage = $page <= 1;
+                $onLastPage = $page >= $totalPages;
+            ?>
+            <nav class="zen-pager" aria-label="Pages">
+               <ul class="zen-pager-list">
+                  <li>
+                     <a class="zen-pager-link zen-pager-arrow<?php echo $onFirstPage ? ' is-disabled' : ''; ?>" href="<?php echo htmlspecialchars($pagerUrl(max(1, $page - 1))); ?>" aria-label="Previous page"<?php echo $onFirstPage ? ' aria-disabled="true" tabindex="-1"' : ''; ?>>
+                        <i class="ph ph-caret-left"></i><span>Prev</span>
+                     </a>
+                  </li>
+                  <?php foreach ($pagerItems as $p): ?>
+                     <?php if ($p === null): ?>
+                  <li class="zen-pager-gap" aria-hidden="true">…</li>
+                     <?php else: ?>
+                  <li>
+                     <a class="zen-pager-link<?php echo $p == $page ? ' is-current' : ''; ?>" href="<?php echo htmlspecialchars($pagerUrl($p)); ?>"<?php echo $p == $page ? ' aria-current="page"' : ''; ?>><?php echo $p; ?></a>
+                  </li>
+                     <?php endif; ?>
+                  <?php endforeach; ?>
+                  <li>
+                     <a class="zen-pager-link zen-pager-arrow<?php echo $onLastPage ? ' is-disabled' : ''; ?>" href="<?php echo htmlspecialchars($pagerUrl(min($totalPages, $page + 1))); ?>" aria-label="Next page"<?php echo $onLastPage ? ' aria-disabled="true" tabindex="-1"' : ''; ?>>
+                        <span>Next</span><i class="ph ph-caret-right"></i>
+                     </a>
+                  </li>
+               </ul>
+               <p class="zen-pager-status m-0">Page <strong><?php echo number_format($page); ?></strong> of <?php echo number_format($totalPages); ?></p>
+            </nav>
             <?php endif; ?>
 
          </div>

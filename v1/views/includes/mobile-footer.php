@@ -44,6 +44,13 @@
         .main-content { padding-bottom: 70px; }
         .watch-app { padding-bottom: 70px !important; }
     }
+    /* The floating ZEN AI and theme buttons covered posters, buttons and cards
+       on phones and tablets (tapping a Continue Watching card could open
+       ZEN AI instead). Where this bottom bar is shown, ZEN AI is in the
+       header or the page's top bar, and themes are in the menu. */
+    @media (max-width: 1199.98px) {
+        .zen-ai-float, .theme-switcher-float { display: none !important; }
+    }
     /* Hide mobile footer on desktop (sidebar handles navigation) */
     @media (min-width: 1200px) {
         .streamit-mobile-footer-menu { display: none !important; }

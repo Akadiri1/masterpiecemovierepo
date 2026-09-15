@@ -113,48 +113,9 @@
 </div>
 <!-- ========================================== -->
 
-<!-- Parental PIN Bootstrap Modal (used by header switchProfileMode) -->
-<div class="modal fade" id="parental-pin-modal-bs" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-dark text-white" style="border:1px solid rgba(255,255,255,0.06);">
-      <div class="modal-header border-0">
-        <h5 class="modal-title">Parental PIN required</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p class="mb-2 text-muted">Please enter your parental PIN to confirm switching Kids Mode.</p>
-        <input id="parental-pin-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="Enter 4-8 digit PIN" class="form-control mb-3" style="background:#111; border:1px solid rgba(255,255,255,0.06); color:#fff; padding:10px;">
-      </div>
-      <div class="modal-footer border-0">
-        <button id="parental-pin-cancel" type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
-        <button id="parental-pin-submit" type="button" class="btn btn-primary">Confirm</button>
-      </div>
-    </div>
-  </div>
-      </div>
-
-      <!-- Set Parental PIN Modal (shown when enabling Kids Mode but no PIN exists) -->
-      <div class="modal fade" id="parental-pin-setup-modal-bs" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content bg-dark text-white" style="border:1px solid rgba(255,255,255,0.06);">
-            <div class="modal-header border-0">
-              <h5 class="modal-title">Set a Parental PIN</h5>
-              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-              <p class="mb-2 text-muted">To enable Kids Mode you must set a Parental PIN. This prevents kids from switching back to the parent profile.</p>
-              <input id="parental-new-pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="Enter PIN (4-8 digits)" class="form-control mb-3" style="background:#111; border:1px solid rgba(255,255,255,0.06); color:#fff; padding:10px;">
-              <input id="parental-confirm-pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" placeholder="Confirm PIN" class="form-control mb-3" style="background:#111; border:1px solid rgba(255,255,255,0.06); color:#fff; padding:10px;">
-            </div>
-            <div class="modal-footer border-0">
-              <button id="parental-pin-setup-cancel" type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Cancel</button>
-              <button id="parental-pin-setup-submit" type="button" class="btn btn-primary">Save & Enable Kids Mode</button>
-            </div>
-          </div>
-        </div>
-      </div>
+<!-- Kids Mode: the switching dialog (PIN, first PIN, forgotten PIN, upgrade) -->
+<?php include APP_PATH . '/views/includes/kids-mode.php'; ?>
 </div>
-
   <!-- Library Bundle Script -->
   <script src="assets/js/core/libs.min.js"></script>
   <!-- Plugin Scripts -->
@@ -273,118 +234,177 @@
     }
 </script>
 <?php include APP_PATH . '/views/includes/theme-modal.php'; ?>
-<!-- Driver.js Library -->
-<script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css"/>
-
+<!-- Welcome tour for first-time visitors, built on Driver.js. The library is
+     only downloaded for visitors who haven't seen the tour yet. -->
 <style>
-/* Custom Driver.js Styling for Premium Dark Mode */
-.driver-popover {
-    background: #14141d !important;
+.driver-popover.zen-tour {
+    background: #12121a !important;
     color: #fff !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    border-radius: 12px !important;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55) !important;
+    padding: 20px !important;
+    min-width: 260px !important;
+    max-width: min(340px, calc(100vw - 32px)) !important;
     font-family: inherit !important;
 }
-.driver-popover-title {
-    color: var(--primary, #e50914) !important;
-    font-size: 1.2rem !important;
-    font-weight: 700 !important;
-}
-.driver-popover-description {
-    color: #bbb !important;
-    font-size: 0.95rem !important;
-    line-height: 1.5 !important;
-}
-.driver-popover-footer button {
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+.driver-popover.zen-tour .driver-popover-title {
+    margin: 0 28px 6px 0 !important;
     color: #fff !important;
+    font-family: inherit !important;
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+}
+.driver-popover.zen-tour .driver-popover-description {
+    margin: 0 !important;
+    color: #a9a9b6 !important;
+    font-family: inherit !important;
+    font-size: 0.9rem !important;
+    line-height: 1.55 !important;
+}
+.driver-popover.zen-tour .driver-popover-close-btn {
+    top: 10px !important;
+    right: 10px !important;
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: 8px !important;
+    color: #7a7a86 !important;
+    font-size: 20px !important;
+}
+.driver-popover.zen-tour .driver-popover-close-btn:hover { color: #fff !important; background: rgba(255, 255, 255, 0.08) !important; }
+.driver-popover.zen-tour .driver-popover-footer { margin-top: 18px !important; gap: 12px; }
+.driver-popover.zen-tour .driver-popover-progress-text { color: #71717d !important; font-size: 0.78rem !important; font-weight: 600 !important; }
+.driver-popover.zen-tour .driver-popover-navigation-btns { gap: 8px !important; }
+.driver-popover.zen-tour .driver-popover-footer button {
+    margin: 0 !important;
+    padding: 10px 16px !important;
+    border-radius: 10px !important;
+    font-family: inherit !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
     text-shadow: none !important;
-    border-radius: 6px !important;
-    transition: 0.2s ease !important;
+    transition: background 0.2s, border-color 0.2s, color 0.2s !important;
 }
-.driver-popover-footer button:hover {
-    background: var(--primary, #e50914) !important;
-    border-color: var(--primary, #e50914) !important;
+.driver-popover.zen-tour .driver-popover-prev-btn { background: transparent !important; border: 1px solid rgba(255, 255, 255, 0.14) !important; color: #d4d4dc !important; }
+.driver-popover.zen-tour .driver-popover-prev-btn:hover { background: rgba(255, 255, 255, 0.06) !important; color: #fff !important; }
+.driver-popover.zen-tour .driver-popover-next-btn { background: var(--primary, #e50914) !important; border: 1px solid var(--primary, #e50914) !important; color: #fff !important; }
+.driver-popover.zen-tour .driver-popover-next-btn:hover { filter: brightness(1.1); }
+.driver-popover.zen-tour .driver-popover-arrow-side-left.driver-popover-arrow { border-left-color: #12121a !important; }
+.driver-popover.zen-tour .driver-popover-arrow-side-right.driver-popover-arrow { border-right-color: #12121a !important; }
+.driver-popover.zen-tour .driver-popover-arrow-side-top.driver-popover-arrow { border-top-color: #12121a !important; }
+.driver-popover.zen-tour .driver-popover-arrow-side-bottom.driver-popover-arrow { border-bottom-color: #12121a !important; }
+.zen-tour-mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 14px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--primary, #e50914), #7b2cbf);
+    box-shadow: 0 10px 24px -10px var(--primary, #e50914);
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 900;
+    letter-spacing: -0.5px;
 }
-.driver-popover-progress-text {
-    color: #666 !important;
-}
-.driver-popover-arrow {
-    border-color: #14141d !important;
-}
+.zen-tour-heading { display: block; font-size: 1.2rem; }
 </style>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-    // Only run if not in an iframe and tour hasn't been completed
-    if (window.self === window.top && !localStorage.getItem('zen_tour_completed')) {
-        setTimeout(() => {
-            const driver = window.driver.js.driver;
-            const tour = driver({
-                showProgress: true,
-                animate: true,
-                allowClose: true,
-                steps: [
-                    {
-                        popover: {
-                            title: 'Welcome to Masterpiece Movie! 🍿',
-                            description: 'Let\'s take a quick tour of your new premium streaming hub. It will only take a few seconds!',
-                            side: "over",
-                            align: 'center'
-                        }
-                    },
-                    {
-                        element: '.search-box', 
-                        popover: {
-                            title: 'Global Search',
-                            description: 'Instantly find your favorite movies, actors, or directors from anywhere on the site.',
-                            side: "bottom",
-                            align: 'center'
-                        }
-                    },
-                    {
-                        element: '#zen-ai-toggle-btn', 
-                        popover: {
-                            title: 'Meet ZEN AI ✨',
-                            description: 'Your personal AI assistant. Ask for recommendations, movie facts, or just have a chat!',
-                            side: "left",
-                            align: 'center'
-                        }
-                    },
-                    {
-                        element: '#movies', 
-                        popover: {
-                            title: 'Explore Categories',
-                            description: 'Browse through thousands of titles across diverse genres and international categories.',
-                            side: "bottom",
-                            align: 'start'
-                        }
-                    },
-                    {
-                        element: '#itemdropdown1', 
-                        popover: {
-                            title: 'Profile & Kids Mode',
-                            description: 'Manage your profile or switch to a strict Kids Mode to ensure a safe browsing environment.',
-                            side: "left",
-                            align: 'start'
-                        }
-                    }
-                ],
-                onDestroyStarted: () => {
-                    if (tour.hasNextStep() || !tour.hasNextStep()) {
-                        localStorage.setItem('zen_tour_completed', 'true');
-                        tour.destroy();
-                    }
+(function () {
+    var seen;
+    try { seen = localStorage.getItem('zen_tour_completed'); } catch (e) { seen = 'unavailable'; }
+    if (seen || window.self !== window.top) return;
+
+    // Each stop points at the first of its elements that is actually on
+    // screen, so one tour fits the phone layout (header buttons, bottom bar)
+    // and the desktop one (sidebar). A stop with nothing to point at is
+    // skipped instead of floating over nothing.
+    var STOPS = [
+        { el: ['.streamit-mobile-footer-menu a[href="/view-all?type=movie"]', '#appSidebar a[href="/view-all?type=movie"]'],
+          title: 'Movies and TV shows', text: 'Browse everything from here, and narrow any list down by genre.' },
+        { el: ['.streamit-mobile-footer-menu [onclick*="toggleMobileSidebar"]', '#appSidebar [onclick*="openSearchModal"]'],
+          title: 'Search and menu', text: 'Find any movie, show or actor. Categories and colour themes are in the menu too.' },
+        { el: ['#header-ai-btn', '.zen-ai-float'],
+          title: 'Ask ZEN AI', text: 'Say what you are in the mood for and get picks, trivia or titles like the ones you love.' },
+        { el: ['#kids-mode-toggle'],
+          title: 'Kids Mode', text: 'Switch to a family-friendly catalogue whenever children are watching.' },
+        { el: ['.streamit-mobile-footer-menu a[href="/profile"]', '#appSidebar .sidebar-user'],
+          title: 'Your profile', text: 'Your watchlist, membership and parental controls live here.' }
+    ];
+
+    function onScreen(selectors) {
+        for (var i = 0; i < selectors.length; i++) {
+            var found = document.querySelectorAll(selectors[i]);
+            for (var j = 0; j < found.length; j++) {
+                var box = found[j].getBoundingClientRect();
+                if (box.width > 0 && box.height > 0 && box.bottom > 0 && box.right > 0 &&
+                    box.top < window.innerHeight && box.left < window.innerWidth &&
+                    getComputedStyle(found[j]).visibility !== 'hidden') {
+                    return found[j];
                 }
-            });
-            
-            tour.drive();
-        }, 1500); // 1.5s delay to let animations finish loading
+            }
+        }
+        return null;
     }
-});
+
+    function start() {
+        if (!window.driver || !window.driver.js) return;
+
+        var steps = [{
+            popover: {
+                title: '<span class="zen-tour-mark">ZEN</span><span class="zen-tour-heading">Welcome to ZEN</span>',
+                description: 'Movies and shows, all in one place. Here is a quick look around; it takes about 20 seconds.'
+            }
+        }];
+        STOPS.forEach(function (stop) {
+            var target = onScreen(stop.el);
+            if (target) steps.push({ element: target, popover: { title: stop.title, description: stop.text } });
+        });
+
+        var tour = window.driver.js.driver({
+            steps: steps,
+            popoverClass: 'zen-tour',
+            showProgress: true,
+            progressText: '{{current}} of {{total}}',
+            nextBtnText: 'Next',
+            prevBtnText: 'Back',
+            doneBtnText: 'Start watching',
+            overlayColor: '#05050a',
+            overlayOpacity: 0.7,
+            stagePadding: 6,
+            stageRadius: 12,
+            smoothScroll: true,
+            allowClose: true,
+            onDestroyed: function () {
+                try { localStorage.setItem('zen_tour_completed', 'true'); } catch (e) {}
+            }
+        });
+        tour.drive();
+    }
+
+    function load() {
+        var css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = 'https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css';
+        document.head.appendChild(css);
+
+        var script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js';
+        script.onload = start;
+        document.head.appendChild(script);
+    }
+
+    // Start once the page has settled, so each stop is in its final place.
+    if (document.readyState === 'complete') {
+        setTimeout(load, 1200);
+    } else {
+        window.addEventListener('load', function () { setTimeout(load, 1200); });
+    }
+})();
 </script>
 </body>
 </html>

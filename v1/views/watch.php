@@ -197,6 +197,11 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
   <script src="assets/js/player/mobile-player.js?v=<?php echo time() + 2; ?>"></script>
   <link rel="stylesheet" href="assets/vendor/phosphor-icons/Fonts/regular/style.css">
   <link rel="stylesheet" href="assets/vendor/phosphor-icons/Fonts/fill/style.css">
+  <!-- Posters and backdrops come from TMDB's image server: connect early. -->
+  <link rel="preconnect" href="https://image.tmdb.org">
+  <!-- Loading placeholders for images and page changes -->
+  <link rel="stylesheet" href="/assets/css/core/skeleton.css?v=1">
+  <script src="/assets/js/skeleton.js?v=1" defer></script>
   <style>
       /* Cinematic Mode */
       body.cinematic-active::before {
@@ -795,7 +800,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
              </div>
 
              <?php if ($isUpcoming): ?>
-                <div class="upcoming-container" style="position:absolute; inset:0; background-image: url('https://image.tmdb.org/t/p/original<?php echo $backdrop; ?>'); background-size:cover; display:flex; align-items:center; justify-content:center; text-align:center;">
+                <div class="upcoming-container" style="position:absolute; inset:0; background-image: url('https://image.tmdb.org/t/p/w1280<?php echo $backdrop; ?>'); background-size:cover; display:flex; align-items:center; justify-content:center; text-align:center;">
                    <div style="position:absolute; inset:0; background: rgba(10, 10, 15, 0.85); backdrop-filter: blur(10px);"></div>
                    <div style="position:relative; z-index:10; padding: 40px; background: rgba(20, 20, 25, 0.6); backdrop-filter: blur(25px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); max-width: 800px; width: 90%; max-height: 90%; overflow-y: auto;">
                        <div>

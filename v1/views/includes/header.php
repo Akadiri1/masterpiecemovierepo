@@ -172,6 +172,11 @@ $pageThemeClass = $pageThemeClass ?? '';
   <!-- Google Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Posters and backdrops come from TMDB's image server: connect early. -->
+  <link rel="preconnect" href="https://image.tmdb.org">
+  <!-- Loading placeholders for images and page changes -->
+  <link rel="stylesheet" href="/assets/css/core/skeleton.css?v=1">
+  <script src="/assets/js/skeleton.js?v=1" defer></script>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,300&display=swap"
       rel="stylesheet">
 
@@ -601,40 +606,54 @@ document.addEventListener('DOMContentLoaded', () => {
         was read as CSS text and the rule after it was silently discarded. -->
    <!-- loader Start -->
      <style>
-      /* Header icon buttons (subscription plan and kids mode) on phones and
-         tablets, where their text labels are hidden. They rendered as two
-         mismatched shapes: a 34px tinted button with a 16px icon beside a
-         30px outlined box with a 12px blue icon. Give them one size, shape
-         and icon scale. The plan button keeps its own colour. */
+      /* Header icon buttons on phones and tablets, where their text labels are
+         hidden: subscription plan, kids mode and ZEN AI. One compact size and
+         shape for all three (44px looked oversized next to the logo). */
       @media (max-width: 1199.98px) {
           .subscribe-btn,
-          #kids-mode-toggle {
-              /* 44px is the site minimum tap size (its .btn min-height rule). */
-              width: 44px;
-              height: 44px;
+          #kids-mode-toggle,
+          #header-ai-btn,
+          #header-search-btn {
+              width: 36px;
+              height: 36px;
+              min-height: 36px !important;
               padding: 0 !important;
               display: inline-flex !important;
               align-items: center;
               justify-content: center;
-              border-radius: 12px !important;
+              border-radius: 10px !important;
           }
           .subscribe-btn i,
-          #kids-mode-toggle i {
-              font-size: 20px !important;
+          #kids-mode-toggle i,
+          #header-ai-btn i,
+          #header-search-btn i {
+              font-size: 17px !important;
               line-height: 1;
           }
-          #kids-mode-toggle {
+          #kids-mode-toggle,
+          #header-search-btn {
               background: rgba(255, 255, 255, 0.08) !important;
               border: 1px solid rgba(255, 255, 255, 0.12) !important;
               box-shadow: none !important;
+              color: #fff !important;
           }
           #kids-mode-toggle:hover,
           #kids-mode-toggle:focus,
-          #kids-mode-toggle:active {
+          #kids-mode-toggle:active,
+          #header-search-btn:hover,
+          #header-search-btn:focus,
+          #header-search-btn:active {
               background: rgba(255, 255, 255, 0.16) !important;
               box-shadow: none !important;
           }
           #kids-mode-toggle .ph-smiley { color: #fff; }
+          #header-ai-btn {
+              border: 1px solid transparent !important;
+              background: linear-gradient(#14141d, #14141d) padding-box,
+                          linear-gradient(135deg, #00e0ff, #7b2cbf) border-box !important;
+              color: #8ff0ff !important;
+              box-shadow: none !important;
+          }
       }
 
       /* Kids Mode Styling */
@@ -715,9 +734,22 @@ document.addEventListener('DOMContentLoaded', () => {
                                             <?php endif; ?>
                                             <!-- Small header toggle for Kids Mode (also available in profile dropdown) -->
                                             <div class="ms-2 d-flex align-items-center">
-                                                <button id="kids-mode-toggle" onclick="switchProfileMode();" class="btn btn-sm btn-outline-light py-1 px-2" title="Switch to Kids Mode">
+                                                <button id="kids-mode-toggle" onclick="switchProfileMode();" class="btn btn-sm btn-outline-light py-1 px-2" title="<?php echo $isKidsMode ? 'Leave Kids Mode' : 'Switch to Kids Mode'; ?>" aria-label="<?php echo $isKidsMode ? 'Leave Kids Mode' : 'Switch to Kids Mode'; ?>">
                                                     <i class="ph <?php echo $isKidsMode ? 'ph-user-switch text-warning' : 'ph-smiley'; ?>"></i>
                                                     <span class="d-none d-xl-inline ms-1 fw-bold"><?php echo $isKidsMode ? 'Kids' : 'Kids'; ?></span>
+                                                </button>
+                                            </div>
+                                            <!-- ZEN AI on phones and tablets. It used to float over the page,
+                                                 where it covered posters and buttons. -->
+                                            <div class="ms-2 d-flex d-xl-none align-items-center">
+                                                <button type="button" id="header-ai-btn" class="btn" onclick="if (typeof triggerZenAI === 'function') triggerZenAI();" title="Ask ZEN AI" aria-label="Ask ZEN AI">
+                                                    <i class="ph-fill ph-sparkle"></i>
+                                                </button>
+                                            </div>
+                                            <!-- Search on phones and tablets (desktop has it in the sidebar). -->
+                                            <div class="ms-2 d-flex d-xl-none align-items-center">
+                                                <button type="button" id="header-search-btn" class="btn" onclick="if (typeof openSearchModal === 'function') openSearchModal();" title="Search" aria-label="Search">
+                                                    <i class="ph ph-magnifying-glass"></i>
                                                 </button>
                                             </div>
                    </div>
@@ -935,272 +967,7 @@ document.addEventListener('DOMContentLoaded', () => {
        </nav>
        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
-       <script>
-   function switchProfileMode() {
-    fetch('/switch-mode', { credentials: 'same-origin' })
-       .then(async res => {
-           // Try to parse JSON and if invalid, read the raw text and include it in the message for debugging
-           try {
-               return await res.json();
-           } catch (e) {
-               let txt = '';
-               try { txt = await res.text(); } catch (_) { txt = ''; }
-               console.warn('switchProfileMode: non-JSON response', res.status, txt);
-               return { status: 'error', message: 'Server returned invalid response' + (txt ? ': ' + txt.replace(/\s+/g, ' ').slice(0, 400) : '') };
-           }
-       })
-       .then(data => {
-          // Helper: show a visible server status banner (keeps toast as well)
-          function showServerBanner(status, message) {
-              try {
-                  const banner = document.getElementById('server-status-banner');
-                  const inner = document.getElementById('server-status-inner');
-                  const msg = document.getElementById('server-status-message');
-                  const cta = document.getElementById('server-status-cta');
-                  const closeBtn = document.getElementById('server-status-close');
-
-                  if (!banner || !inner || !msg || !closeBtn) return;
-
-                  // Style background based on status
-                  if (status === 'success') {
-                      inner.style.background = 'linear-gradient(90deg,#2ecc71,#27ae60)';
-                      msg.style.color = '#0a0a0a';
-                      cta.style.display = 'none';
-                  } else {
-                      // error / other
-                      inner.style.background = 'linear-gradient(90deg,#e53935,#b71c1c)';
-                      msg.style.color = '#ffffff';
-
-                      // show CTA to pricing if looks like an upgrade prompt
-                      if (message && /upgrade|subscribe|premium/i.test(message)) {
-                          cta.href = '/pricing-plan';
-                          cta.style.display = 'inline-block';
-                      } else {
-                          cta.style.display = 'none';
-                      }
-                  }
-
-                  msg.textContent = message || '';
-
-                  banner.style.display = 'block';
-                  // make it visible (set inner size)
-                  inner.style.maxWidth = '1200px';
-
-                  // Let close button hide it
-                  closeBtn.onclick = (ev) => {
-                      ev.preventDefault();
-                      banner.style.display = 'none';
-                  };
-              } catch (err) {
-                  console.warn('showServerBanner error', err);
-              }
-          }
-          // hide any previous banner when successful or when moving to other flows
-          if (typeof showServerBanner === 'function') {
-              // hide only if success, otherwise let subsequent logic show it
-          }
-
-          if(data.status === 'success') {
-               // remove any persistent server banner
-               const prev = document.getElementById('server-status-banner');
-               if (prev) prev.style.display = 'none';
-               // Immediate UI feedback — wrap toasts so they can't stop reload
-               try { Toastify({ text: data.message, style: { background: "#4caf50" } }).showToast(); } catch (e) { console.warn('Toastify error', e); }
-
-               // Toggle body class so user sees the change immediately
-               const isKids = !!(data.is_kid || data.is_kids_mode || (data.mode && data.mode === 'kid'));
-               document.body.classList.toggle('kids-mode-active', isKids);
-
-               // Update small header button icon and dropdown label if present
-               const headerBtn = document.getElementById('kids-mode-toggle');
-               const dropdownToggle = document.getElementById('kids-mode-dropdown-toggle');
-               if (headerBtn) {
-                   headerBtn.querySelector('i').className = 'ph ' + (isKids ? 'ph-user-switch text-warning' : 'ph-smiley');
-                   const smallLabel = headerBtn.querySelector('span'); if (smallLabel) smallLabel.textContent = isKids ? 'Exit Kids' : 'Kids';
-               }
-               if (dropdownToggle) {
-                   const ddIcon = dropdownToggle.querySelector('i'); if (ddIcon) ddIcon.className = 'ph ' + (isKids ? 'ph-user-switch text-warning' : 'ph-smiley');
-                   const ddText = dropdownToggle.querySelector('span'); if (ddText) ddText.textContent = isKids ? 'Exit Kids Mode' : 'Switch to Kids';
-               }
-
-               // Reload immediately (small delay so the toast renders) so current listings apply Kids filters
-               setTimeout(() => { window.location.reload(); }, 200);
-           } else if (data.status === 'need_pin') {
-               // Show modal to ask for parental PIN (modal is now in footer)
-               // Use a robust flow: verify DOM, clear input, and show Bootstrap modal if available
-               const pinInput = document.getElementById('parental-pin-input');
-               const submitBtn = document.getElementById('parental-pin-submit');
-               const cancelBtn = document.getElementById('parental-pin-cancel');
-
-               if (pinInput && submitBtn) {
-                   pinInput.value = '';
-                   pinInput.focus();
-
-                   // show bootstrap modal if available, fallback to inline display
-                   const bsModalEl = document.getElementById('parental-pin-modal-bs');
-                   if (bsModalEl && window.bootstrap && window.bootstrap.Modal) {
-                       let bsModal = bootstrap.Modal.getInstance(bsModalEl);
-                       if (!bsModal) bsModal = new bootstrap.Modal(bsModalEl);
-                       bsModal.show();
-                   } else {
-                       const inlineModal = document.getElementById('parental-pin-modal');
-                       if (inlineModal) inlineModal.style.display = 'flex';
-                   }
-
-                   // Prepare submit behavior
-                   submitBtn.onclick = async () => {
-                       const pin = pinInput.value.trim();
-                       if (!pin) {
-                           Toastify({ text: 'Enter parental PIN', style: { background: 'var(--primary)' } }).showToast();
-                           return;
-                       }
-                       submitBtn.disabled = true;
-                       try {
-                           const fd = new FormData();
-                           fd.append('parent_pin', pin);
-                           const resp = await fetch('/switch-mode', { method: 'POST', body: fd, credentials: 'same-origin' });
-                           let json = null;
-                           try { json = await resp.json(); } catch(e) { json = { status: 'error', message: 'Invalid server response' }; }
-                           submitBtn.disabled = false;
-                           if (json && json.status === 'success') {
-                               // hide bootstrap modal or inline
-                               if (bsModalEl && window.bootstrap && window.bootstrap.Modal) {
-                                   const bsModal = bootstrap.Modal.getInstance(bsModalEl);
-                                   if (bsModal) bsModal.hide();
-                               } else {
-                                   const inlineModal = document.getElementById('parental-pin-modal');
-                                   if (inlineModal) inlineModal.style.display = 'none';
-                               }
-                               try { Toastify({ text: json.message, style: { background: '#4caf50' } }).showToast(); } catch (e) { console.warn('Toastify error', e); }
-                               // Reload quickly so the switch takes effect (always run even if toast fails)
-                               setTimeout(() => { window.location.reload(); }, 200);
-                           } else {
-                               Toastify({ text: json.message || 'Invalid PIN', style: { background: 'var(--primary)' } }).showToast();
-                           }
-                       } catch(err) {
-                           submitBtn.disabled = false;
-                           console.error('PIN submit error', err);
-                           Toastify({ text: 'Connection error', style: { background: 'var(--primary)' } }).showToast();
-                       }
-                   };
-
-                   if (cancelBtn) cancelBtn.onclick = () => {
-                       if (bsModalEl && window.bootstrap && window.bootstrap.Modal) {
-                           const bsModal = bootstrap.Modal.getInstance(bsModalEl);
-                           if (bsModal) bsModal.hide();
-                       } else {
-                           const inlineModal = document.getElementById('parental-pin-modal');
-                           if (inlineModal) inlineModal.style.display = 'none';
-                       }
-                   };
-            } else {
-                   console.warn('Parental PIN elements missing in DOM');
-               }
-            // Show the server message too so it's visible on-page
-            if (data.message) {
-                showServerBanner(data.status, data.message);
-                // Pop-up a modal so it can't be missed (use SweetAlert2 if available)
-                if (window.Swal) {
-                    Swal.fire({ icon: 'warning', title: 'Parental PIN required', text: data.message, confirmButtonText: 'OK' });
-                }
-            }
-           } else if (data.status === 'no_pin') {
-            // If server indicates there's no parental PIN, prompt parent to create one inline
-            try { Toastify({ text: data.message, style: { background: "var(--primary)" } }).showToast(); } catch(e) { console.warn('Toastify error', e); }
-            showServerBanner(data.status, data.message);
-
-            const setupModalEl = document.getElementById('parental-pin-setup-modal-bs');
-            if (setupModalEl && window.bootstrap && window.bootstrap.Modal) {
-                // prepare inputs
-                const newPinInput = document.getElementById('parental-new-pin');
-                const confirmPinInput = document.getElementById('parental-confirm-pin');
-                const submitBtn = document.getElementById('parental-pin-setup-submit');
-                const cancelBtn = document.getElementById('parental-pin-setup-cancel');
-
-                if (newPinInput) newPinInput.value = '';
-                if (confirmPinInput) confirmPinInput.value = '';
-
-                let setupModal = bootstrap.Modal.getInstance(setupModalEl);
-                if (!setupModal) setupModal = new bootstrap.Modal(setupModalEl);
-                setupModal.show();
-
-                // Remove previous handlers to avoid duplicate bindings
-                if (submitBtn) submitBtn.replaceWith(submitBtn.cloneNode(true));
-                // re-select
-                const btn = document.getElementById('parental-pin-setup-submit');
-
-                if (btn) btn.addEventListener('click', async () => {
-                    const newPin = (document.getElementById('parental-new-pin') || {}).value || '';
-                    const confirmPin = (document.getElementById('parental-confirm-pin') || {}).value || '';
-
-                    // Basic validation
-                    if (!newPin || !confirmPin) { Toastify({ text: 'Please enter and confirm your PIN', style: { background: 'var(--primary)' } }).showToast(); return; }
-                    if (newPin !== confirmPin) { Toastify({ text: 'PINs do not match', style: { background: 'var(--primary)' } }).showToast(); return; }
-                    if (!/^[0-9]{4,8}$/.test(newPin)) { Toastify({ text: 'PIN must be 4-8 digits', style: { background: 'var(--primary)' } }).showToast(); return; }
-
-                    btn.disabled = true;
-                    try {
-                        const fd = new FormData();
-                        fd.append('new_pin', newPin);
-                        fd.append('confirm_pin', confirmPin);
-
-                        const resp = await fetch('/set-parental-pin', { method: 'POST', body: fd, credentials: 'same-origin' });
-                        const json = await resp.json();
-                        btn.disabled = false;
-
-                        if (json && json.status === 'success') {
-                            try { Toastify({ text: json.message, style: { background: '#4caf50' } }).showToast(); } catch(e){}
-                            // hide modal
-                            const m = bootstrap.Modal.getInstance(setupModalEl);
-                            if (m) m.hide();
-
-                            // after successfully setting the PIN, attempt to enable Kids Mode again
-                            setTimeout(() => { switchProfileMode(); }, 200);
-                        } else {
-                            Toastify({ text: json.message || 'Could not save PIN', style: { background: 'var(--primary)' } }).showToast();
-                        }
-                    } catch (err) {
-                        btn.disabled = false;
-                        console.error('set-pin error', err);
-                        Toastify({ text: 'Connection error saving PIN', style: { background: 'var(--primary)' } }).showToast();
-                    }
-                });
-
-                if (cancelBtn) cancelBtn.onclick = () => { setupModal.hide(); };
-            } else {
-                // fallback: redirect user to profile page to create a PIN
-                try { Toastify({ text: data.message, style: { background: 'var(--primary)' } }).showToast(); } catch(e){}
-                setTimeout(() => { window.location.href = '/profile'; }, 1200);
-            }
-
-           } else {
-            try { Toastify({ text: data.message, style: { background: "var(--primary)" } }).showToast(); } catch(e) { console.warn('Toastify error', e); }
-            // If the server returned an error or upgrade prompt, show it as a banner
-            if (data.message) showServerBanner(data.status, data.message);
-               // make sure this message is visible as a focused popup as well
-               if (window.Swal) {
-                   // if the message talks about an upgrade, give a clear title
-                   const title = /upgrade|subscribe|premium/i.test(data.message) ? 'Upgrade required' : 'Notice';
-                   Swal.fire({ icon: 'error', title: title, text: data.message, confirmButtonText: 'OK' });
-               }
-               // If not premium, redirect to pricing
-               if(data.message && data.message.toLowerCase().includes('upgrade')) {
-                   setTimeout(() => { window.location.href = '/pricing-plan'; }, 1500);
-               }
-               // If not logged-in, redirect to login for convenience
-               else if (data.message && data.message.toLowerCase().includes('login')) {
-                   const curr = encodeURIComponent(window.location.pathname + window.location.search);
-                   setTimeout(() => { window.location.href = '/login?next=' + curr; }, 1200);
-               }
-           }
-       })
-       .catch(err => {
-           console.error('switchProfileMode error', err);
-           Toastify({ text: 'Connection error', style: { background: "var(--primary)" } }).showToast();
-       });
-   }
-   </script>
-    <!-- Parental PIN Modal moved to footer for consistent visibility -->
+       <!-- Kids Mode switching (switchProfileMode and its dialog) is in includes/kids-mode.php, loaded by the footer. -->
     </header>
 <style>
    /*

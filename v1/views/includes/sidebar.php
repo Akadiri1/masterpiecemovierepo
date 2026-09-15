@@ -244,7 +244,7 @@ $current_plan = $_SESSION['plan_name'] ?? 'Free';
 
         <a href="javascript:void(0)" onclick="if(typeof switchProfileMode==='function') switchProfileMode(); return false;" class="sidebar-link">
             <i class="ph <?php echo $isKidsMode ? 'ph-user-switch' : 'ph-smiley'; ?>"></i>
-            <span><?php echo $isKidsMode ? 'Exit Kids' : 'Kids Mode'; ?></span>
+            <span><?php echo $isKidsMode ? 'Leave Kids Mode' : 'Kids Mode'; ?></span>
         </a>
     </nav>
 
