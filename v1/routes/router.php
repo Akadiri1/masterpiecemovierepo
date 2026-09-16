@@ -329,6 +329,10 @@ if (count($uri) > 2) {
         include APP_PATH . "/views/ai-hook.php";
         break;
 
+     case 'season-episodes?'.$query_string:
+    include APP_PATH."/views/includes/ajax/season-episodes.php";
+    break;
+
      case 'view-all?'.$query_string:
     include APP_PATH."/views/includes/ajax/view-all.php";
     break;
@@ -354,6 +358,11 @@ if (count($uri) > 2) {
     break;
 
      case 'register':
+    include APP_PATH."/views/register.php";
+    break;
+
+    // With a return address (/register?next=...), like login below.
+    case 'register?'.$query_string:
     include APP_PATH."/views/register.php";
     break;
 

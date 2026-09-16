@@ -107,6 +107,10 @@ if (function_exists('fetchTmdbApi')) {
 
             // 3. Build Sidebar Data (Only if show exists)
             if (!empty($details['seasons'])) {
+                // Every season in parallel first; the loop below then reads them from the cache.
+                if (function_exists('prefetchTmdbApi')) {
+                    prefetchTmdbApi(array_map(fn($s) => ["tv/{$mediaId}/season/{$s['season_number']}", []], $details['seasons']));
+                }
                 foreach ($details['seasons'] as $season) {
                     if ($season['season_number'] == 0) continue; 
                     $seasonDetail = fetchTmdbApi("tv/{$mediaId}/season/{$season['season_number']}");
@@ -120,6 +124,43 @@ if (function_exists('fetchTmdbApi')) {
                 }
             }
         }
+    }
+}
+
+// ==========================================
+// 3b. WATCHLIST STATE AND DOWNLOADS
+// ==========================================
+// Whether the title is already in the signed-in user's watchlist (the
+// button's first state).
+$isInWatchlist = false;
+if (isset($conn, $_SESSION['user_id'])) {
+    try {
+        $wlStmt = $conn->prepare("SELECT 1 FROM watchlist WHERE user_id = ? AND tmdb_movie_id = ? AND media_type = ? LIMIT 1");
+        $wlStmt->execute([$_SESSION['user_id'], (int) $mediaId, $mediaType]);
+        $isInWatchlist = (bool) $wlStmt->fetchColumn();
+    } catch (PDOException $e) {
+        error_log('Watch page watchlist check: ' . $e->getMessage());
+    }
+}
+
+// Files the site may share for this movie or episode: titles published by the
+// licensed ingestion pipeline (v1/ingest) and links added under Admin >
+// Download Links. The Download button only shows when there are some.
+$downloadLinks = [];
+if (isset($conn)) {
+    try {
+        if ($mediaType === 'tv') {
+            $dlStmt = $conn->prepare("SELECT quality, file_size, language, license_label FROM media_downloads
+                WHERE tmdb_id = ? AND media_type = 'tv' AND season = ? AND episode = ? AND is_active = 1 ORDER BY quality DESC");
+            $dlStmt->execute([(int) $mediaId, $seasonNum, $episodeNum]);
+        } else {
+            $dlStmt = $conn->prepare("SELECT quality, file_size, language, license_label FROM media_downloads
+                WHERE tmdb_id = ? AND media_type = 'movie' AND is_active = 1 ORDER BY quality DESC");
+            $dlStmt->execute([(int) $mediaId]);
+        }
+        $downloadLinks = $dlStmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log('Watch page downloads: ' . $e->getMessage());
     }
 }
 
@@ -519,7 +560,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
       @media (max-width: 767.98px) {
           .bottom-controls-bar .control-actions {
               display: grid !important;
-              grid-template-columns: repeat(6, minmax(0, 1fr));
+              grid-template-columns: repeat(var(--toolbar-cols, 6), minmax(0, 1fr));
               gap: 6px;
               width: 100%;
               flex: 1 1 100% !important;
@@ -529,7 +570,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
           .bottom-controls-bar .control-actions > a.btn-action:first-of-type { order: 1; grid-column: 1; }
           .bottom-controls-bar .control-actions > .now-playing-box {
               order: 2;
-              grid-column: 2 / span 4;
+              grid-column: 2 / -2;
               align-self: stretch;
               height: auto;
               padding: 0;
@@ -537,7 +578,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
               background: rgba(255, 255, 255, 0.03);
               align-items: center;
           }
-          .bottom-controls-bar .control-actions > a.btn-action:last-of-type { order: 3; grid-column: 6; }
+          .bottom-controls-bar .control-actions > a.btn-action:last-of-type { order: 3; grid-column: -2 / -1; }
           .bottom-controls-bar .control-actions .btn-action {
               width: 100% !important;
               padding: 0 !important;
@@ -833,7 +874,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                   <?php endif; ?>
              </div>
              
-             <div class="control-actions">
+             <div class="control-actions" style="--toolbar-cols: <?php echo 4 + ((!$isUpcoming && !empty($servers)) ? 1 : 0) + ((!$isUpcoming && !empty($downloadLinks)) ? 1 : 0); ?>;">
                   <?php if (!$isUpcoming && !empty($servers)): ?>
                   <!-- Server Switcher Inline -->
                   <div style="position:relative;">
@@ -863,13 +904,35 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                   <button class="btn-action" onclick="window.innerWidth <= 800 ? openMobileAI() : openWatchAI()" title="Ask ZEN AI" style="background: linear-gradient(135deg, #00e0ff, #7b2cbf); border: none; color: #fff; width: auto; padding: 0 15px; font-weight: 600; display: inline-flex; gap: 6px; align-items: center;">
                       <i class="ph-fill ph-sparkle"></i> <span class="d-none d-md-block">ZEN AI</span>
                   </button>
-                  <button class="btn-action" id="watchlistBtn" title="Add to Watchlist"><i class="ph ph-plus"></i></button>
+                  <button class="btn-action" id="watchlistBtn" title="<?php echo $isInWatchlist ? 'Remove from Watchlist' : 'Add to Watchlist'; ?>" aria-pressed="<?php echo $isInWatchlist ? 'true' : 'false'; ?>"<?php echo $isInWatchlist ? ' style="color: #4ade80;"' : ''; ?>><i class="ph <?php echo $isInWatchlist ? 'ph-check' : 'ph-plus'; ?>"></i></button>
                   <button class="btn-action" onclick="navigator.share({title: document.title, url: window.location.href})"><i class="ph ph-share-network"></i></button>
-                  <?php if (!$isUpcoming && !empty($servers)): ?>
+                  <?php if (!$isUpcoming && !empty($downloadLinks)): ?>
                   <button class="btn-action" id="downloadBtn" title="Download"><i class="ph ph-download-simple"></i></button>
                   <?php endif; ?>
              </div>
         </div>
+
+        <!-- Episodes on phones: every season, under the player. Wider screens
+             show the list in the right-hand panel. -->
+        <?php if ($mediaType === 'tv' && !empty($details['seasons'])):
+            require_once __DIR__ . '/includes/season-episodes.php';
+            $playingSeasonEpisodes = [];
+            foreach ($seasonsData as $sd) {
+                if ((int) $sd['season_number'] === $seasonNum) {
+                    $playingSeasonEpisodes = $sd['episodes'];
+                    break;
+                }
+            }
+            echo seasonsSection((int) $mediaId, $details['seasons'], $seasonNum, $playingSeasonEpisodes, $seasonNum, $episodeNum, 'se-watch');
+        endif; ?>
+        <style>
+            .se-watch { display: none; }
+            @media (max-width: 900px) {
+                .se-watch { display: block; margin: 18px 0 8px; }
+                /* The right-hand panel's own season picker and list would repeat it. */
+                #sidebarContent .right-controls-top, #seasonDropdownNav, #epListContainer { display: none !important; }
+            }
+        </style>
 
         <!-- Recommended Section -->
         <?php if (!empty($details['recommendations']['results'])): ?>
@@ -1038,28 +1101,22 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                <?php endif; ?>
             </p>
 
-            <?php
-            // Build download links for multiple qualities
-            $qualities = [
-                ['res' => '480p',  'label' => 'Standard',  'size' => '~400 MB', 'format' => 'MKV'],
-                ['res' => '720p',  'label' => 'HD',        'size' => '~800 MB', 'format' => 'MKV'],
-                ['res' => '1080p', 'label' => 'Full HD',   'size' => '~1.5 GB', 'format' => 'MKV'],
-            ];
-
-            foreach ($qualities as $q):
-                $dlParams = "id={$mediaId}&type={$mediaType}&quality={$q['res']}";
+            <?php foreach ($downloadLinks as $link):
+                // Through /download, which records the download and sends the file.
+                $dlQuery = ['id' => (int) $mediaId, 'type' => $mediaType, 'quality' => $link['quality']];
                 if ($mediaType === 'tv') {
-                    $dlParams .= "&season={$seasonNum}&episode={$episodeNum}";
+                    $dlQuery['season'] = $seasonNum;
+                    $dlQuery['episode'] = $episodeNum;
                 }
             ?>
-            <a href="/download?<?php echo $dlParams; ?>" class="dl-quality-item" target="_blank" rel="noopener">
+            <a href="/download?<?php echo htmlspecialchars(http_build_query($dlQuery)); ?>" class="dl-quality-item" target="_blank" rel="noopener">
                 <div class="dl-quality-info">
                     <div class="dl-quality-badge">
-                        <span class="badge-res"><?php echo $q['res']; ?></span>
-                        <span class="badge-format"><?php echo $q['format']; ?></span>
+                        <span class="badge-res"><?php echo htmlspecialchars($link['quality']); ?></span>
+                        <?php if (!empty($link['language'])): ?><span class="badge-format"><?php echo htmlspecialchars($link['language']); ?></span><?php endif; ?>
                     </div>
-                    <span class="dl-quality-label"><?php echo $q['label']; ?> Quality</span>
-                    <span class="dl-quality-meta"><?php echo $q['size']; ?> • Direct Download</span>
+                    <span class="dl-quality-label"><?php echo htmlspecialchars($link['file_size'] ?: 'Download'); ?></span>
+                    <?php if (!empty($link['license_label'])): ?><span class="dl-quality-meta"><?php echo htmlspecialchars($link['license_label']); ?></span><?php endif; ?>
                 </div>
                 <div class="dl-quality-icon">
                     <i class="fa-solid fa-download"></i>
@@ -1513,40 +1570,54 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
     });
 
     // Watchlist Logic
+    // Watchlist: saved to the account. Guests are sent to sign in and brought
+    // back here. (It used to only flip the icon and never saved anything.)
     const watchlistBtn = document.getElementById('watchlistBtn');
     if (watchlistBtn) {
+        // The page's banner helpers are private to another script block, so
+        // use them if they're reachable and a toast otherwise.
+        const notify = (type, text) => {
+            if (typeof showBanner === 'function' && typeof hideBanner === 'function') {
+                showBanner(type, '<i class="fa-solid ' + (type === 'success' ? 'fa-check' : 'fa-xmark') + '"></i> ' + text);
+                hideBanner(3000);
+            } else if (window.Toastify) {
+                Toastify({ text: text, style: { background: type === 'success' ? '#00b09b' : '#555' } }).showToast();
+            }
+        };
         watchlistBtn.addEventListener('click', function() {
-            const icon = this.querySelector('i');
-            if (icon.classList.contains('ph-plus')) {
-                icon.classList.replace('ph-plus', 'ph-check');
-                this.style.color = '#4ade80'; // Success green
-                showBanner('success', '<i class="fa-solid fa-check"></i> Added to your watchlist');
-                hideBanner(3000);
-            } else {
-                icon.classList.replace('ph-check', 'ph-plus');
-                this.style.color = '';
-                showBanner('removed', '<i class="fa-solid fa-xmark"></i> Removed from watchlist');
-                hideBanner(3000);
-            }
+            const button = this;
+            const icon = button.querySelector('i');
+            button.disabled = true;
+            fetch('/add-watchlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: 'id=' + encodeURIComponent(<?php echo json_encode((string) $mediaId); ?>) + '&type=' + encodeURIComponent(<?php echo json_encode($mediaType); ?>)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status !== 'success') {
+                    if (/login/i.test(data.message || '')) {
+                        window.location.href = '/login?next=' + encodeURIComponent(location.pathname + location.search);
+                        return;
+                    }
+                    throw new Error(data.message);
+                }
+                const added = data.action === 'added';
+                icon.className = 'ph ' + (added ? 'ph-check' : 'ph-plus');
+                button.style.color = added ? '#4ade80' : '';
+                button.title = added ? 'Remove from Watchlist' : 'Add to Watchlist';
+                button.setAttribute('aria-pressed', added ? 'true' : 'false');
+                notify(added ? 'success' : 'removed', added ? 'Added to your watchlist' : 'Removed from watchlist');
+            })
+            .catch(() => {
+                notify('removed', "Couldn't update your watchlist. Please try again.");
+            })
+            .finally(() => { button.disabled = false; });
         });
     }
 
-    // Download Logic
-    const downloadBtn = document.getElementById('downloadBtn');
-    if (downloadBtn) {
-        downloadBtn.addEventListener('click', function() {
-            const title = "<?php echo urlencode(preg_replace('/[^a-zA-Z0-9\s]/', '', $videoTitle)); ?>";
-            const type = "<?php echo $mediaType; ?>";
-            let downloadUrl = "";
-            if (type === 'movie') {
-                downloadUrl = `https://yts.mx/browse-movies/${title}/all/all/0/latest/0/all`;
-            } else {
-                downloadUrl = `https://1337x.to/category-search/${title}/TV/1/`;
-            }
-            window.open(downloadUrl, '_blank');
-        });
-    }
-
+    // Download: the button opens the list of the site's own files (the
+    // dlBtn handler above). It used to also open torrent sites in a new tab.
     // Automatically track history and simulate progress realistically based on time spent on page
     <?php
     $durationSeconds = 120 * 60; // Default 120 minutes (7200 seconds)
@@ -1780,7 +1851,7 @@ watchlistBtns.forEach(btn => {
                 }
             } else {
                 if (data.message.includes('login')) {
-                    window.location.href = '/login';
+                    window.location.href = '/login?next=' + encodeURIComponent(location.pathname + location.search);
                 } else {
                     alert(data.message);
                 }

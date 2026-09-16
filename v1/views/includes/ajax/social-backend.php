@@ -165,6 +165,10 @@ if ($userData) {
             $redirect_url = $_SESSION['redirect_url'];
             unset($_SESSION['redirect_url']);
         }
+        // Back to the page they signed in from, when the login page passed one.
+        if ($returnTo = safeReturnPath($input['next'] ?? '')) {
+            $redirect_url = $returnTo;
+        }
 
         echo json_encode([
             'success' => true,

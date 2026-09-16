@@ -296,7 +296,7 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
         if (!hasAccess) {
             if (!isLoggedIn) {
                 Toastify({ text: "🔒 Please login or sign up to use ZEN AI!", style: { background: "#e50914" } }).showToast();
-                setTimeout(() => window.location.href = '/login', 1500);
+                setTimeout(() => { window.location.href = '/login?next=' + encodeURIComponent(location.pathname + location.search); }, 1500);
             } else {
                 Toastify({ text: "🔒 Upgrade to Pro!", style: { background: "#e50914" } }).showToast();
             }

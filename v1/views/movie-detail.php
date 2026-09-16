@@ -480,6 +480,10 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
       /* ---- Title, actions and reviews ---------------------------------------
          For every screen size; phones are tuned further in the block below. */
       .center-top-bar { display: flex; align-items: center; gap: 8px; }
+      /* The theme's .back-btn is a floating, absolutely positioned button, so
+         inside this bar every button landed on the same spot, on top of each
+         other. In the bar they belong in a row. */
+      .center-top-bar .back-btn { position: static; flex-shrink: 0; }
       /* Search and ZEN AI sit together on the right of the top bar. */
       .top-search-btn { margin-left: auto; }
       .top-search-btn + .top-ai-btn { margin-left: 0; }
@@ -716,6 +720,16 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
             </div>
             <?php endif; ?>
         </section>
+        <!-- Episodes: every season of the series, starting with season 1 -->
+        <?php if ($mediaType === 'tv' && !empty($details['seasons'])):
+            require_once __DIR__ . '/includes/season-episodes.php';
+            $seasonNumbers = array_map(fn($s) => (int) $s['season_number'], array_filter($details['seasons'], fn($s) => (int) ($s['episode_count'] ?? 0) > 0));
+            $regularSeasons = array_filter($seasonNumbers, fn($n) => $n > 0);
+            $firstSeason = $regularSeasons ? min($regularSeasons) : ($seasonNumbers ? min($seasonNumbers) : 1);
+            $firstSeasonData = fetchTmdbApi("tv/{$mediaId}/season/{$firstSeason}");
+            echo seasonsSection((int) $mediaId, $details['seasons'], $firstSeason, $firstSeasonData['episodes'] ?? []);
+        endif; ?>
+
         <!-- Recommended Section -->
         <?php if (!empty($relatedList)): ?>
         <div class="recommended-section mx-0 px-0 mt-4 mb-4">
@@ -776,7 +790,8 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                     </div>
                 <?php endif; ?>
             </div>
-        </section>        </section>    </main>
+        </section>
+    </main>
 
     <!-- 3. Right Panel -->
     <aside class="watch-right custom-scrollbar" id="sidebar">
@@ -1058,7 +1073,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                     }
                 } else {
                     if (data.message.includes('login')) {
-                        window.location.href = '/login';
+                        window.location.href = '/login?next=' + encodeURIComponent(location.pathname + location.search);
                     } else {
                         alert(data.message);
                     }

@@ -1,24 +1,23 @@
 <?php
-// Set error reporting
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// Creates an account, signs it in straight away, and says where to go next:
+// back to the page the person signed up from (?next=), or the home page.
+// Before, a new account was sent to the sign-in page and lost its place.
 
-// Set the response type to JSON
+ini_set('display_errors', 0);
 header('Content-Type: application/json');
 
 // --- 2. Read Incoming JSON Data ---
 $input = json_decode(file_get_contents('php://input'));
 
 if (!$input) {
-    http_response_code(400); 
+    http_response_code(400);
     echo json_encode(['message' => 'Invalid data sent.']);
     exit;
 }
 
 // --- 3. Server-Side Validation ---
 if (empty($input->username) || empty($input->email) || empty($input->password)) {
-    http_response_code(400); 
+    http_response_code(400);
     echo json_encode(['message' => 'Username, email, and password are required.']);
     exit;
 }
@@ -61,28 +60,38 @@ try {
 
     // --- Create the User ---
     $hashed_password = password_hash($input->password, PASSWORD_BCRYPT);
-    
-    // === FIXED: Removed firstName and lastName ===
-    $sql = "INSERT INTO users (username, email, password) 
-            VALUES (?, ?, ?)";
-    $stmt = $conn->prepare($sql);
+    $stmt = $conn->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
     $stmt->execute([
         $input->username,
         $input->email,
         $hashed_password
     ]);
+    $userId = (int) $conn->lastInsertId();
 
-    // --- Send Success Response ---
+    // --- Sign the new account in (the same session login-backend sets up) ---
+    if (session_status() !== PHP_SESSION_ACTIVE) session_start();
+    session_regenerate_id(true);
+    $_SESSION['user_id'] = $userId;
+    $_SESSION['username'] = $input->username;
+    $_SESSION['email'] = $input->email;
+    $_SESSION['role'] = 'user';
+    $_SESSION['avatar_url'] = null;
+    $_SESSION['logged_in'] = true;
+    $_SESSION['plan_id'] = 1;
+    $_SESSION['plan_name'] = 'free';
+    $_SESSION['is_kids_mode'] = false;
+    $_SESSION['is_kid'] = 0;
+
+    $returnTo = function_exists('safeReturnPath') ? safeReturnPath($input->next ?? '') : null;
+
     http_response_code(201); // 201 Created
     echo json_encode([
-        'message' => 'Registration successful! Redirecting to login...',
-        'redirect' => '/login', // canonical next-step
-        // Suggest that the client prompt the user to set a Parental PIN after they login.
-        'suggested_next' => '/set-parental-pin'
+        'message' => 'Account created.',
+        'redirect' => $returnTo ?? '/',
     ]);
 
 } catch (PDOException $e) {
-    http_response_code(500); 
-    echo json_encode(['message' => 'A database error occurred: ' . $e->getMessage()]);
+    error_log('Registration failed: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode(['message' => "Your account couldn't be created right now. Please try again."]);
 }
-?>

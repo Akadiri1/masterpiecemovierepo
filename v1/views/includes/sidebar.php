@@ -92,6 +92,8 @@ $current_plan = $_SESSION['plan_name'] ?? 'Free';
     }
     .sidebar-user:hover { background: rgba(255,255,255,0.05); }
     .sidebar-user img { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; }
+    .sidebar-signin-icon { flex-shrink: 0; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--primary, #e50914); color: #fff; font-size: 1rem; }
+    .sidebar-user-plan.sidebar-user-hint { text-transform: none; letter-spacing: 0; }
     .sidebar-user-info { overflow: hidden; }
     .sidebar-user-name { color: #ddd; font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sidebar-user-plan { color: #666; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -249,6 +251,16 @@ $current_plan = $_SESSION['plan_name'] ?? 'Free';
     </nav>
 
     <div class="sidebar-footer">
+        <?php if (empty($_SESSION['user_id'])): ?>
+        <!-- Guests: sign in and come back to this page. -->
+        <a href="<?php echo htmlspecialchars(signInUrl()); ?>" class="sidebar-user">
+            <span class="sidebar-signin-icon"><i class="ph ph-sign-in"></i></span>
+            <div class="sidebar-user-info">
+                <div class="sidebar-user-name">Sign in</div>
+                <div class="sidebar-user-plan sidebar-user-hint">Save your watchlist and history</div>
+            </div>
+        </a>
+        <?php else: ?>
         <a href="/profile" class="sidebar-user">
             <img src="<?php echo htmlspecialchars($avatarPath ?? 'assets/images/user/user6.jpg'); ?>" alt="Profile">
             <div class="sidebar-user-info">
@@ -256,6 +268,7 @@ $current_plan = $_SESSION['plan_name'] ?? 'Free';
                 <div class="sidebar-user-plan"><?php echo htmlspecialchars($current_plan); ?> plan</div>
             </div>
         </a>
+        <?php endif; ?>
     </div>
 </aside>
 

@@ -2,14 +2,12 @@
 // Already signed in -- including silently via the remember-me cookie, which
 // www/index.php restores before routing -- so skip the form entirely.
 if (!empty($_SESSION['user_id'])) {
-    $next = $_GET['next'] ?? '';
-    $safeNext = is_string($next)
-        && strpos($next, '/') === 0
-        && strpos($next, '//') !== 0
-        && stripos($next, 'http') === false;
-    header('Location: ' . ($safeNext ? $next : '/'));
+    header('Location: ' . (safeReturnPath($_GET['next'] ?? '') ?? '/'));
     exit;
 }
+// Where to return after signing in. "Create an Account" passes it on too, so
+// a new account also comes back to the page (say, the movie being watched).
+$loginNext = safeReturnPath($_GET['next'] ?? '');
 ?>
 <!doctype html>
 <html lang="en" data-bs-theme="dark">
@@ -228,7 +226,7 @@ if (!empty($_SESSION['user_id'])) {
 
                                     <div class="text-center mt-4">
                                         <p class="text-muted mb-2 small">Don't have an account yet?</p>
-                                        <a href="/register" class="btn btn-outline-light w-100 py-2 fw-bold">Create an Account</a>
+                                        <a href="<?php echo htmlspecialchars('/register' . ($loginNext ? '?next=' . rawurlencode($loginNext) : '')); ?>" class="btn btn-outline-light w-100 py-2 fw-bold">Create an Account</a>
                                     </div>
                                 </form>
                             </div>
@@ -260,7 +258,8 @@ if (!empty($_SESSION['user_id'])) {
                 body: JSON.stringify({
                     provider: provider,
                     token: token,
-                    rememberMe: !!(document.querySelector('#remember-me') || {}).checked
+                    rememberMe: !!(document.querySelector('#remember-me') || {}).checked,
+                    next: new URLSearchParams(window.location.search).get('next')
                 })
             });
             const data = await response.json();

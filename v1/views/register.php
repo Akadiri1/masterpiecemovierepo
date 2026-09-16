@@ -1,3 +1,7 @@
+<?php
+// Where to return after signing up (passed from the sign-in page as ?next=).
+$registerNext = function_exists('safeReturnPath') ? safeReturnPath($_GET['next'] ?? '') : null;
+?>
 <!doctype html>
 <html lang="en" data-bs-theme="dark">
 
@@ -188,7 +192,7 @@
                                                 <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
                                             </button>
                                             
-                                            <p class="text-center mt-2 mb-0 small text-muted">Already have an account? <a href="/login" class="text-primary fw-bold ms-1 text-decoration-none">Login</a></p>
+                                            <p class="text-center mt-2 mb-0 small text-muted">Already have an account? <a href="<?php echo htmlspecialchars('/login' . ($registerNext ? '?next=' . rawurlencode($registerNext) : '')); ?>" class="text-primary fw-bold ms-1 text-decoration-none">Login</a></p>
                                         </div>
                                     </div>
 
@@ -295,7 +299,8 @@
                 lastName: inputs.lastName.value,
                 username: inputs.username.value,
                 email: inputs.email.value,
-                password: inputs.password.value
+                password: inputs.password.value,
+                next: new URLSearchParams(window.location.search).get('next')
             };
 
             try {
@@ -307,9 +312,11 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    const loginUrl = (data.redirect || '/login');
-                    Toastify({ text: "Account Created Successfully!", style: { background: "#4caf50" } }).showToast();
-                    setTimeout(() => { window.location.href = loginUrl; }, 1500);
+                    // The new account is signed in straight away and goes back to
+                    // the page it came from (or the home page).
+                    const nextUrl = (data.redirect || '/');
+                    Toastify({ text: "Welcome to ZEN! Your account is ready.", style: { background: "#4caf50" } }).showToast();
+                    setTimeout(() => { window.location.href = nextUrl; }, 1200);
                 } else {
                     Toastify({ text: data.message || "Registration Error", style: { background: "#e50914" } }).showToast();
                 }

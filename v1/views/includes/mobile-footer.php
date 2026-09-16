@@ -81,9 +81,16 @@
                 TV Shows</a>
         </li>
         <li class="footer-menu-item">
+            <?php if (empty($_SESSION['user_id'])): ?>
+            <!-- Guests: sign in and come back to this page. -->
+            <a href="<?php echo htmlspecialchars(function_exists('signInUrl') ? signInUrl() : '/login'); ?>" class="menu-link font-size-12">
+                <i class="ph ph-sign-in d-block text-center"></i>
+                Sign in</a>
+            <?php else: ?>
             <a href="/profile" class="menu-link font-size-12">
                 <i class="ph ph-user d-block text-center"></i>
                 Profile</a>
+            <?php endif; ?>
         </li>
     </ul>
 </div>

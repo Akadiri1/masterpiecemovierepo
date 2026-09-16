@@ -930,7 +930,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     <!-- Menu Items -->
                    <ul class="d-flex flex-column gap-3 list-inline m-0 p-0">
-                        <?php if (!$isKidsMode): ?>
+                        <?php if (empty($_SESSION['user_id'])): ?>
+                        <li><a href="<?php echo htmlspecialchars(signInUrl()); ?>" class="link-body-emphasis font-size-14 d-flex align-items-center gap-2"><i class="ph ph-sign-in"></i><span class="fw-medium">Sign in</span></a></li>
+                        <?php elseif (!$isKidsMode): ?>
                         <li><a href="/profile" class="link-body-emphasis font-size-14 d-flex align-items-center gap-2"><i class="ph ph-user"></i><span class="fw-medium">Profile</span></a></li>
                         <!-- <li><a href="/watchlist" class="link-body-emphasis font-size-14 d-flex align-items-center gap-2"><i class="ph ph-plus"></i><span class="fw-medium">Watch List</span></a></li> -->
                         <?php endif; ?>
@@ -946,6 +948,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     </ul>
                 </div>
 
+                <?php if (empty($_SESSION['user_id'])): ?>
+                <!-- Guests: create an account, then come back to this page -->
+                <a href="<?php echo htmlspecialchars(signUpUrl()); ?>"
+                    class="btn btn-link p-3 d-block font-size-14 text-center text-decoration-none border-top">
+                    <span class="d-flex align-items-center justify-content-center gap-2 fw-medium">
+                        <i class="ph ph-user-plus"></i>
+                        Create an account
+                    </span>
+                </a>
+                <?php else: ?>
                 <!-- Logout -->
                 <a href="/logout"
                     class="btn btn-link p-3 d-block font-size-14 text-center text-decoration-none border-top">
@@ -954,6 +966,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         Logout
                     </span>
                 </a>
+                <?php endif; ?>
             </div>
 
         </li>

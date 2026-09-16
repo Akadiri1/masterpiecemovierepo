@@ -187,6 +187,37 @@ function prefetchTmdbApi(array $requests, int $cacheDuration = 86400, int $concu
     curl_multi_close($multi);
 }
 
+/**
+ * A path on this site that is safe to send someone back to after they sign in
+ * or sign up; null otherwise. Rejects other sites (including "//host" and
+ * "/\host" tricks) and the sign-in pages themselves, which would loop.
+ */
+function safeReturnPath($path): ?string
+{
+    if (!is_string($path) || $path === '' || $path[0] !== '/' || strpos($path, '//') === 0
+        || strpbrk($path, "\\\r\n") !== false) {
+        return null;
+    }
+    if (preg_match('~^/(login|register|signup|logout|forgot-password|reset-password)(?:[/?#]|$)~i', $path)) {
+        return null;
+    }
+    return $path;
+}
+
+/** The sign-in link that brings people back to this page (or $returnTo) afterwards. */
+function signInUrl(?string $returnTo = null): string
+{
+    $path = safeReturnPath($returnTo ?? ($_SERVER['REQUEST_URI'] ?? ''));
+    return $path && $path !== '/' ? '/login?next=' . rawurlencode($path) : '/login';
+}
+
+/** The sign-up link that brings people back to this page (or $returnTo) afterwards. */
+function signUpUrl(?string $returnTo = null): string
+{
+    $path = safeReturnPath($returnTo ?? ($_SERVER['REQUEST_URI'] ?? ''));
+    return $path && $path !== '/' ? '/register?next=' . rawurlencode($path) : '/register';
+}
+
 function MCK_Clarity()
 {
   $clarityId = getenv("CLARITY_ID");

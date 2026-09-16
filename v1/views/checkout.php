@@ -5,7 +5,7 @@ include APP_PATH . '/views/includes/header.php';
 // 1. Validate User
 if (!isset($_SESSION['user_id'])) {
     $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
-    echo "<script>window.location.href = '/login';</script>";
+    echo '<script>window.location.href = ' . json_encode(signInUrl()) . ';</script>';
     exit;
 }
 
