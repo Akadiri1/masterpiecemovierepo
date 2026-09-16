@@ -35,13 +35,20 @@ try {
         $dbOptions[PDO::MYSQL_ATTR_SSL_CA] = $dbCaFile;
     }
 
-    // A remote database costs several network round trips just to open an
-    // encrypted connection. Persistent connections let each Apache worker
-    // reuse its connection instead of reconnecting on every page. The app uses
-    // no transactions, so a reused connection carries nothing between
-    // requests. Local WAMP keeps ordinary connections.
     if (getenv('DB_HOST')) {
-        $dbOptions[PDO::ATTR_PERSISTENT] = true;
+        // Give up on an unreachable database after 10 seconds instead of
+        // PHP's default 60, so visitors see the error page instead of a hang.
+        $dbOptions[PDO::ATTR_TIMEOUT] = 10;
+
+        // A remote database costs several network round trips just to open an
+        // encrypted connection. Persistent connections let each Apache worker
+        // reuse its connection instead of reconnecting on every page (the app
+        // uses no transactions, so nothing carries between requests). Opt-in
+        // with DB_PERSISTENT=1: the live site lost its database connection
+        // after they were switched on for everyone.
+        if (filter_var(getenv('DB_PERSISTENT'), FILTER_VALIDATE_BOOLEAN)) {
+            $dbOptions[PDO::ATTR_PERSISTENT] = true;
+        }
     }
 
     // Local MySQL runs with an empty sql_mode, so the site's queries were
@@ -122,9 +129,14 @@ try {
 } catch (PDOException $e) {
     // Full details always go to the error log (the Render logs in production).
     // Visitors see them only where display_errors is on, i.e. local WAMP.
+    // Elsewhere they get MySQL's error number, which reveals nothing private
+    // but tells the cause apart: 2002 host down or unreachable (e.g. a
+    // powered-off database), 1045 wrong user or password, 1040 too many
+    // connections, 1049 no such database, 2026 SSL problem.
     error_log('DB Connection failed: ' . $e->getMessage());
+    $dbErrorRef = (int) $e->getCode() ?: 'setup';
     echo ini_get('display_errors')
         ? "DB Connection failed: " . $e->getMessage()
-        : "The site can't reach its database right now. Please try again shortly.";
+        : "The site can't reach its database right now. Please try again shortly. (Error {$dbErrorRef})";
 }
 ?>
