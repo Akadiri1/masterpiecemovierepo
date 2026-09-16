@@ -317,7 +317,8 @@
 (function () {
     var seen;
     try { seen = localStorage.getItem('zen_tour_completed'); } catch (e) { seen = 'unavailable'; }
-    if (seen || window.self !== window.top) return;
+    // Pages can opt out with $suppressSiteTour (e.g. the admin dashboard).
+    if (seen || window.self !== window.top || <?php echo !empty($suppressSiteTour) ? 'true' : 'false'; ?>) return;
 
     // Each stop points at the first of its elements that is actually on
     // screen, so one tour fits the phone layout (header buttons, bottom bar)

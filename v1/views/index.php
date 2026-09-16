@@ -738,7 +738,11 @@ include ("includes/header.php");
          <div class="slider-images" data-swiper="slider-images-ott">
             <div class="swiper-container" data-swiper="slider-images-inner-ott">
                <ul class="swiper-wrapper m-0 list-inline">
-                  
+                  <?php
+                  // Which slides the site may play (Discover mode labels the rest "Where to watch").
+                  require_once APP_PATH . '/lib/site_settings.php';
+                  $heroLicensed = isset($conn) ? licensedTitleKeys($conn, array_map(fn($s) => [$s['type'], $s['id']], $heroSlides)) : [];
+                  ?>
                   <?php foreach ($heroSlides as $heroIndex => $slide): ?>
                   <li class="swiper-slide banner-bg p-0">
                      <div class="slider--image block-images" style="background-image: url(<?php echo $slide['bg_url']; ?>);">
@@ -805,9 +809,10 @@ include ("includes/header.php");
                                     <!-- Actions -->
                                     <div class="hero-actions RightAnimate-four mt-4 pt-2">
                                        <a href="/watch?id=<?php echo (int) $slide['id']; ?>&amp;type=<?php echo htmlspecialchars($slide['type']); ?><?php echo $slide['type'] === 'tv' ? '&amp;season=1&amp;episode=1' : ''; ?>" class="btn btn-primary text-capitalize position-relative rounded-3 hero-play">
+                                          <?php $heroPlay = playButton(isset($heroLicensed[$slide['type'] . ':' . (int) $slide['id']])); ?>
                                           <span class="d-flex align-items-center justify-content-center gap-2">
-                                             <i class="ph-fill ph-play fs-6"></i>
-                                             <span class="button-text">Play</span>
+                                             <i class="<?php echo $heroPlay['icon']; ?> fs-6"></i>
+                                             <span class="button-text"><?php echo $heroPlay['label']; ?></span>
                                           </span>
                                        </a>
                                        <a href="/<?php echo htmlspecialchars($slide['type']); ?>/<?php echo (int) $slide['id']; ?>" class="hero-more">

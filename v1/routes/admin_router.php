@@ -163,6 +163,10 @@ switch ($uri[1]) {
   include APP_PATH."/admin/manage_ingestion.php";
   break;
 
+  case 'admin-playback':
+  include APP_PATH."/admin/manage_playback.php";
+  break;
+
   case 'admin-ai':
   case 'admin-view-ai':
   include APP_PATH."/admin/manage_ai.php";

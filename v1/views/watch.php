@@ -167,29 +167,25 @@ if (isset($conn)) {
 // ==========================================
 // 4. SERVER SELECTION LOGIC
 // ==========================================
-// Check for custom hosted media source first
-$customSource = null;
-if (isset($conn)) {
-    try {
-        $sql = "SELECT video_url, is_embed FROM media_sources 
-                WHERE tmdb_id = ? AND media_type = ? 
-                AND season = ? AND episode = ? LIMIT 1";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([$mediaId, $mediaType, $seasonNum, $episodeNum]);
-        $customSource = $stmt->fetch(PDO::FETCH_ASSOC);
-    } catch (Exception $e) {}
-}
+// Admin > Playback picks what visitors get (see lib/site_settings.php):
+// Discover mode plays only videos the site has the rights to and otherwise
+// shows the trailer and where to watch; Servers mode adds the third-party
+// streaming servers for every title.
+require_once APP_PATH . '/lib/site_settings.php';
+require_once APP_PATH . '/lib/where_to_watch.php';
+$playbackMode = playbackMode();
 
-// Multiple embed servers for fallback — if one buffers on slow network, switch to another
 $servers = [];
 if (!$isUpcoming) {
-    if ($customSource && !empty($customSource['video_url'])) {
-        $servers[] = [
-            'name' => $customSource['is_embed'] ? 'Server (Custom Embed)' : 'Server (Direct File)',
-            'url' => $customSource['video_url']
-        ];
+    // The site's own licensed videos come first in both modes.
+    if (isset($conn)) {
+        $servers = licensedSources($conn, (int) $mediaId, $mediaType, $seasonNum, $episodeNum);
     }
+}
 
+// Servers mode: third-party embed servers, several for fallback — if one
+// buffers on a slow network, switch to another.
+if (!$isUpcoming && $playbackMode === PLAYBACK_SERVERS) {
     if ($mediaType === 'movie') {
         $servers[] = ['name' => 'Server 1 (Vidsrc)', 'url' => "https://vidsrc.in/embed/movie/$mediaId"];
         $servers[] = ['name' => 'Server 2 (Vidlink)', 'url' => "https://vidlink.pro/movie/$mediaId"];
@@ -212,6 +208,13 @@ if (!$isUpcoming) {
 }
 $videoSrc = !empty($servers) ? $servers[0]['url'] : '';
 $serversJson = json_encode($servers);
+$canPlay = !empty($servers);
+
+// Discover mode: the services that carry the title, under the player (or in
+// place of it when the site has nothing to play).
+$whereToWatch = (!$isUpcoming && $playbackMode === PLAYBACK_DISCOVER)
+    ? whereToWatch($mediaType, (int) $mediaId, $videoTitle)
+    : null;
 
 // Dynamically calculate the base directory for assets and links
 $baseDir = dirname($_SERVER['SCRIPT_NAME']);
@@ -242,6 +245,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
   <link rel="preconnect" href="https://image.tmdb.org">
   <!-- Loading placeholders for images and page changes -->
   <link rel="stylesheet" href="/assets/css/core/skeleton.css?v=1">
+  <?php if ($whereToWatch !== null) echo whereToWatchStyles(); ?>
   <script src="/assets/js/skeleton.js?v=1" defer></script>
   <style>
       /* Cinematic Mode */
@@ -823,6 +827,16 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         <div class="center-top-bar">
             <a href="javascript:history.back()" class="back-btn"><i class="ph ph-arrow-left"></i></a>
             <h2><?php echo htmlspecialchars($videoTitle); ?></h2>
+            <?php if (!empty($_SESSION['admin_id']) && isset($_SESSION['playback_preview'])): ?>
+            <!-- Only the admin previewing a mode sees this; everyone else gets the site setting. -->
+            <a href="/admin-playback" class="playback-preview-pill" title="Change in Admin > Playback">
+                <i class="ph ph-eye"></i> Preview: <?php echo $playbackMode === PLAYBACK_SERVERS ? 'Streaming servers' : 'Discover'; ?>
+            </a>
+            <style>
+                .playback-preview-pill { margin-left: auto; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; border: 1px dashed rgba(255, 196, 0, .6); color: #ffc400; font-size: .75rem; font-weight: 600; text-decoration: none; white-space: nowrap; }
+                .playback-preview-pill:hover { background: rgba(255, 196, 0, .1); color: #ffd54f; }
+            </style>
+            <?php endif; ?>
         </div>
 
         <!-- Video Wrapper -->
@@ -855,7 +869,10 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                        </div>
                        <?php endif; ?>
                    </div>
-                </div>              <?php else: 
+                </div>
+             <?php elseif (!$canPlay): ?>
+                <?php echo trailerStage($backdrop, $trailerKey, !empty($whereToWatch['providers'])); ?>
+             <?php else:
                  $isDirectVideo = preg_match('/\.(mp4|mkv|webm|m3u8)(\?|$)/i', $videoSrc);
               ?>
                  <iframe id="playerIframe" src="<?php echo !$isDirectVideo ? $videoSrc : ''; ?>" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" style="width:100%; height:100%; border:none; display: <?php echo !$isDirectVideo ? 'block' : 'none'; ?>;"></iframe>
@@ -874,8 +891,8 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                   <?php endif; ?>
              </div>
              
-             <div class="control-actions" style="--toolbar-cols: <?php echo 4 + ((!$isUpcoming && !empty($servers)) ? 1 : 0) + ((!$isUpcoming && !empty($downloadLinks)) ? 1 : 0); ?>;">
-                  <?php if (!$isUpcoming && !empty($servers)): ?>
+             <div class="control-actions" style="--toolbar-cols: <?php echo 4 + ((!$isUpcoming && count($servers) > 1) ? 1 : 0) + ((!$isUpcoming && !empty($downloadLinks)) ? 1 : 0); ?>;">
+                  <?php if (!$isUpcoming && count($servers) > 1): ?>
                   <!-- Server Switcher Inline -->
                   <div style="position:relative;">
                       <button class="btn-action server-switcher-btn" id="serverBtn" title="Servers" style="width:auto; padding:0 15px; font-size:0.9rem;">
@@ -911,6 +928,8 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                   <?php endif; ?>
              </div>
         </div>
+
+        <?php if ($whereToWatch !== null) echo whereToWatchSection($whereToWatch, $canPlay); ?>
 
         <!-- Episodes on phones: every season, under the player. Wider screens
              show the list in the right-hand panel. -->
@@ -1618,6 +1637,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 
     // Download: the button opens the list of the site's own files (the
     // dlBtn handler above). It used to also open torrent sites in a new tab.
+<?php if ($canPlay): // Only something that plays counts as watched; a trailer and links don't. ?>
     // Automatically track history and simulate progress realistically based on time spent on page
     <?php
     $durationSeconds = 120 * 60; // Default 120 minutes (7200 seconds)
@@ -1693,6 +1713,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
     
     // And also update when leaving the page
     window.addEventListener('beforeunload', updateProgress);
+<?php endif; ?>
 </script>
 
 <!-- Fullscreen Search Overlay -->

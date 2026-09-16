@@ -163,6 +163,9 @@ if (!in_array($adminDetails[0]['level'], $level_check)) {
           <li class="nav-item menu-caption">
             <label>Media &amp; AI</label>
           </li>
+          <li data-username="playback streaming servers where to watch discover licensed" class="nav-item">
+            <a href="/admin-playback" class="nav-link"><span class="micon"><i class="feather icon-play-circle"></i></span><span class="mtext">Playback &amp; Where to Watch</span></a>
+          </li>
           <li data-username="ai zen groq pitches models" class="nav-item">
             <a href="/admin-ai" class="nav-link"><span class="micon"><i class="feather icon-cpu"></i></span><span class="mtext">AI Control Panel</span></a>
           </li>

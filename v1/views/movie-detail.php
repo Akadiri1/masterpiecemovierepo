@@ -654,8 +654,14 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
             <button type="button" class="meta-more" id="metaMore" hidden>More</button>
 
             <div class="meta-actions">
+                <?php
+                // Discover mode labels a title the site can't play "Where to watch".
+                require_once APP_PATH . '/lib/site_settings.php';
+                $detailLicensed = isset($conn) ? licensedTitleKeys($conn, [[$mediaType, (int) $mediaId]]) : [];
+                $detailPlay = playButton(isset($detailLicensed[$mediaType . ':' . (int) $mediaId]), 'Play Now');
+                ?>
                 <a href="watch?id=<?php echo $mediaId; ?>&type=<?php echo $mediaType; ?>" class="btn-play-now">
-                    <i class="ph-fill ph-play" style="font-size: 1.25rem;"></i> Play Now
+                    <i class="<?php echo $detailPlay['icon']; ?>" style="font-size: 1.25rem;"></i> <?php echo $detailPlay['label']; ?>
                 </a>
 
                 <div class="meta-tiles">
