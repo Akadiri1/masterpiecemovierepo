@@ -43,6 +43,11 @@ services:
         value: openai/gpt-oss-20b
 
       # --- Optional ---
+      # Invite emails from Admin > Playback & access (v1/lib/mailer.php):
+      # MAIL_FROM is the sending address; for Gmail, EMAIL_PASSWORD must be
+      # an App Password.
+      - key: MAIL_FROM
+        sync: false
       - key: EMAIL_PASSWORD
         sync: false
       - key: CLARITY_ID

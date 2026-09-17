@@ -62,372 +62,169 @@ if (!in_array($adminDetails[0]['level'], $level_check)) {
     die;
 }
 
- ?>
 
+// ------------------------------------------------------------------- menu --
+// Every admin page shares this shell: a sidebar grouped by task and a top
+// bar. $adminPageTitle (set before including this file) overrides the label
+// shown in the top bar.
+$adminPath = rtrim(strtok($_SERVER['REQUEST_URI'] ?? '/', '?'), '/') ?: '/';
+
+$adminReviewCount = 0;
+try {
+    $adminReviewCount = (int) $conn->query("SELECT COUNT(*) FROM ingestion_jobs WHERE status = 'needs_review'")->fetchColumn();
+} catch (PDOException $e) {
+    // Ingestion tables not created yet.
+}
+
+// [href, icon, label, other paths that belong to it, badge]
+$adminNav = [
+    'Overview' => [
+        ['/admin', 'ph-squares-four', 'Dashboard', ['/admin-dashboard'], 0],
+    ],
+    'Watching' => [
+        ['/admin-playback', 'ph-play-circle', 'Playback & access', [], 0],
+        ['/admin-free-films', 'ph-film-strip', 'Free films', [], 0],
+        ['/admin-ingestion', 'ph-cloud-arrow-down', 'Ingestion queue', ['/admin-view-ingestion'], $adminReviewCount],
+        ['/admin-view-downloads', 'ph-download-simple', 'Download links', ['/admin-downloads'], 0],
+    ],
+    'Members & AI' => [
+        ['/admin-view-users', 'ph-users-three', 'Members', [], 0],
+        ['/admin-ai', 'ph-sparkle', 'ZEN AI', ['/admin-view-ai'], 0],
+    ],
+];
+
+// Tables named panel_* or selection_* get managed through the generic
+// /manage pages.
+foreach ($tables as $value) {
+    // MySQL 8 returns information_schema column names in capitals.
+    $parts = explode('_', (string) ($value['table_name'] ?? $value['TABLE_NAME'] ?? ''));
+    $kind = array_shift($parts);
+    if (($kind === 'panel' || $kind === 'selection') && $parts) {
+        $slug = strtolower(implode('_', $parts));
+        $adminNav['Content'][] = ["/manage/$slug", 'ph-stack', ucwords(implode(' ', $parts)), ["/add/$slug", "/create/$slug"], 0];
+    }
+}
+
+$adminActiveLabel = 'Admin';
+foreach ($adminNav as $items) {
+    foreach ($items as [$href, , $label, $also]) {
+        if ($adminPath === $href || in_array($adminPath, $also, true)) {
+            $adminActiveLabel = $label;
+        }
+    }
+}
+$adminPageTitle = $adminPageTitle ?? $adminActiveLabel;
+
+$adminName = trim($_SESSION['username'] ?? (($adminDetails[0]['firstname'] ?? '') . ' ' . ($adminDetails[0]['lastname'] ?? ''))) ?: 'Admin';
+$adminEmail = $_SESSION['email'] ?? ($adminDetails[0]['email'] ?? '');
+$adminAvatar = $_SESSION['avatar_url'] ?? '';
+?>
 <!DOCTYPE html>
 <html lang="en">
-
-
-<!-- Added by HTTrack --><meta http-equiv="content-type" content="text/html;charset=UTF-8" /><!-- /Added by HTTrack -->
 <head>
-  <title>Admin Data Management Console</title>
-  <!-- HTML5 Shim and Respond.js IE10 support of HTML5 elements and media queries -->
-  <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-  <!--[if lt IE 10]>
-  <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-  <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-  <![endif]-->
-  <!-- Meta -->
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="description" content="Mckodev Admin Data Management Console" />
-  <meta name="keywords" content="">
-
-
-  <!-- Favicon icon -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title><?php echo htmlspecialchars($adminPageTitle); ?> · ZEN Admin</title>
   <link rel="shortcut icon" href="/assets/images/favicon.ico" />
-  <!-- fontawesome icon -->
+
+  <!-- Vendor admin styles: forms, tables, modals and the feather icons the pages use -->
   <link rel="stylesheet" href="/da/assets/fonts/fontawesome/css/fontawesome-all.min.css">
   <link rel="stylesheet" href="/da/assets/fonts/material/css/materialdesignicons.min.css">
-  <!-- animation css -->
   <link rel="stylesheet" href="/da/assets/plugins/animation/css/animate.min.css">
-  <!-- prism css -->
   <link rel="stylesheet" href="/da/assets/plugins/prism/css/prism.min.css">
-  <!-- vendor css -->
   <link rel="stylesheet" href="/da/assets/css/style.css">
-
-<!-- table -->
-    <link rel="stylesheet" href="/da/assets/plugins/data-tables/css/datatables.min.css">
-  <!-- Modal window -->
+  <link rel="stylesheet" href="/da/assets/plugins/data-tables/css/datatables.min.css">
   <link rel="stylesheet" href="/da/assets/plugins/modal-window-effects/css/md-modal.css">
-<!-- Light Box -->
-<link rel="stylesheet" href="/da/assets/plugins/ekko-lightbox/css/ekko-lightbox.min.css">
-<link rel="stylesheet" href="/da/assets/plugins/lightbox2-master/css/lightbox.min.css">
+  <link rel="stylesheet" href="/da/assets/plugins/ekko-lightbox/css/ekko-lightbox.min.css">
+  <link rel="stylesheet" href="/da/assets/plugins/lightbox2-master/css/lightbox.min.css">
 
-  <!-- Dark-glass admin theme. Must load last so it overrides the vendor
-       pcoded stylesheet above. -->
+  <!-- The site's icon set, for the shell -->
+  <link rel="stylesheet" href="/assets/vendor/phosphor-icons/Fonts/regular/style.css">
+  <link rel="stylesheet" href="/assets/vendor/phosphor-icons/Fonts/fill/style.css">
+
+  <!-- Admin theme and shell. Loads last so it overrides the vendor styles. -->
   <link rel="stylesheet" href="/assets/css/core/admin-theme.css?v=<?php echo @filemtime($_SERVER['DOCUMENT_ROOT'] . '/assets/css/core/admin-theme.css') ?: time(); ?>">
 
-
-  <!-- <script type="text/javascript" src="/map/viewer.js"></script> -->
   <style media="screen">
-    .modal-backdrop{
-    z-index:3000 ;
-    }
-    .modal{
-    z-index:4000 ;
-    }
+    .modal-backdrop { z-index: 3000; }
+    .modal { z-index: 4000; }
   </style>
   <script src="/ajax/ajax.js"></script>
-
-
 </head>
 
-<body class="">
-	<!-- [ Pre-loader ] start -->
-	<div class="loader-bg">
-		<div class="loader-track">
-			<div class="loader-fill"></div>
-		</div>
-	</div>
-	<!-- [ Pre-loader ] End -->
-	<!-- [ navigation menu ] start -->
-	<nav class="pcoded-navbar navbar menupos-fixed menu-light brand-red icon-colored">
-		<div class="navbar-wrapper ">
-			<div class="navbar-brand header-logo" style="/*background-color:white;*/">
-				<a href="/admin" class="b-brand">
-					<!-- <div class="b-bg">
-						<i class="fas fa-bolt"></i>
-					</div>
-					<span class="b-title">Flash Able</span> -->
-					<!-- <img src="/assets/images/app-icon-192.png" width="50" height="50" alt="ZEN" class="logo images"> -->
-					<!-- <img src="/logo.gif" width="50" height="50" alt="" class="logo-thumb images"> -->
-           <span class="text-white logo images">ADMC</span>
-           <!-- <span class="text-white logo-thumb images">ADMC</span> -->
+<body class="zadm-body">
+  <div class="zadm-scrim" id="zadmScrim" hidden></div>
 
-				</a>
-				<a class="mobile-menu" id="mobile-collapse" href="#!"><span></span></a>
-			</div>
-			<div class="navbar-content scroll-div   " >
+  <aside class="zadm-side" id="zadmSide" aria-label="Admin menu">
+    <div class="zadm-brand">
+      <a href="/admin" class="zadm-logo"><span>ZEN</span><small>Admin</small></a>
+      <button type="button" class="zadm-icon-btn zadm-close" id="zadmClose" aria-label="Close menu"><i class="ph ph-x"></i></button>
+    </div>
 
+    <nav class="zadm-nav">
+      <?php foreach ($adminNav as $group => $items): ?>
+      <div class="zadm-group">
+        <p class="zadm-group-label"><?php echo htmlspecialchars($group); ?></p>
+        <?php foreach ($items as [$href, $icon, $label, $also, $badge]):
+            $active = $adminPath === $href || in_array($adminPath, $also, true);
+        ?>
+        <a class="zadm-link<?php echo $active ? ' is-active' : ''; ?>" href="<?php echo htmlspecialchars($href); ?>"<?php echo $active ? ' aria-current="page"' : ''; ?>>
+          <i class="ph <?php echo $icon; ?>" aria-hidden="true"></i>
+          <span><?php echo htmlspecialchars($label); ?></span>
+          <?php if ($badge): ?><span class="zadm-badge" title="<?php echo (int) $badge; ?> waiting for review"><?php echo (int) $badge; ?></span><?php endif; ?>
+        </a>
+        <?php endforeach; ?>
+      </div>
+      <?php endforeach; ?>
+    </nav>
 
+    <div class="zadm-side-foot">
+      <a class="zadm-link" href="/" target="_blank" rel="noopener"><i class="ph ph-arrow-square-out" aria-hidden="true"></i><span>View site</span></a>
+      <a class="zadm-link" href="/logout"><i class="ph ph-sign-out" aria-hidden="true"></i><span>Sign out</span></a>
+    </div>
+  </aside>
 
-				<ul class="nav pcoded-inner-navbar">
-					<li class="nav-item menu-caption" style="padding: 25px 15px 15px 10px;">
-            	<img src="/assets/images/app-icon-192.png" width="50" height="50" alt="ZEN" class="logo images">
-						<!-- <label>Navigation</label> -->
-					</li>
-        <li data-username="sample page" class="nav-item"><a href="/admin" class="nav-link"><span class="micon"><i class="feather icon-home"></i></span><span class="mtext">Dashboard</span></a></li>
+  <header class="zadm-top">
+    <button type="button" class="zadm-icon-btn zadm-burger" id="zadmOpen" aria-label="Open menu" aria-controls="zadmSide" aria-expanded="false"><i class="ph ph-list"></i></button>
+    <div class="zadm-crumbs">
+      <a href="/admin" class="zadm-crumb-root">Admin</a>
+      <i class="ph ph-caret-right zadm-crumb-sep" aria-hidden="true"></i>
+      <span><?php echo htmlspecialchars($adminPageTitle); ?></span>
+    </div>
+    <div class="zadm-top-actions">
+      <a class="zadm-top-btn" href="/" target="_blank" rel="noopener" title="View site"><i class="ph ph-arrow-up-right"></i><span>View site</span></a>
+      <div class="zadm-me">
+        <?php if ($adminAvatar): ?>
+        <img class="zadm-avatar" src="<?php echo htmlspecialchars($adminAvatar); ?>" alt="">
+        <?php else: ?>
+        <span class="zadm-avatar"><?php echo htmlspecialchars(mb_strtoupper(mb_substr($adminName, 0, 1))); ?></span>
+        <?php endif; ?>
+        <span class="zadm-me-text">
+          <strong><?php echo htmlspecialchars($adminName); ?></strong>
+          <?php if ($adminEmail): ?><small><?php echo htmlspecialchars($adminEmail); ?></small><?php endif; ?>
+        </span>
+      </div>
+    </div>
+  </header>
 
-          <li class="nav-item menu-caption">
-            <label>Media &amp; AI</label>
-          </li>
-          <li data-username="playback streaming servers where to watch discover licensed" class="nav-item">
-            <a href="/admin-playback" class="nav-link"><span class="micon"><i class="feather icon-play-circle"></i></span><span class="mtext">Playback &amp; Where to Watch</span></a>
-          </li>
-          <li data-username="ai zen groq pitches models" class="nav-item">
-            <a href="/admin-ai" class="nav-link"><span class="micon"><i class="feather icon-cpu"></i></span><span class="mtext">AI Control Panel</span></a>
-          </li>
-          <li data-username="ingestion catalogue archive licence review" class="nav-item">
-            <a href="/admin-ingestion" class="nav-link"><span class="micon"><i class="feather icon-download-cloud"></i></span><span class="mtext">Ingestion Queue</span></a>
-          </li>
-          <li data-username="downloads links quality" class="nav-item">
-            <a href="/admin-view-downloads" class="nav-link"><span class="micon"><i class="feather icon-link"></i></span><span class="mtext">Download Links</span></a>
-          </li>
-
-          <li class="nav-item menu-caption">
-            <label>Content Management</label>
-          </li>
-          <?php foreach ($tables as $key => $value): ?>
-            <?php
-              $remains = explode("_",$value['table_name']);
-
-             if ($remains[0] == "panel"): ?>
-             <?php
-             array_shift($remains);
-
-               $remains = ucwords(implode(" ",$remains)); ?>
-             <li data-username="<?php echo $remains ?>" class="nav-item pcoded-hasmenu">
-               <a href="#!" class="nav-link"><span class="micon"><i class="feather icon-menu"></i></span><span class="mtext"><?php echo $remains ?></span></a>
-               <ul class="pcoded-submenu">
-
-                 <li class=""><a href="/add/<?php echo str_replace(" ","_",strtolower($remains)); ?>" class="" >Add <?php echo $remains ?></a></li>
-                 <li class=""><a href="/manage/<?php echo str_replace(" ","_",strtolower($remains)); ?>" class="" >Manage <?php echo $remains ?></a></li>
-               </ul>
-             </li>
-
-
-            <?php endif; ?>
-
-          <?php endforeach; ?>
-          <li class="nav-item menu-caption">
-            <label>Category Management</label>
-          </li>
-
-          <?php foreach ($tables as $key => $value): ?>
-            <?php
-              $remains = explode("_",$value['table_name']);
-
-             if ($remains[0] == "selection"): ?>
-             <?php
-             array_shift($remains);
-
-               $remains = ucwords(implode(" ",$remains)); ?>
-             <li data-username="<?php echo $remains ?>" class="nav-item pcoded-hasmenu">
-               <a href="#!" class="nav-link"><span class="micon"><i class="feather icon-bookmark"></i></span><span class="mtext"><?php echo $remains ?></span></a>
-               <ul class="pcoded-submenu">
-
-                 <li class=""><a href="/create/<?php echo str_replace(" ","_",strtolower($remains)); ?>" class="" >Add <?php echo $remains ?></a></li>
-                 <li class=""><a href="/manage/<?php echo str_replace(" ","_",strtolower($remains)); ?>" class="" >Manage <?php echo $remains ?></a></li>
-               </ul>
-             </li>
-
-
-            <?php endif; ?>
-
-          <?php endforeach; ?>
-
-
-
-
-
-					<li class="nav-item menu-caption">
-						<label>Data Management</label>
-					</li>
-          <?php foreach ($tables as $key => $value): ?>
-            <?php
-              $remains = explode("_",$value['table_name']);
-
-             if ($remains[0] == "read"): ?>
-             <?php
-             array_shift($remains);
-
-               $remains = ucwords(implode(" ",$remains)); ?>
-               <li data-username="<?php echo $remains ?>">
-                 <a href="/read/<?php echo str_replace(" ","_",strtolower($remains)); ?>" class="nav-link"><span class="micon"><i class="feather icon-box"></i></span><span class="mtext"><?php echo $remains ?></span></a>
-
-               </li>
-
-
-            <?php endif; ?>
-
-          <?php endforeach; ?>
-
-					<li class="nav-item menu-caption">
-						<label>Users Management</label>
-					</li>
-          <li data-username="registration dashboard users" class="nav-item pcoded-hasmenu">
-            <a href="#!" class="nav-link"><span class="micon"><i class="feather icon-users"></i></span><span class="mtext">Users</span></a>
-            <ul class="pcoded-submenu">
-              <li class=""><a href="/admin/registration_dashboard.php" class="">Registration Dashboard</a></li>
-              <li class=""><a href="/admin/manage_users.php" class="">Manage Users</a></li>
-            </ul>
-          </li>
-
-
-
-				</ul>
-
-				<!-- <div class="card text-center">
-					<div class="card-block">
-						<button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-						<i class="feather icon-sunset f-40"></i>
-						<h6 class="mt-3">Upgrade to pro</h6>
-						<p>upgrade for get full themes and 30min support</p>
-						<a href="#!"  class="btn btn-gradient-primary btn-sm text-white m-0">Upgrade</a>
-					</div>
-				</div> -->
-
-
-
-			</div>
-
-		</div>
-	</nav>
-	<!-- [ navigation menu ] end -->
-
-
-
-	<!-- [ Header ] start -->
-	<header class="navbar header navbar-expand-lg navbar-light headerpos-fixed ">
-
-			<div class="m-header" style="background: linear-gradient(45deg, #b31d1d, #ff0000)">
-				<a class="mobile-menu" id="mobile-collapse1" href="#!"><span></span></a>
-				<a href="/admin" class="b-brand">
-					<!-- <div class="b-bg">
-						<i class="fas fa-bolt"></i>
-					</div>
-					<span class="b-title">Flash Able</span> -->
-					<!-- <img src="/logo.png" width="50" height="50" alt="" class=""> -->
-          <h6 class="text-white">ADMIN DATA MANAGEMENT CONSOLE</h6>
-
-				</a>
-			</div>
-			<a class="mobile-menu" id="mobile-header" href="#!">
-				<i class="feather icon-more-horizontal"></i>
-			</a>
-			<div class="collapse navbar-collapse">
-				<a href="#!" class="mob-toggler"></a>
-				<ul class="navbar-nav mr-auto">
-					<li class="nav-item">
-						<div class="main-search open">
-							<div class="input-group">
-								<input type="text" id="m-search" class="form-control" placeholder="Search . . .">
-								<a href="#!" class="input-group-append search-close">
-									<i class="feather icon-x input-group-text"></i>
-								</a>
-								<span class="input-group-append search-btn btn btn-primary">
-									<i class="feather icon-search input-group-text"></i>
-								</span>
-							</div>
-						</div>
-					</li>
-				</ul>
-				<ul class="navbar-nav ml-auto">
-					<li>
-						<div class="dropdown">
-							<a class="dropdown-toggle" href="#" data-toggle="dropdown"><i class="icon feather icon-bell"></i></a>
-							<div class="dropdown-menu dropdown-menu-right notification">
-								<div class="noti-head">
-									<h6 class="d-inline-block m-b-0">Notifications</h6>
-									<div class="float-right">
-										<a href="#!" class="m-r-10">mark as read</a>
-										<a href="#!">clear all</a>
-									</div>
-								</div>
-								<ul class="noti-body">
-									<li class="n-title">
-										<p class="m-b-0">NEW</p>
-									</li>
-									<li class="notification">
-										<div class="media">
-											<img class="img-radius" src="../assets/images/user/avatar-1.jpg" alt="Generic placeholder image">
-											<div class="media-body">
-												<p><strong>John Doe</strong><span class="n-time text-muted"><i class="icon feather icon-clock m-r-10"></i>5 min</span></p>
-												<p>New ticket Added</p>
-											</div>
-										</div>
-									</li>
-									<li class="n-title">
-										<p class="m-b-0">EARLIER</p>
-									</li>
-									<li class="notification">
-										<div class="media">
-											<img class="img-radius" src="../assets/images/user/avatar-2.jpg" alt="Generic placeholder image">
-											<div class="media-body">
-												<p><strong>Joseph William</strong><span class="n-time text-muted"><i class="icon feather icon-clock m-r-10"></i>10 min</span></p>
-												<p>Prchace New Theme and make payment</p>
-											</div>
-										</div>
-									</li>
-									<li class="notification">
-										<div class="media">
-											<img class="img-radius" src="../assets/images/user/avatar-3.jpg" alt="Generic placeholder image">
-											<div class="media-body">
-												<p><strong>Sara Soudein</strong><span class="n-time text-muted"><i class="icon feather icon-clock m-r-10"></i>12 min</span></p>
-												<p>currently login</p>
-											</div>
-										</div>
-									</li>
-									<li class="notification">
-										<div class="media">
-											<img class="img-radius" src="../assets/images/user/avatar-1.jpg" alt="Generic placeholder image">
-											<div class="media-body">
-												<p><strong>Joseph William</strong><span class="n-time text-muted"><i class="icon feather icon-clock m-r-10"></i>30 min</span></p>
-												<p>Prchace New Theme and make payment</p>
-											</div>
-										</div>
-									</li>
-									<li class="notification">
-										<div class="media">
-											<img class="img-radius" src="../assets/images/user/avatar-3.jpg" alt="Generic placeholder image">
-											<div class="media-body">
-												<p><strong>Sara Soudein</strong><span class="n-time text-muted"><i class="icon feather icon-clock m-r-10"></i>1 hour</span></p>
-												<p>currently login</p>
-											</div>
-										</div>
-									</li>
-									<li class="notification">
-										<div class="media">
-											<img class="img-radius" src="../assets/images/user/avatar-1.jpg" alt="Generic placeholder image">
-											<div class="media-body">
-												<p><strong>Joseph William</strong><span class="n-time text-muted"><i class="icon feather icon-clock m-r-10"></i>2 hour</span></p>
-												<p>Prchace New Theme and make payment</p>
-											</div>
-										</div>
-									</li>
-								</ul>
-								<div class="noti-footer">
-									<a href="#!">show all</a>
-								</div>
-							</div>
-						</div>
-					</li>
-					<li><a href="#!" class="displayChatbox"><i class="icon feather icon-mail"></i></a></li>
-					<li>
-						<div class="dropdown drp-user">
-							<a href="#" class="dropdown-toggle" data-toggle="dropdown">
-								<i class="icon feather icon-settings"></i>
-							</a>
-							<div class="dropdown-menu dropdown-menu-right profile-notification">
-								<div class="pro-head">
-									<img src="../assets/images/user/avatar-1.jpg" class="img-radius" alt="User-Profile-Image">
-									<span>John Doe</span>
-									<a href="auth-signin.html" class="dud-logout" title="Logout">
-										<i class="feather icon-log-out"></i>
-									</a>
-								</div>
-								<ul class="pro-body">
-									<li><a href="#!" class="dropdown-item"><i class="feather icon-settings"></i> Settings</a></li>
-									<li><a href="#!" class="dropdown-item"><i class="feather icon-user"></i> Profile</a></li>
-									<li><a href="message.html" class="dropdown-item"><i class="feather icon-mail"></i> My Messages</a></li>
-									<li><a href="auth-signin.html" class="dropdown-item"><i class="feather icon-lock"></i> Lock Screen</a></li>
-								</ul>
-							</div>
-						</div>
-					</li>
-				</ul>
-			</div>
-
-	</header>
+  <script>
+  // Phone menu: slides in over the page.
+  (function () {
+    var body = document.body, side = document.getElementById('zadmSide'),
+        scrim = document.getElementById('zadmScrim'), openBtn = document.getElementById('zadmOpen'),
+        closeBtn = document.getElementById('zadmClose');
+    function setOpen(open) {
+      body.classList.toggle('zadm-nav-open', open);
+      scrim.hidden = !open;
+      openBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) { var first = side.querySelector('.zadm-link'); if (first) first.focus(); } else { openBtn.focus(); }
+    }
+    openBtn.addEventListener('click', function () { setOpen(true); });
+    closeBtn.addEventListener('click', function () { setOpen(false); });
+    scrim.addEventListener('click', function () { setOpen(false); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && body.classList.contains('zadm-nav-open')) setOpen(false);
+    });
+  })();
+  </script>

@@ -18,26 +18,46 @@ if (empty($_SESSION['playback_csrf'])) {
 }
 $csrf = $_SESSION['playback_csrf'];
 
-/** media_sources predates this page; make sure it exists with a column for the rights. */
-function playbackEnsureSourcesTable(PDO $conn): void
+function playbackSiteUrl(): string
 {
-    $conn->exec("CREATE TABLE IF NOT EXISTS media_sources (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        tmdb_id INT NOT NULL,
-        media_type ENUM('movie','tv') NOT NULL DEFAULT 'movie',
-        season INT DEFAULT 0,
-        episode INT DEFAULT 0,
-        video_url TEXT NOT NULL,
-        is_embed TINYINT(1) DEFAULT 0,
-        INDEX idx_media_sources_lookup (tmdb_id, media_type, season, episode)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $columns = $conn->query("SHOW COLUMNS FROM media_sources")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('rights_note', $columns, true)) {
-        $conn->exec("ALTER TABLE media_sources ADD COLUMN rights_note VARCHAR(255) NULL");
+    if ($url = getenv('SITE_URL')) {
+        return rtrim($url, '/');
     }
-    if (!in_array('created_at', $columns, true)) {
-        $conn->exec("ALTER TABLE media_sources ADD COLUMN created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP");
-    }
+    $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
+    return ($https ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+}
+
+/**
+ * The invite for someone on the access list: sign in when they already have
+ * an account with that email, otherwise create one with it.
+ */
+function playbackInvite(string $email, bool $hasAccount): array
+{
+    $url = playbackSiteUrl() . ($hasAccount ? '/login' : '/register');
+    $step = $hasAccount ? 'Sign in' : 'Create your account';
+    $text = "You've been given access to streaming on ZEN.\n\n"
+          . "$step with this email address ($email) and every title plays:\n$url";
+
+    $e = fn($s) => htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+    $html = '<div style="background:#0d0a10;padding:32px 16px;font-family:Arial,Helvetica,sans-serif;">'
+          . '<div style="max-width:480px;margin:0 auto;background:#16121c;border:1px solid #2a2433;border-radius:16px;padding:32px;color:#e9eaee;">'
+          . '<div style="font-size:26px;font-weight:900;color:#e50914;letter-spacing:-1px;margin-bottom:20px;">ZEN</div>'
+          . '<h1 style="margin:0 0 12px;font-size:20px;color:#ffffff;">You\'re in</h1>'
+          . '<p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#c9cbd1;">You\'ve been given access to streaming on ZEN. '
+          . $e($step) . ' with <strong style="color:#ffffff;">' . $e($email) . '</strong> and every title plays.</p>'
+          . '<a href="' . $e($url) . '" style="display:inline-block;background:#e50914;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 24px;border-radius:10px;">'
+          . $e($step) . '</a>'
+          . '<p style="margin:24px 0 0;font-size:12px;color:#8b929c;">Use this same email address, or access won\'t apply.</p>'
+          . '</div></div>';
+
+    return ['url' => $url, 'text' => $text, 'subject' => "You're invited to watch on ZEN", 'html' => $html];
+}
+
+function playbackHasAccount(PDO $conn, string $email): bool
+{
+    $stmt = $conn->prepare("SELECT 1 FROM users WHERE email = ? LIMIT 1");
+    $stmt->execute([$email]);
+    return (bool) $stmt->fetchColumn();
 }
 
 // ------------------------------------------------------------------ actions --
@@ -85,36 +105,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     }
                     break;
 
-                case 'add_source':
-                    $tmdbId = (int) ($_POST['tmdb_id'] ?? 0);
-                    $type = ($_POST['media_type'] ?? '') === 'tv' ? 'tv' : 'movie';
-                    $season = $type === 'tv' ? max(0, (int) ($_POST['season'] ?? 0)) : 0;
-                    $episode = $type === 'tv' ? max(0, (int) ($_POST['episode'] ?? 0)) : 0;
-                    $url = trim($_POST['video_url'] ?? '');
-                    $rights = trim($_POST['rights_note'] ?? '');
+                case 'grant_access':
+                    $email = strtolower(trim($_POST['email'] ?? ''));
+                    $note = trim($_POST['note'] ?? '');
+                    if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 191) {
+                        $flash = ['danger', 'Enter a valid email address.'];
+                        break;
+                    }
+                    ensurePlaybackAccessTable($conn);
+                    $conn->prepare("INSERT INTO playback_access (email, note, granted_by) VALUES (?, ?, ?)
+                                    ON DUPLICATE KEY UPDATE note = VALUES(note)")
+                         ->execute([$email, $note !== '' ? mb_substr($note, 0, 255) : null, $adminId]);
+                    $flash = ['success', "Access given to $email. They get Streaming servers whenever they're signed in with that email."];
 
-                    if ($tmdbId <= 0) {
-                        $flash = ['danger', 'Enter the TMDB ID (the number in the title\'s TMDB address).'];
-                    } elseif ($type === 'tv' && $episode < 1) {
-                        $flash = ['danger', 'Enter the season and episode number.'];
-                    } elseif (!filter_var($url, FILTER_VALIDATE_URL) || parse_url($url, PHP_URL_SCHEME) !== 'https') {
-                        $flash = ['danger', 'The video address must be a full https:// link.'];
-                    } elseif ($rights === '') {
-                        $flash = ['danger', 'Say what gives you the right to show it, e.g. "Public domain" or "Licence from the producer, 2026".'];
-                    } else {
-                        playbackEnsureSourcesTable($conn);
-                        $conn->prepare("INSERT INTO media_sources (tmdb_id, media_type, season, episode, video_url, is_embed, rights_note)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?)")
-                             ->execute([$tmdbId, $type, $season, $episode, $url, isDirectVideoUrl($url) ? 0 : 1, mb_substr($rights, 0, 255)]);
-                        $flash = ['success', 'Added. It now plays on its watch page in both modes.'];
+                    if (!empty($_POST['send_invite'])) {
+                        require_once APP_PATH . '/lib/mailer.php';
+                        $invite = playbackInvite($email, playbackHasAccount($conn, $email));
+                        $mailError = null;
+                        $flash = sendSiteMail($email, $invite['subject'], $invite['html'], $invite['text'], $mailError)
+                            ? ['success', "Access given to $email, and the invite email has been sent."]
+                            : ['warning', "Access given to $email, but the invite email couldn't be sent: " . rtrim((string) $mailError, '. ') . '. Use Copy invite below to send it yourself.'];
                     }
                     break;
 
-                case 'delete_source':
-                    playbackEnsureSourcesTable($conn);
-                    $conn->prepare("DELETE FROM media_sources WHERE id = ?")->execute([(int) ($_POST['source_id'] ?? 0)]);
-                    $flash = ['success', 'Removed.'];
+                case 'revoke_access':
+                    ensurePlaybackAccessTable($conn);
+                    $conn->prepare("DELETE FROM playback_access WHERE email = ?")->execute([strtolower(trim($_POST['email'] ?? ''))]);
+                    $flash = ['success', 'Access removed. They get Discover again, like everyone else.'];
                     break;
+
             }
         } catch (PDOException $e) {
             error_log('Admin playback: ' . $e->getMessage());
@@ -147,28 +166,29 @@ try {
     // Never saved yet.
 }
 
-$sources = [];
+$accessList = [];
+$accessAccounts = [];
 try {
-    playbackEnsureSourcesTable($conn);
-    $sources = $conn->query("SELECT * FROM media_sources ORDER BY id DESC LIMIT 300")->fetchAll(PDO::FETCH_ASSOC);
+    ensurePlaybackAccessTable($conn);
+    $accessList = $conn->query("SELECT * FROM playback_access ORDER BY created_at DESC")->fetchAll(PDO::FETCH_ASSOC);
+    if ($accessList) {
+        $in = implode(',', array_fill(0, count($accessList), '?'));
+        $stmt = $conn->prepare("SELECT email, username FROM users WHERE email IN ($in)");
+        $stmt->execute(array_column($accessList, 'email'));
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $account) {
+            $accessAccounts[strtolower($account['email'])] = $account['username'];
+        }
+    }
 } catch (PDOException $e) {
-    error_log('Admin playback sources: ' . $e->getMessage());
+    error_log('Admin playback access: ' . $e->getMessage());
 }
+require_once APP_PATH . '/lib/mailer.php';
+$canEmail = mailConfigured();
 
-$fileCount = 0;
+$playableCount = 0;
 try {
-    $fileCount = (int) $conn->query("SELECT COUNT(*) FROM media_downloads WHERE is_active = 1
-                                      AND download_url REGEXP '\\\\.(mp4|mkv|webm|m3u8)(\\\\?|$)'")->fetchColumn();
+    $playableCount = (int) $conn->query("SELECT COUNT(*) FROM media_sources WHERE COALESCE(check_status, '') <> 'unavailable'")->fetchColumn();
 } catch (PDOException $e) {}
-
-// Titles for the list, fetched together (and cached) from TMDB.
-if ($sources && function_exists('prefetchTmdbApi')) {
-    prefetchTmdbApi(array_map(fn($s) => ["{$s['media_type']}/{$s['tmdb_id']}", []], $sources));
-}
-$titleOf = function (array $s): string {
-    $d = function_exists('fetchTmdbApi') ? fetchTmdbApi("{$s['media_type']}/{$s['tmdb_id']}") : null;
-    return $d['title'] ?? $d['name'] ?? ('TMDB ' . $s['tmdb_id']);
-};
 
 $regions = [];
 $regionData = function_exists('fetchTmdbApi') ? fetchTmdbApi('watch/providers/regions', [], 604800) : null;
@@ -193,12 +213,16 @@ if (!isset($regions[$defaultRegion])) {
   .pb-tag.live { background: rgba(52, 211, 153, .16); color: var(--adm-green, #34d399); }
   .pb-tag.safe { background: rgba(34, 211, 238, .12); color: var(--adm-cyan, #22d3ee); }
   .pb-status { margin: 14px 0 0; color: var(--adm-muted, #8b929c); font-size: .84rem; }
+  .pb-only-some { display: flex; align-items: baseline; gap: 8px; margin: 14px 0 0; padding: 10px 14px; border-radius: 10px; background: rgba(34, 211, 238, .07); border: 1px solid rgba(34, 211, 238, .22); color: var(--adm-text, #e9eaee); font-size: .86rem; line-height: 1.5; }
+  .pb-only-some i { color: var(--adm-cyan, #22d3ee); }
+  .pb-only-some a { color: var(--adm-cyan, #22d3ee) !important; font-weight: 600; }
   .pb-preview { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
   .pb-preview .btn.active { box-shadow: inset 0 0 0 2px var(--primary, #e50914); }
   .pb-sources td { vertical-align: middle; font-size: .86rem; }
-  .pb-url { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
   .pb-hint { color: var(--adm-muted, #8b929c); font-size: .8rem; margin-top: 4px; line-height: 1.5; }
-  .pb-tv-only[hidden] { display: none !important; }
+  .pb-check { display: inline-flex; align-items: center; gap: 10px; margin: 0 0 4px; cursor: pointer; color: var(--adm-text, #e9eaee); font-size: .9rem; }
+  .pb-check input { width: 17px; height: 17px; accent-color: var(--primary, #e50914); }
+  .pb-check.is-disabled { opacity: .55; cursor: not-allowed; }
 </style>
 
 <!-- [ Header ] end -->
@@ -213,7 +237,7 @@ if (!isset($regions[$defaultRegion])) {
               <div class="page-block">
                 <div class="row align-items-center">
                   <div class="col-md-12">
-                    <div class="page-header-title"><h5>Playback &amp; Where to Watch</h5></div>
+                    <div class="page-header-title"><h5>Playback &amp; access</h5></div>
                     <ul class="breadcrumb">
                       <li class="breadcrumb-item"><a href="/admin"><i class="feather icon-home"></i></a></li>
                       <li class="breadcrumb-item"><a href="#!">Playback</a></li>
@@ -245,7 +269,7 @@ if (!isset($regions[$defaultRegion])) {
                         <span class="pb-tag safe">Safe for payments &amp; ads</span>
                       </h6>
                       <p>The trailer and "Where to watch" links to Netflix, Prime Video and the other services that carry the title.
-                         Titles you have the rights to (below) play in full.</p>
+                         Free films (Admin &gt; Free films) play in full.</p>
                     </label>
                     <label class="pb-mode<?php echo $mode === PLAYBACK_SERVERS ? ' is-selected' : ''; ?>">
                       <input type="radio" name="mode" value="<?php echo PLAYBACK_SERVERS; ?>"<?php echo $mode === PLAYBACK_SERVERS ? ' checked' : ''; ?>>
@@ -256,6 +280,11 @@ if (!isset($regions[$defaultRegion])) {
                          They show films without the studios' permission, so Paystack and ad networks can close your accounts over it.</p>
                     </label>
                   </div>
+                  <p class="pb-only-some">
+                    <i class="feather icon-users"></i>
+                    Only for specific accounts? Keep <strong>Discover</strong> and add them under
+                    <a href="#access">Access by email</a>, or switch on <strong>Streaming access</strong> for a member in <a href="/admin-view-users">Members</a>.
+                  </p>
                   <p class="pb-status">
                     <?php if ($modeChanged): ?>
                       Last changed <?php echo htmlspecialchars(date('j M Y, H:i', strtotime($modeChanged['updated_at']))); ?><?php echo $modeChanged['username'] ? ' by ' . htmlspecialchars($modeChanged['username']) : ''; ?>.
@@ -281,6 +310,86 @@ if (!isset($regions[$defaultRegion])) {
                   <button type="submit" name="preview" value="<?php echo PLAYBACK_SERVERS; ?>" class="btn btn-outline-secondary<?php echo $preview === PLAYBACK_SERVERS ? ' active' : ''; ?>">Streaming servers</button>
                   <a href="/watch?id=603&amp;type=movie" target="_blank" rel="noopener" class="btn btn-link">Open a watch page <i class="feather icon-external-link"></i></a>
                 </form>
+              </div>
+            </div>
+
+            <!-- Access by email -->
+            <div class="card" id="access">
+              <div class="card-header"><h5>Access by email</h5></div>
+              <div class="card-body">
+                <p class="text-muted mb-3">People on this list get Streaming servers whenever they're signed in with that email. Everyone else keeps what the site is set to.</p>
+                <?php if ($mode === PLAYBACK_SERVERS): ?>
+                <div class="alert alert-info">Streaming servers are on for everyone right now, so this list changes nothing until the site is back on Discover.</div>
+                <?php endif; ?>
+
+                <form method="POST" class="row" id="accessForm">
+                  <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                  <input type="hidden" name="action" value="grant_access">
+                  <div class="col-md-5 form-group">
+                    <label for="access_email">Email address</label>
+                    <input type="email" id="access_email" name="email" maxlength="191" class="form-control" placeholder="friend@example.com" required>
+                  </div>
+                  <div class="col-md-4 form-group">
+                    <label for="access_note">Note <span class="text-muted">(optional)</span></label>
+                    <input type="text" id="access_note" name="note" maxlength="255" class="form-control" placeholder="Beta tester">
+                  </div>
+                  <div class="col-md-3 form-group">
+                    <label class="d-none d-md-block">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">Give access</button>
+                  </div>
+                  <div class="col-12">
+                    <label class="pb-check<?php echo $canEmail ? '' : ' is-disabled'; ?>">
+                      <input type="checkbox" name="send_invite" value="1"<?php echo $canEmail ? ' checked' : ' disabled'; ?>>
+                      <span>Email them an invite</span>
+                    </label>
+                    <div class="pb-hint">
+                      <?php if ($canEmail): ?>
+                        Sent from <?php echo htmlspecialchars(getenv('MAIL_FROM')); ?>. It tells them to sign in, or create an account, with this email.
+                      <?php else: ?>
+                        Email isn't set up on the server yet, so use <strong>Copy invite</strong> and send it yourself (WhatsApp, email…).
+                        To send invites from here, add <code>MAIL_FROM</code> (e.g. a Gmail address) and <code>EMAIL_PASSWORD</code> (a Gmail App Password) under Render &gt; Environment.
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                </form>
+
+                <?php if ($accessList): ?>
+                <div class="table-responsive mt-3">
+                  <table class="table table-hover pb-sources">
+                    <thead><tr><th>Email</th><th>Account</th><th>Added</th><th>Last used</th><th></th></tr></thead>
+                    <tbody>
+                    <?php foreach ($accessList as $a):
+                        $account = $accessAccounts[strtolower($a['email'])] ?? null;
+                        $invite = playbackInvite($a['email'], $account !== null);
+                    ?>
+                      <tr>
+                        <td>
+                          <?php echo htmlspecialchars($a['email']); ?>
+                          <?php if (!empty($a['note'])): ?><div class="text-muted" style="font-size:.76rem;"><?php echo htmlspecialchars($a['note']); ?></div><?php endif; ?>
+                        </td>
+                        <td><?php echo $account !== null
+                            ? '<span class="badge badge-success">' . htmlspecialchars($account) . '</span>'
+                            : '<span class="badge badge-secondary">No account yet</span>'; ?></td>
+                        <td class="text-muted"><?php echo htmlspecialchars(date('j M Y', strtotime($a['created_at']))); ?></td>
+                        <td class="text-muted"><?php echo $a['last_used_at'] ? htmlspecialchars(date('j M Y, H:i', strtotime($a['last_used_at']))) : 'Not yet'; ?></td>
+                        <td class="text-right" style="white-space:nowrap;">
+                          <button type="button" class="btn btn-sm btn-outline-secondary pb-copy" data-invite="<?php echo htmlspecialchars($invite['text']); ?>">Copy invite</button>
+                          <form method="POST" class="d-inline" onsubmit="return confirm('Remove access for <?php echo htmlspecialchars(addslashes($a['email'])); ?>?')">
+                            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
+                            <input type="hidden" name="action" value="revoke_access">
+                            <input type="hidden" name="email" value="<?php echo htmlspecialchars($a['email']); ?>">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                          </form>
+                        </td>
+                      </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                  </table>
+                </div>
+                <?php else: ?>
+                <p class="text-muted mb-0 mt-2">Nobody yet.</p>
+                <?php endif; ?>
+                <p class="pb-hint mt-3 mb-0">Sign-up doesn't confirm email addresses, so whoever creates an account with a listed address first gets access. It's safest for people who already have an account.</p>
               </div>
             </div>
 
@@ -317,91 +426,17 @@ if (!isset($regions[$defaultRegion])) {
               </div>
             </div>
 
-            <!-- Titles you can play -->
+            <!-- Free films -->
             <div class="card">
-              <div class="card-header"><h5>Titles you can play</h5></div>
-              <div class="card-body">
-                <p class="text-muted">Videos you have the rights to show: public-domain and Creative Commons films, your own productions,
-                  or films a producer has licensed to you. They play in full on their watch page in both modes.
-                  <?php if ($fileCount): ?>
-                    <?php echo number_format($fileCount); ?> video file<?php echo $fileCount === 1 ? '' : 's'; ?> from <a href="/admin-view-downloads">Download Links</a> and the <a href="/admin-ingestion">Ingestion Queue</a> also play.
-                  <?php else: ?>
-                    Video files published through <a href="/admin-ingestion">the Ingestion Queue</a> and <a href="/admin-view-downloads">Download Links</a> play automatically too.
-                  <?php endif; ?>
+              <div class="card-header"><h5>Films that play in full</h5></div>
+              <div class="card-body d-flex flex-wrap align-items-center justify-content-between" style="gap:12px;">
+                <p class="text-muted mb-0">
+                  <?php echo $playableCount
+                      ? number_format($playableCount) . ' ' . ($playableCount === 1 ? 'film plays' : 'films play') . ' in full on ZEN, in both modes.'
+                      : 'No films play in full yet.'; ?>
+                  Add official YouTube uploads and public-domain films from archive.org under Free films.
                 </p>
-
-                <form method="POST" class="row" id="addSourceForm">
-                  <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
-                  <input type="hidden" name="action" value="add_source">
-                  <div class="col-md-3 form-group">
-                    <label for="src_type">Type</label>
-                    <select id="src_type" name="media_type" class="form-control">
-                      <option value="movie">Movie</option>
-                      <option value="tv">TV episode</option>
-                    </select>
-                  </div>
-                  <div class="col-md-3 form-group">
-                    <label for="src_tmdb">TMDB ID</label>
-                    <input type="number" min="1" id="src_tmdb" name="tmdb_id" class="form-control" placeholder="3085" required>
-                  </div>
-                  <div class="col-md-3 form-group pb-tv-only" hidden>
-                    <label for="src_season">Season</label>
-                    <input type="number" min="0" id="src_season" name="season" class="form-control" value="1">
-                  </div>
-                  <div class="col-md-3 form-group pb-tv-only" hidden>
-                    <label for="src_episode">Episode</label>
-                    <input type="number" min="1" id="src_episode" name="episode" class="form-control" value="1">
-                  </div>
-                  <div class="w-100"></div>
-                  <div class="col-md-5 form-group">
-                    <label for="src_url">Video address</label>
-                    <input type="url" id="src_url" name="video_url" class="form-control" placeholder="https://archive.org/embed/his_girl_friday" required>
-                    <div class="pb-hint">A video file (.mp4, .webm, .m3u8) or an embed page such as archive.org/embed/… or an official YouTube embed.</div>
-                  </div>
-                  <div class="col-md-5 form-group">
-                    <label for="src_rights">Your right to show it</label>
-                    <input type="text" id="src_rights" name="rights_note" maxlength="255" class="form-control" placeholder="Public domain (1940)" required>
-                  </div>
-                  <div class="col-md-2 form-group">
-                    <label class="d-none d-md-block">&nbsp;</label>
-                    <button type="submit" class="btn btn-primary w-100">Add title</button>
-                  </div>
-                </form>
-
-                <?php if ($sources): ?>
-                <div class="table-responsive mt-3">
-                  <table class="table table-hover pb-sources">
-                    <thead><tr><th>Title</th><th>Video</th><th>Rights</th><th></th></tr></thead>
-                    <tbody>
-                    <?php foreach ($sources as $s):
-                        $watchUrl = '/watch?id=' . (int) $s['tmdb_id'] . '&type=' . $s['media_type']
-                            . ($s['media_type'] === 'tv' ? '&season=' . (int) $s['season'] . '&episode=' . (int) $s['episode'] : '');
-                    ?>
-                      <tr>
-                        <td>
-                          <a href="<?php echo htmlspecialchars($watchUrl); ?>" target="_blank" rel="noopener"><?php echo htmlspecialchars($titleOf($s)); ?></a>
-                          <div class="text-muted" style="font-size:.76rem;">
-                            <?php echo $s['media_type'] === 'tv' ? 'S' . (int) $s['season'] . ' E' . (int) $s['episode'] . ' · ' : 'Movie · '; ?>TMDB <?php echo (int) $s['tmdb_id']; ?>
-                          </div>
-                        </td>
-                        <td><span class="pb-url" title="<?php echo htmlspecialchars($s['video_url']); ?>"><?php echo htmlspecialchars($s['video_url']); ?></span></td>
-                        <td><?php echo htmlspecialchars($s['rights_note'] ?? '') ?: '<span class="text-danger">Not recorded</span>'; ?></td>
-                        <td class="text-right">
-                          <form method="POST" class="d-inline" onsubmit="return confirm('Stop playing this video on the site?')">
-                            <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
-                            <input type="hidden" name="action" value="delete_source">
-                            <input type="hidden" name="source_id" value="<?php echo (int) $s['id']; ?>">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
-                          </form>
-                        </td>
-                      </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                  </table>
-                </div>
-                <?php else: ?>
-                <p class="text-muted mb-0 mt-2">None yet.</p>
-                <?php endif; ?>
+                <a href="/admin-free-films" class="btn btn-primary">Open Free films</a>
               </div>
             </div>
 
@@ -432,13 +467,22 @@ if (!isset($regions[$defaultRegion])) {
       }
     });
 
-    // Season and episode only apply to TV.
-    var type = document.getElementById('src_type');
-    function syncType() {
-      document.querySelectorAll('.pb-tv-only').forEach(function (el) { el.hidden = type.value !== 'tv'; });
-    }
-    type.addEventListener('change', syncType);
-    syncType();
+    // Copy an invite to paste into WhatsApp, email and so on.
+    document.querySelectorAll('.pb-copy').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var text = btn.dataset.invite;
+        var done = function () {
+          var label = btn.textContent;
+          btn.textContent = 'Copied';
+          setTimeout(function () { btn.textContent = label; }, 1800);
+        };
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(done, function () { window.prompt('Copy the invite:', text); });
+        } else {
+          window.prompt('Copy the invite:', text);
+        }
+      });
+    });
   })();
 </script>
 

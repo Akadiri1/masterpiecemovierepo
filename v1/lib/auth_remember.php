@@ -258,8 +258,8 @@ function auth_remember_try_login(PDO $conn): bool
         $u->execute([(int) $row['user_id']]);
         $user = $u->fetch(PDO::FETCH_ASSOC);
 
-        if (!$user) {
-            $conn->prepare("DELETE FROM user_remember_tokens WHERE id = ?")->execute([$row['id']]);
+        if (!$user || auth_user_is_suspended($user)) {
+            $conn->prepare("DELETE FROM user_remember_tokens WHERE user_id = ?")->execute([$row['user_id']]);
             auth_remember_clear_cookie();
             return false;
         }
@@ -332,4 +332,53 @@ function auth_remember_revoke_all(PDO $conn, int $userId): void
     } catch (Throwable $e) {
         error_log('auth_remember_revoke_all: ' . $e->getMessage());
     }
+}
+
+/** Accounts suspended under Admin > Members (users.user_status = 2) can't sign in. */
+const AUTH_SUSPENDED_STATUS = 2;
+const AUTH_SUSPENDED_MESSAGE = 'This account has been suspended. Contact support if you think this is a mistake.';
+
+function auth_user_is_suspended(array $user): bool
+{
+    return isset($user['user_status']) && (int) $user['user_status'] === AUTH_SUSPENDED_STATUS;
+}
+
+/** How often a signed-in member's account is re-read, in seconds. */
+const AUTH_SYNC_SECONDS = 60;
+
+/**
+ * Applies changes an admin made to a signed-in member (Admin > Members):
+ * signs them out if suspended, and switches Kids Mode on or off. The site
+ * reads both from the session, which is otherwise only filled at sign-in.
+ * Re-read once a minute rather than on every page, so it costs one small
+ * query now and then. Members' own Kids Mode switches are saved to the
+ * database too (switch-mode.php), so this never undoes them.
+ */
+function auth_sync_member(PDO $conn): void
+{
+    if (empty($_SESSION['user_id'])) {
+        return;
+    }
+    if (time() - (int) ($_SESSION['status_checked_at'] ?? 0) < AUTH_SYNC_SECONDS) {
+        return;
+    }
+    try {
+        $stmt = $conn->prepare("SELECT user_status, is_kids_mode FROM users WHERE id = ?");
+        $stmt->execute([(int) $_SESSION['user_id']]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        return; // Status column not added yet.
+    }
+    if ($user && !auth_user_is_suspended($user)) {
+        $kids = (int) $user['is_kids_mode'] === 1;
+        $_SESSION['is_kids_mode'] = $kids;
+        $_SESSION['is_kid'] = $kids ? 1 : 0;
+        $_SESSION['status_checked_at'] = time();
+        return;
+    }
+    // Suspended, or the account was deleted.
+    auth_remember_revoke_all($conn, (int) $_SESSION['user_id']);
+    auth_remember_clear_cookie();
+    $_SESSION = [];
+    session_regenerate_id(true);
 }

@@ -1,54 +1,65 @@
 <?php
+/**
+ * Show/hide and status switches for the older admin pages (blog, discussions,
+ * slider, admin accounts, panel_* tables), called through plain links.
+ *
+ * Only the columns and values listed below can change, and only from this
+ * site's own pages. Member accounts are managed under Admin > Members.
+ */
 session_start();
 if (!isset($_SESSION['admin_id'])) {
     header("Location: /admin-login");
     exit;
 }
 
-require_once dirname(dirname(__FILE__)) . '/.env/config.php';
-require_once dirname(dirname(__FILE__)) . '/v1/models/model.php';
+require_once dirname(__DIR__) . '/.env/config.php';
+require_once dirname(__DIR__) . '/v1/models/model.php';
+require_once dirname(__DIR__) . '/v1/lib/admin_request.php';
 
-$id = $_GET['id'] ?? null;
-$table = $_GET['data'] ?? null;
+const UPDATE_FALLBACK = '/admin';
 
-if (!$id || !$table) {
-    die("Invalid request");
+// table => [column => allowed values]
+$visibility = ['visibility' => ['show', 'hide']];
+$rules = [
+    'admin'  => ['level' => ['1', '2', '3'], 'user_status' => ['1', '2'], 'verification' => ['1']],
+    'blogs'  => $visibility,
+    'topic'  => $visibility,
+    'slider' => $visibility,
+];
+
+if (!adminRequestIsSameSite()) {
+    adminRequestFail(403, 'For your security, open this from the admin panel and try again.', UPDATE_FALLBACK);
 }
 
-// Security: limit allowed tables to prevent SQL injection
-$allowed_tables = ['users', 'admin', 'blogs', 'topic', 'slider', 'reviews'];
-if (!in_array($table, $allowed_tables)) {
-    die("Unauthorized table");
+$id = filter_var($_GET['id'] ?? null, FILTER_VALIDATE_INT);
+$table = (string) ($_GET['data'] ?? '');
+$allowed = $rules[$table] ?? (preg_match('/^panel_[a-z0-9_]+$/', $table) ? $visibility : null);
+
+if (!$id || $allowed === null) {
+    adminRequestFail(400, "That change isn't allowed.", UPDATE_FALLBACK);
 }
 
-// Build query dynamically from GET parameters, excluding system parameters
-$exclude = ['id', 'data'];
 $updates = [];
 $values = [];
-
-foreach ($_GET as $key => $val) {
-    if (in_array($key, $exclude)) continue;
-    // Basic sanitization of column names (letters, numbers, underscore only)
-    if (preg_match('/^[a-zA-Z0-9_]+$/', $key)) {
-        $updates[] = "`$key` = ?";
-        $values[] = $val;
+foreach ($_GET as $column => $value) {
+    if ($column === 'id' || $column === 'data') {
+        continue;
     }
+    if (!isset($allowed[$column]) || !in_array((string) $value, $allowed[$column], true)) {
+        adminRequestFail(400, "That change isn't allowed.", UPDATE_FALLBACK);
+    }
+    $updates[] = "`$column` = ?";
+    $values[] = $value;
 }
 
-if (!empty($updates)) {
-    $sql = "UPDATE `$table` SET " . implode(', ', $updates) . " WHERE id = ?";
-    $values[] = $id;
-    
+if ($updates) {
     try {
-        $stmt = $conn->prepare($sql);
-        $stmt->execute($values);
+        $conn->prepare("UPDATE `$table` SET " . implode(', ', $updates) . " WHERE id = ?")->execute(array_merge($values, [$id]));
     } catch (PDOException $e) {
-        die("Error updating content: " . $e->getMessage());
+        error_log('updateContent ' . $table . ': ' . $e->getMessage());
+        adminRequestFail(500, "Couldn't save that change. Please try again.", UPDATE_FALLBACK);
     }
 }
 
-// Redirect back
-$referer = $_SERVER['HTTP_REFERER'] ?? '/admin-view-users';
-header("Location: " . $referer);
+header('Location: ' . adminReturnPath(UPDATE_FALLBACK));
 exit;
-?>

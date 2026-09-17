@@ -61,8 +61,10 @@ function saveSiteSetting(PDO $conn, string $key, ?string $value, ?int $adminId =
 }
 
 /**
- * The mode this visitor gets. Admins can preview either mode for themselves
- * (Admin > Playback > Preview) without changing what everyone else sees.
+ * The mode this visitor gets: the site setting, or Streaming servers for
+ * members whose email is on the access list (Admin > Playback > Access by
+ * email). Admins can preview either mode for themselves without changing
+ * what everyone else sees.
  */
 function playbackMode(): string
 {
@@ -70,7 +72,59 @@ function playbackMode(): string
     if (!empty($_SESSION['admin_id']) && in_array($preview, [PLAYBACK_DISCOVER, PLAYBACK_SERVERS], true)) {
         return $preview;
     }
-    return siteSetting('playback_mode') === PLAYBACK_SERVERS ? PLAYBACK_SERVERS : PLAYBACK_DISCOVER;
+    if (siteSetting('playback_mode') === PLAYBACK_SERVERS || hasPlaybackAccess()) {
+        return PLAYBACK_SERVERS;
+    }
+    return PLAYBACK_DISCOVER;
+}
+
+function ensurePlaybackAccessTable(PDO $conn): void
+{
+    $conn->exec("CREATE TABLE IF NOT EXISTS playback_access (
+        email        VARCHAR(191) NOT NULL PRIMARY KEY,
+        note         VARCHAR(255) NULL,
+        granted_by   INT NULL,
+        created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_used_at DATETIME NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+/**
+ * Whether the signed-in member's email is on the access list. Emails are
+ * stored lowercase and compared in PHP, so the two tables' collations never
+ * have to match.
+ */
+function hasPlaybackAccess(): bool
+{
+    static $granted = null;
+    if ($granted !== null) {
+        return $granted;
+    }
+    $granted = false;
+    $conn = $GLOBALS['conn'] ?? null;
+    if (empty($_SESSION['user_id']) || !$conn instanceof PDO) {
+        return $granted;
+    }
+    try {
+        $stmt = $conn->prepare("SELECT email FROM users WHERE id = ?");
+        $stmt->execute([(int) $_SESSION['user_id']]);
+        $email = strtolower(trim((string) $stmt->fetchColumn()));
+        if ($email === '') {
+            return $granted;
+        }
+        $stmt = $conn->prepare("SELECT 1 FROM playback_access WHERE email = ?");
+        $stmt->execute([$email]);
+        $granted = (bool) $stmt->fetchColumn();
+
+        // Shown on the admin list as "last used"; once per session is enough.
+        if ($granted && empty($_SESSION['playback_access_seen'])) {
+            $conn->prepare("UPDATE playback_access SET last_used_at = NOW() WHERE email = ?")->execute([$email]);
+            $_SESSION['playback_access_seen'] = true;
+        }
+    } catch (PDOException $e) {
+        // No access list yet.
+    }
+    return $granted;
 }
 
 /** Whether a URL is a video file the browser can play itself (rather than a page to embed). */
@@ -94,12 +148,15 @@ function licensedSources(PDO $conn, int $tmdbId, string $type, int $season, int 
 
     $sources = [];
     try {
-        $stmt = $conn->prepare("SELECT video_url, is_embed FROM media_sources
+        // Admin > Free films marks videos that were removed or stopped allowing
+        // embedding as unavailable; those are skipped.
+        $stmt = $conn->prepare("SELECT * FROM media_sources
                                  WHERE tmdb_id = ? AND media_type = ? $episodeSql ORDER BY id");
         $stmt->execute($params);
-        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $i => $row) {
-            if (empty($row['video_url'])) continue;
-            $sources[] = ['name' => 'ZEN' . ($i ? ' ' . ($i + 1) : ''), 'url' => $row['video_url']];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            if (empty($row['video_url']) || ($row['check_status'] ?? null) === 'unavailable') continue;
+            $label = ['youtube' => 'YouTube', 'archive' => 'archive.org'][$row['source'] ?? ''] ?? 'ZEN';
+            $sources[] = ['name' => $label . (count($sources) ? ' ' . (count($sources) + 1) : ''), 'url' => $row['video_url']];
         }
     } catch (PDOException $e) {
         error_log('licensedSources media_sources: ' . $e->getMessage());
@@ -134,6 +191,7 @@ function licensedTitleKeys(PDO $conn, array $titles): array
     $keys = [];
     try {
         $stmt = $conn->prepare("SELECT media_type, tmdb_id FROM media_sources WHERE tmdb_id IN ($in)
+                                   AND NOT (COALESCE(check_status, '') = 'unavailable')
                                  UNION
                                 SELECT media_type, tmdb_id FROM media_downloads
                                  WHERE tmdb_id IN ($in) AND is_active = 1

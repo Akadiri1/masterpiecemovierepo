@@ -22,6 +22,7 @@ require APP_PATH."/auth/auth_controller/controller.php";
 require APP_PATH."/lib/auth_remember.php";
 if (isset($conn)) {
     auth_remember_try_login($conn);
+    auth_sync_member($conn);
 }
 #load routes
 // require APP_PATH."/routes/router.php";

@@ -362,7 +362,7 @@ $content = selectContent($conn,'panel_'.$uri[2],$where);
   <script type="text/javascript">
   // Collapse menu
   (function() {
-    if ($('#layout-sidenav').hasClass('sidenav-horizontal') || window.layoutHelpers.isSmallScreen()) {
+    if (!window.layoutHelpers || $('#layout-sidenav').hasClass('sidenav-horizontal') || window.layoutHelpers.isSmallScreen()) {
       return;
     }
     try {

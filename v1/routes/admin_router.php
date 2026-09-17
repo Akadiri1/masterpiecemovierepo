@@ -86,7 +86,11 @@ if(count($uri) > 2){
       }
     }
 
-
+// Admin pages that read a query string (search, filters, page numbers) route
+// on their path alone.
+if (strpos($uri[1] ?? '', '?') !== false && in_array(strtok($uri[1], '?'), ['admin-view-users', 'admin-free-films'], true)) {
+  $uri[1] = strtok($uri[1], '?');
+}
 
 switch ($uri[1]) {
 
@@ -165,6 +169,10 @@ switch ($uri[1]) {
 
   case 'admin-playback':
   include APP_PATH."/admin/manage_playback.php";
+  break;
+
+  case 'admin-free-films':
+  include APP_PATH."/admin/manage_free_films.php";
   break;
 
   case 'admin-ai':

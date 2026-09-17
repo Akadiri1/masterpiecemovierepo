@@ -8,7 +8,7 @@ define("DBHOST", getenv('DB_HOST') ?: 'localhost');
 define("DBPORT", getenv('DB_PORT') ?: '3306');
 
 // Bump this when the schema checks below change, so they run again once.
-define("DB_SCHEMA_VERSION", '2026-09-16');
+define("DB_SCHEMA_VERSION", '2026-09-17.2');
 
 try {
     $dbOptions = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];
@@ -121,6 +121,17 @@ try {
         } catch (PDOException $e) {}
         try {
             $conn->exec("ALTER TABLE watch_history ADD UNIQUE KEY `user_media` (user_id, tmdb_movie_id, media_type)");
+        } catch (PDOException $e) {}
+        // Member status, set under Admin > Members: NULL not verified,
+        // 1 verified, 2 suspended (can't sign in).
+        try {
+            $conn->exec("ALTER TABLE users ADD COLUMN user_status TINYINT NULL DEFAULT NULL");
+        } catch (PDOException $e) {}
+        // Films the site may play (Admin > Free films), with where they came
+        // from and whether they still play.
+        try {
+            require_once __DIR__ . '/../lib/free_films.php';
+            ensureMediaSourcesTable($conn);
         } catch (PDOException $e) {}
 
         @file_put_contents($schemaMarker, date('c'));

@@ -21,6 +21,12 @@ if (!empty($input['identity']) && !empty($input['password'])) {
             exit;
         }
 
+        if (auth_user_is_suspended($user)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => AUTH_SUSPENDED_MESSAGE]);
+            exit;
+        }
+
         // Create session
         if (session_status() !== PHP_SESSION_ACTIVE) session_start();
         session_regenerate_id(true);

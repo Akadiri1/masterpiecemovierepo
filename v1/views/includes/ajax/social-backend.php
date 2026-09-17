@@ -118,6 +118,12 @@ if ($userData) {
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
         }
 
+        if (auth_user_is_suspended($user)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => AUTH_SUSPENDED_MESSAGE]);
+            exit;
+        }
+
         // CREATE SESSION
         session_regenerate_id(true);
         $_SESSION['user_id'] = $user['id'];

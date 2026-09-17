@@ -65,127 +65,224 @@ body {
     background: transparent !important;
 }
 
-/* ---------------------------------------------------------- layout fix ---
-   admin/includes/header.php ends at </header> and never opens
-   .pcoded-main-container -- the element the vendor theme offsets by the
-   sidebar width. The admin pages instead open a plain Bootstrap .container,
-   which gets no offset, so content sits underneath the fixed sidebar. Worse,
-   .container caps its own width, so a wide table pushes the whole document
-   into horizontal scroll and drags the headings off-screen to the left.
+/* --------------------------------------------------------------- shell ---
+   admin/includes/header.php draws a fixed sidebar (.zadm-side) and top bar
+   (.zadm-top). The pages then open a plain Bootstrap .container, which is
+   offset here to sit beside and below them. The container fills the space
+   so wide tables scroll inside their own box instead of the whole page. */
 
-   Reproduce what .pcoded-main-container would have done, and let the page
-   fill the space so wide tables scroll inside their own box instead. */
+:root {
+    --zadm-side: 248px;
+    --zadm-top: 64px;
+}
 
-body > .container,
-.pcoded-navbar ~ .container {
-    margin-left: 264px !important;
+body.zadm-body > .container {
+    margin-left: var(--zadm-side) !important;
     margin-right: 0 !important;
     max-width: none !important;
     width: auto !important;
     min-width: 0;
-    padding: 0 26px 48px !important;
+    padding: calc(var(--zadm-top) + 24px) 28px 56px !important;
     box-sizing: border-box;
 }
 
-/* Collapsed rail. */
-.pcoded-navbar.navbar-collapsed ~ .container {
-    margin-left: 70px !important;
-}
-
-/* Keep the wide tables inside their card rather than stretching the page. */
-body > .container .table-responsive,
-body > .container .dt-responsive {
+body.zadm-body > .container .table-responsive,
+body.zadm-body > .container .dt-responsive {
     max-width: 100%;
     overflow-x: auto;
 }
 
-/* The sidebar is taller than the viewport on long pages; pin it so it does
-   not slide away when a table scrolls the page sideways. */
-.pcoded-navbar.menupos-fixed {
-    position: fixed !important;
+/* Sidebar */
+.zadm-side {
+    position: fixed;
     top: 0;
+    bottom: 0;
     left: 0;
+    width: var(--zadm-side);
+    z-index: 1030;
+    display: flex;
+    flex-direction: column;
+    background: rgba(14, 11, 18, 0.96);
+    border-right: 1px solid var(--adm-border);
 }
 
-@media only screen and (max-width: 991px) {
-    body > .container,
-    .pcoded-navbar ~ .container,
-    .pcoded-navbar.navbar-collapsed ~ .container {
-        margin-left: 0 !important;
-        padding: 0 14px 40px !important;
-    }
+.zadm-brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--zadm-top);
+    padding: 0 16px 0 24px;
+    flex-shrink: 0;
 }
 
-/* ------------------------------------------------------------- sidebar --- */
+.zadm-logo { display: inline-flex; align-items: baseline; gap: 8px; text-decoration: none !important; }
+.zadm-logo span { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.06em; color: var(--primary); line-height: 1; }
+.zadm-logo small { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--adm-muted); }
 
-.pcoded-navbar {
-    background: rgba(16, 12, 20, 0.92) !important;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    border-right: 1px solid var(--adm-border) !important;
-    box-shadow: none !important;
+.zadm-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 6px 12px 16px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
 }
 
-.pcoded-navbar .pcoded-inner-navbar > li > a,
-.pcoded-navbar .nav-link,
-.pcoded-navbar a {
-    color: var(--adm-muted) !important;
-}
+.zadm-group + .zadm-group { margin-top: 20px; }
 
-.pcoded-navbar .nav-item .nav-link:hover {
-    color: var(--adm-text) !important;
-    background: var(--adm-surface) !important;
-}
-
-/* Active item: a brand rail rather than a filled block. */
-.pcoded-navbar .nav-item.active > .nav-link,
-.pcoded-navbar .nav-item.pcoded-trigger > .nav-link {
-    color: #fff !important;
-    background: linear-gradient(90deg, rgba(var(--primary-rgb), 0.16), transparent) !important;
-    box-shadow: inset 3px 0 0 var(--primary) !important;
-}
-
-.pcoded-navbar .menu-caption > label,
-.pcoded-navbar .menu-caption {
-    color: var(--adm-dim) !important;
-    font-size: 0.68rem !important;
-    letter-spacing: 0.09em;
+.zadm-group-label {
+    margin: 0 0 6px;
+    padding: 0 12px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.11em;
     text-transform: uppercase;
-    font-weight: 600;
+    color: var(--adm-dim) !important;
 }
 
-.pcoded-navbar .pcoded-submenu {
-    background: rgba(0, 0, 0, 0.25) !important;
-}
-
-.pcoded-navbar .micon i { color: inherit !important; }
-
-/* ------------------------------------------------------------- top bar --- */
-
-.pcoded-header,
-.pcoded-header .navbar,
-.header-navbar {
-    background: rgba(16, 12, 20, 0.85) !important;
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    border-bottom: 1px solid var(--adm-border) !important;
-    box-shadow: none !important;
-    color: var(--adm-text) !important;
-}
-
-.pcoded-header a,
-.pcoded-header i,
-.pcoded-header .dropdown-toggle {
+.zadm-link {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 12px;
+    margin-bottom: 2px;
+    border-radius: 10px;
     color: var(--adm-muted) !important;
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.3;
+    text-decoration: none !important;
+    transition: background 0.15s ease, color 0.15s ease;
 }
-.pcoded-header a:hover { color: var(--adm-text) !important; }
+.zadm-link i { font-size: 1.2rem; flex-shrink: 0; }
+.zadm-link span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zadm-link:hover, .zadm-link:focus-visible { background: var(--adm-surface-2); color: var(--adm-text) !important; }
+.zadm-link.is-active { background: rgba(var(--primary-rgb), 0.12); color: #fff !important; font-weight: 600; }
+.zadm-link.is-active i { color: var(--primary); }
+.zadm-link.is-active::before {
+    content: "";
+    position: absolute;
+    left: -12px;
+    top: 9px;
+    bottom: 9px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--primary);
+}
 
-.pcoded-header .input-group,
-.pcoded-header input {
-    background: var(--adm-surface) !important;
-    border: 1px solid var(--adm-border) !important;
+.zadm-badge {
+    margin-left: auto;
+    min-width: 22px;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: rgba(34, 211, 238, 0.14);
+    color: var(--adm-cyan);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.zadm-side-foot { padding: 10px 12px 14px; border-top: 1px solid var(--adm-border); flex-shrink: 0; }
+
+/* Top bar */
+.zadm-top {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: var(--zadm-side);
+    height: var(--zadm-top);
+    z-index: 1020;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 28px;
+    background: rgba(13, 10, 16, 0.82);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--adm-border);
+}
+
+.zadm-icon-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border: 1px solid var(--adm-border);
+    border-radius: 10px;
+    background: var(--adm-surface);
+    color: var(--adm-text);
+    font-size: 1.25rem;
+    cursor: pointer;
+}
+.zadm-icon-btn:hover { background: var(--adm-surface-2); }
+
+.zadm-crumbs { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 0.9rem; }
+.zadm-crumbs a { color: var(--adm-muted) !important; text-decoration: none !important; }
+.zadm-crumbs a:hover { color: var(--adm-text) !important; }
+.zadm-crumb-sep { color: var(--adm-dim); font-size: 0.8rem; }
+.zadm-crumbs span { color: var(--adm-text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.zadm-top-actions { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+
+.zadm-top-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border: 1px solid var(--adm-border);
+    border-radius: 999px;
+    background: var(--adm-surface);
     color: var(--adm-text) !important;
-    border-radius: var(--adm-radius-sm);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none !important;
+    white-space: nowrap;
+}
+.zadm-top-btn:hover { background: var(--adm-surface-2); border-color: var(--adm-border-strong); }
+
+.zadm-me { display: flex; align-items: center; gap: 10px; padding-left: 14px; border-left: 1px solid var(--adm-border); min-width: 0; }
+.zadm-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(var(--primary-rgb), 0.18);
+    color: #ff8b93;
+    font-weight: 700;
+}
+.zadm-me-text { display: flex; flex-direction: column; line-height: 1.25; min-width: 0; }
+.zadm-me-text strong { color: var(--adm-text); font-size: 0.84rem; font-weight: 600; }
+.zadm-me-text small { color: var(--adm-muted); font-size: 0.72rem; max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Phones and tablets: the sidebar slides in over the page. */
+.zadm-scrim { position: fixed; inset: 0; z-index: 1050; background: rgba(0, 0, 0, 0.6); }
+.zadm-scrim[hidden] { display: none; }
+
+@media (max-width: 991.98px) {
+    :root { --zadm-top: 58px; }
+    .zadm-side {
+        width: min(300px, 86vw);
+        z-index: 1060;
+        transform: translateX(-100%);
+        visibility: hidden;
+        transition: transform 0.25s ease, visibility 0s linear 0.25s;
+        box-shadow: 24px 0 60px rgba(0, 0, 0, 0.5);
+    }
+    body.zadm-nav-open .zadm-side { transform: none; visibility: visible; transition: transform 0.25s ease; }
+    body.zadm-nav-open { overflow: hidden; }
+    .zadm-icon-btn { display: inline-flex; }
+    .zadm-top { left: 0; padding: 0 14px; gap: 10px; }
+    .zadm-crumb-root, .zadm-crumb-sep { display: none; }
+    .zadm-top-btn { padding: 8px; }
+    .zadm-top-btn span, .zadm-me-text { display: none; }
+    .zadm-me { padding-left: 0; border-left: 0; }
+    body.zadm-body > .container { margin-left: 0 !important; padding: calc(var(--zadm-top) + 16px) 14px 40px !important; }
 }
 
 /* -------------------------------------------------------------- cards --- */

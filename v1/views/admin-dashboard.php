@@ -73,7 +73,7 @@ $signups14 = array_sum(array_column($days, 'signups'));
 
 // 4. Tools and what needs attention
 $playbackMode   = siteSetting('playback_mode') === PLAYBACK_SERVERS ? PLAYBACK_SERVERS : PLAYBACK_DISCOVER;
-$playableTitles = (int) $scalar("SELECT COUNT(*) FROM media_sources")
+$playableTitles = (int) $scalar("SELECT COUNT(*) FROM media_sources WHERE COALESCE(check_status, '') <> 'unavailable'")
                 + (int) $scalar("SELECT COUNT(*) FROM media_downloads WHERE is_active = 1 AND download_url REGEXP '\\\\.(mp4|mkv|webm|m3u8)(\\\\?|$)'");
 $aiChatsToday   = (int) $scalar("SELECT COUNT(*) FROM zen_search_history WHERE created_at >= CURDATE()");
 $aiUnverified   = (int) $scalar("SELECT COUNT(*) FROM ai_hooks WHERE model = 'imported-from-json'");
@@ -99,13 +99,14 @@ if ($aiUnverified) {
     $attention[] = ['info', 'ph-sparkle', $aiUnverified . ' imported AI ' . ($aiUnverified === 1 ? 'pitch needs' : 'pitches need') . ' checking.', '/admin-ai', 'Review'];
 }
 if ($playbackMode === PLAYBACK_DISCOVER && !$playableTitles) {
-    $attention[] = ['info', 'ph-film-slate', 'No titles play in full yet. Add films you have the rights to.', '/admin-playback', 'Add'];
+    $attention[] = ['info', 'ph-film-slate', 'No films play in full yet. Add free films from YouTube or archive.org.', '/admin-free-films', 'Add'];
 }
 
 $tools = [
     ['/admin-playback', 'ph-play-circle', 'Playback', $playbackMode === PLAYBACK_SERVERS ? 'Streaming servers on' : 'Discover mode', $playbackMode === PLAYBACK_SERVERS ? 'warning' : 'ok'],
     ['/admin-ai', 'ph-sparkle', 'ZEN AI', number_format($aiChatsToday) . ' ' . ($aiChatsToday === 1 ? 'chat' : 'chats') . ' today', ''],
     ['/admin-ingestion', 'ph-cloud-arrow-down', 'Ingestion', $ingestReview ? number_format($ingestReview) . ' to review' : 'Queue clear', $ingestReview ? 'info' : ''],
+    ['/admin-free-films', 'ph-film-strip', 'Free films', $playableTitles ? number_format($playableTitles) . ' playing' : 'None yet', $playableTitles ? 'ok' : ''],
     ['/admin-view-downloads', 'ph-download-simple', 'Downloads', number_format($activeDownloads) . ' active ' . ($activeDownloads === 1 ? 'link' : 'links'), ''],
     ['/admin-view-users', 'ph-users-three', 'Members', number_format($totalUsers) . ' total', ''],
 ];
@@ -133,10 +134,11 @@ function admTimeAgo(?string $when): string
 }
 
 $adminName = $_SESSION['username'] ?? 'Admin';
-$suppressSiteTour = true; // footer.php: no welcome tour over the dashboard
 
-// Include Header (this also includes the sidebar)
-include __DIR__ . '/includes/header.php';
+// The admin panel's sidebar and top bar, shared by every admin page.
+$level_check = ['MASTER', 3, 2, 1];
+$adminPageTitle = 'Dashboard';
+include APP_PATH . '/admin/includes/header.php';
 ?>
 
 <style>
@@ -151,10 +153,8 @@ include __DIR__ . '/includes/header.php';
         --adm-violet: #a78bfa;
         max-width: 1320px;
         margin: 0 auto;
-        padding: 16px 16px 48px;
         color: #fff;
     }
-    @media (min-width: 768px) { .adm { padding: 28px 28px 64px; } }
     .adm a { text-decoration: none; }
     .adm-card { background: var(--adm-card); border: 1px solid var(--adm-line); border-radius: 18px; }
     .adm-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px 0; }
@@ -225,7 +225,7 @@ include __DIR__ . '/includes/header.php';
     /* Tools */
     .adm-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
     @media (min-width: 768px) { .adm-tools { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (min-width: 1200px) { .adm-tools { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; } }
+    @media (min-width: 1200px) { .adm-tools { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; } }
     .adm-tool { display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding: 16px; color: #fff; text-align: left; min-width: 0; transition: background .15s, border-color .15s, transform .15s; }
     /* Two columns on phones: a fifth tool spans the row instead of sitting alone. */
     @media (max-width: 767.98px) { .adm-tool:last-child:nth-child(odd) { grid-column: 1 / -1; } }
@@ -262,7 +262,8 @@ include __DIR__ . '/includes/header.php';
     .adm-empty { padding: 28px 20px; text-align: center; color: var(--adm-muted); font-size: .88rem; }
 </style>
 
-<div class="adm" id="page_layout">
+<div class="container">
+<div class="adm">
 
     <!-- Header -->
     <header class="adm-top">
@@ -276,7 +277,6 @@ include __DIR__ . '/includes/header.php';
                 <span class="adm-dot<?php echo $playbackMode === PLAYBACK_SERVERS ? ' warning' : ''; ?>"></span>
                 <?php echo $playbackMode === PLAYBACK_SERVERS ? 'Streaming servers on' : 'Discover mode'; ?>
             </a>
-            <a class="adm-chip" href="/" target="_blank" rel="noopener"><i class="ph ph-arrow-up-right"></i> View site</a>
         </div>
     </header>
 
@@ -458,5 +458,9 @@ include __DIR__ . '/includes/header.php';
     </div>
 
 </div>
+</div>
 
-<?php include __DIR__ . '/includes/footer.php'; ?>
+  <script src="/da/assets/js/vendor-all.min.js"></script>
+  <script src="/da/assets/plugins/bootstrap/js/bootstrap.min.js"></script>
+</body>
+</html>

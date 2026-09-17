@@ -260,7 +260,7 @@ if(array_key_exists('submit', $_POST)){
   <script type="text/javascript">
   // Collapse menu
   (function() {
-    if ($('#layout-sidenav').hasClass('sidenav-horizontal') || window.layoutHelpers.isSmallScreen()) {
+    if (!window.layoutHelpers || $('#layout-sidenav').hasClass('sidenav-horizontal') || window.layoutHelpers.isSmallScreen()) {
       return;
     }
     try {
