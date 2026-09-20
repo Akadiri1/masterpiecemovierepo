@@ -93,17 +93,9 @@ $adminNav = [
     ],
 ];
 
-// Tables named panel_* or selection_* get managed through the generic
-// /manage pages.
-foreach ($tables as $value) {
-    // MySQL 8 returns information_schema column names in capitals.
-    $parts = explode('_', (string) ($value['table_name'] ?? $value['TABLE_NAME'] ?? ''));
-    $kind = array_shift($parts);
-    if (($kind === 'panel' || $kind === 'selection') && $parts) {
-        $slug = strtolower(implode('_', $parts));
-        $adminNav['Content'][] = ["/manage/$slug", 'ph-stack', ucwords(implode(' ', $parts)), ["/add/$slug", "/create/$slug"], 0];
-    }
-}
+// The admin template this project started from also listed generic CRUD pages
+// for every panel_*/selection_* table (blogs, sliders, categories and so on).
+// None of them belong to a film site, so the menu only carries the pages above.
 
 $adminActiveLabel = 'Admin';
 foreach ($adminNav as $items) {
@@ -180,6 +172,7 @@ $adminAvatar = $_SESSION['avatar_url'] ?? '';
     </nav>
 
     <div class="zadm-side-foot">
+      <a class="zadm-link" href="/dashboard"><i class="ph ph-squares-four" aria-hidden="true"></i><span>My dashboard</span></a>
       <a class="zadm-link" href="/" target="_blank" rel="noopener"><i class="ph ph-arrow-square-out" aria-hidden="true"></i><span>View site</span></a>
       <a class="zadm-link" href="/logout"><i class="ph ph-sign-out" aria-hidden="true"></i><span>Sign out</span></a>
     </div>

@@ -690,6 +690,33 @@ if ($picksData && !empty($picksData['results'])) {
     }
 }
 
+// --- 23b. PERSONAL PICKS ---------------------------------------------------
+// The two "for you" rows below were the same lists for everybody (TMDB's
+// now-playing page 2 and popular page 5). For a signed-in member they are
+// replaced with picks built from what they have actually watched
+// (lib/recommendations.php), and their headings say so.
+$recommendedHeading = 'Recommended For You';
+$topPicksHeading    = 'Top Picks For You';
+$picksArePersonal   = false;
+
+if (isset($_SESSION['user_id']) && isset($conn)) {
+    require_once APP_PATH . '/lib/recommendations.php';
+    $personal = personalPicks($conn, (int) $_SESSION['user_id'], !empty($isKidsModeActive), 12);
+
+    if (!empty($personal['items'])) {
+        $recommendedBlockMovies = $personal['items'];
+        $recommendedHeading = $personal['seed_title'] !== ''
+            ? 'Because you watched ' . $personal['seed_title']
+            : 'Picked for you';
+        $picksArePersonal = true;
+    }
+    if (!empty($personal['genre_items'])) {
+        $topPicks = $personal['genre_items'];
+        $topPicksHeading = $personal['genre'] !== '' ? 'More ' . $personal['genre'] . ' for you' : 'More like your taste';
+        $picksArePersonal = true;
+    }
+}
+
 include ("includes/header.php");
 ?>
 
@@ -1052,6 +1079,101 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="d-none d-lg-block">
             <div class="swiper-button swiper-button-next"></div>
             <div class="swiper-button swiper-button-prev"></div>
+        </div>
+    </div>
+</div>
+
+     <div class="recommended-block section-wraper">
+    <div class="d-flex align-items-center justify-content-between px-1 mb-2 pb-1 mb-md-4 pb-md-0">
+        <h4 class="main-title text-capitalize mb-0 fw-medium"><?php echo htmlspecialchars($recommendedHeading); ?></h4>
+        <?php if (!$picksArePersonal): ?><a href="view-all?type=recommended" class="text-primary iq-view-all text-decoration-none flex-none">View All</a><?php endif; ?>
+    </div>
+    
+    <div class="card-style-slider">
+        <div class="position-relative swiper swiper-card" data-slide="6" data-laptop="6" data-tab="3"
+             data-mobile="2" data-mobile-sm="2" data-autoplay="false" data-loop="true" data-navigation="true"
+             data-pagination="true">
+             
+            <ul class="p-0 swiper-wrapper m-0 list-inline">
+                
+                <?php if (!empty($recommendedBlockMovies)): ?>
+                    <?php foreach ($recommendedBlockMovies as $movie): ?>
+                        <li class="swiper-slide">
+                            <div class="iq-card card-hover">
+                                <div class="block-images position-relative w-100">
+                                    
+                                    <!-- Poster -->
+                                    <div class="img-box w-100">
+                                        <a href="<?php echo htmlspecialchars($movie['link'] ?? '/movie/' . $movie['id']); ?>" class="position-relative top-0 bottom-0 start-0 end-0">
+                                            <img src="<?php echo $movie['poster_url']; ?>" 
+                                                 alt="<?php echo htmlspecialchars($movie['title']); ?>"
+                                                 class="img-fluid object-cover w-100 d-block border-0 rounded-3" 
+                                                 loading="lazy" decoding="async">
+                                        </a>
+                                    </div>
+                                    
+                                    <div class="card-description with-transition">
+                                        <ul class="genres-list p-0 mb-2 d-flex align-items-center flex-wrap list-inline">
+                                            <li class="fw-semi-bold">
+                                                <a href="<?php echo htmlspecialchars($movie['link'] ?? '/movie/' . $movie['id']); ?>" tabindex="0" class="font-size-14">
+                                                    <?php echo htmlspecialchars($movie['genre']); ?>
+                                                </a>
+                                            </li>
+                                        </ul>
+                                        
+                                        <div class="cart-content">
+                                            <div class="content-left">
+                                                <h5 class="iq-title text-capitalize">
+                                                    <a href="<?php echo htmlspecialchars($movie['link'] ?? '/movie/' . $movie['id']); ?>">
+                                                        <?php echo htmlspecialchars($movie['title']); ?>
+                                                    </a>
+                                                </h5>
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <i class="ph ph-translate"></i>
+                                                        <small class="font-size-12 text-capitalize"><?php echo $movie['language']; ?></small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Buttons -->
+                                        <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
+                                            <a href="/add-watchlist?id=<?php echo $movie['id']; ?>"
+                                               class="d-flex align-items-center justify-content-center flex-shrink-0 border-0 add-to-wishlist-btn btn btn-secondary"
+                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip"
+                                               data-bs-title="Add to Watchlist">
+                                                <i class="ph ph-plus font-size-18"></i>
+                                            </a>
+                                            <div class="iq-play-button iq-button">
+                                                <a href="<?php echo htmlspecialchars($movie['link'] ?? '/movie/' . $movie['id']); ?>" class="btn btn-primary w-100">
+                                                    Play Now
+                                                </a>
+                                            </div>
+                                        </div>
+                                        
+                                    </div>
+                                    
+                                    <!-- Premium Icon -->
+                                    <div class="position-absolute z-1 primium-product d-flex align-items-center justify-content-center"
+                                         data-bs-toggle="tooltip" data-bs-placement="top" aria-label="Premium" data-bs-original-title="Premium">
+                                        <i class="ph-fill ph-crown"></i>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <p class="text-white px-3">No recommendations available.</p>
+                <?php endif; ?>
+
+            </ul>
+            
+            <div class="d-none d-lg-block">
+                <div class="swiper-button swiper-button-next"></div>
+                <div class="swiper-button swiper-button-prev"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -1904,105 +2026,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <div class="container-fluid">
    <div class="overflow-hidden">
-     <div class="recommended-block section-wraper">
-    <div class="d-flex align-items-center justify-content-between px-1 mb-2 pb-1 mb-md-4 pb-md-0">
-        <h4 class="main-title text-capitalize mb-0 fw-medium">Recommended For You</h4>
-        <a href="view-all?type=recommended" class="text-primary iq-view-all text-decoration-none flex-none">View All</a>
-    </div>
-    
-    <div class="card-style-slider">
-        <div class="position-relative swiper swiper-card" data-slide="6" data-laptop="6" data-tab="3"
-             data-mobile="2" data-mobile-sm="2" data-autoplay="false" data-loop="true" data-navigation="true"
-             data-pagination="true">
-             
-            <ul class="p-0 swiper-wrapper m-0 list-inline">
-                
-                <?php if (!empty($recommendedBlockMovies)): ?>
-                    <?php foreach ($recommendedBlockMovies as $movie): ?>
-                        <li class="swiper-slide">
-                            <div class="iq-card card-hover">
-                                <div class="block-images position-relative w-100">
-                                    
-                                    <!-- Poster -->
-                                    <div class="img-box w-100">
-                                        <a href="/movie/<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
-                                            <img src="<?php echo $movie['poster_url']; ?>" 
-                                                 alt="<?php echo htmlspecialchars($movie['title']); ?>"
-                                                 class="img-fluid object-cover w-100 d-block border-0 rounded-3" 
-                                                 loading="lazy" decoding="async">
-                                        </a>
-                                    </div>
-                                    
-                                    <div class="card-description with-transition">
-                                        <ul class="genres-list p-0 mb-2 d-flex align-items-center flex-wrap list-inline">
-                                            <li class="fw-semi-bold">
-                                                <a href="/movie/<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
-                                                    <?php echo htmlspecialchars($movie['genre']); ?>
-                                                </a>
-                                            </li>
-                                        </ul>
-                                        
-                                        <div class="cart-content">
-                                            <div class="content-left">
-                                                <h5 class="iq-title text-capitalize">
-                                                    <a href="/movie/<?php echo $movie['id']; ?>">
-                                                        <?php echo htmlspecialchars($movie['title']); ?>
-                                                    </a>
-                                                </h5>
-                                                <div class="d-flex align-items-center gap-3">
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <i class="ph ph-translate"></i>
-                                                        <small class="font-size-12 text-capitalize"><?php echo $movie['language']; ?></small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Buttons -->
-                                        <div class="d-flex align-items-center justify-content-center gap-2 mt-3">
-                                            <a href="/add-watchlist?id=<?php echo $movie['id']; ?>"
-                                               class="d-flex align-items-center justify-content-center flex-shrink-0 border-0 add-to-wishlist-btn btn btn-secondary"
-                                               data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip"
-                                               data-bs-title="Add to Watchlist">
-                                                <i class="ph ph-plus font-size-18"></i>
-                                            </a>
-                                            <div class="iq-play-button iq-button">
-                                                <a href="/movie/<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
-                                                    Play Now
-                                                </a>
-                                            </div>
-                                        </div>
-                                        
-                                    </div>
-                                    
-                                    <!-- Premium Icon -->
-                                    <div class="position-absolute z-1 primium-product d-flex align-items-center justify-content-center"
-                                         data-bs-toggle="tooltip" data-bs-placement="top" aria-label="Premium" data-bs-original-title="Premium">
-                                        <i class="ph-fill ph-crown"></i>
-                                    </div>
-                                    
-                                </div>
-                            </div>
-                        </li>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <p class="text-white px-3">No recommendations available.</p>
-                <?php endif; ?>
-
-            </ul>
-            
-            <div class="d-none d-lg-block">
-                <div class="swiper-button swiper-button-next"></div>
-                <div class="swiper-button swiper-button-prev"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="top-pics-block section-wraper">
     <div class="d-flex align-items-center justify-content-between px-1 mb-2 pb-1 mb-md-4 pb-md-0">
-        <h4 class="main-title text-capitalize mb-0 fw-medium">Top Picks For You</h4>
-        <a href="view-all?type=toppicks" class="text-primary iq-view-all text-decoration-none flex-none">View All</a>
+        <h4 class="main-title text-capitalize mb-0 fw-medium"><?php echo htmlspecialchars($topPicksHeading); ?></h4>
+        <?php if (!$picksArePersonal): ?><a href="view-all?type=toppicks" class="text-primary iq-view-all text-decoration-none flex-none">View All</a><?php endif; ?>
     </div>
     
     <div class="card-style-slider">
@@ -2020,7 +2047,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     
                                     <!-- Poster -->
                                     <div class="img-box w-100">
-                                        <a href="/movie/<?php echo $movie['id']; ?>" class="position-relative top-0 bottom-0 start-0 end-0">
+                                        <a href="<?php echo htmlspecialchars($movie['link'] ?? '/movie/' . $movie['id']); ?>" class="position-relative top-0 bottom-0 start-0 end-0">
                                             <img src="<?php echo $movie['poster_url']; ?>" 
                                                  alt="<?php echo htmlspecialchars($movie['title']); ?>"
                                                  class="img-fluid object-cover w-100 d-block border-0 rounded-3" 
@@ -2031,7 +2058,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <div class="card-description with-transition">
                                         <ul class="genres-list p-0 mb-2 d-flex align-items-center flex-wrap list-inline">
                                             <li class="fw-semi-bold">
-                                                <a href="/movie/<?php echo $movie['id']; ?>" tabindex="0" class="font-size-14">
+                                                <a href="<?php echo htmlspecialchars($movie['link'] ?? '/movie/' . $movie['id']); ?>" tabindex="0" class="font-size-14">
                                                     <?php echo htmlspecialchars($movie['genre']); ?>
                                                 </a>
                                             </li>
@@ -2040,7 +2067,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <div class="cart-content">
                                             <div class="content-left">
                                                 <h5 class="iq-title text-capitalize">
-                                                    <a href="/movie/<?php echo $movie['id']; ?>">
+                                                    <a href="<?php echo htmlspecialchars($movie['link'] ?? '/movie/' . $movie['id']); ?>">
                                                         <?php echo htmlspecialchars($movie['title']); ?>
                                                     </a>
                                                 </h5>
@@ -2062,7 +2089,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                                 <i class="ph ph-plus font-size-18"></i>
                                             </a>
                                             <div class="iq-play-button iq-button">
-                                                <a href="/movie/<?php echo $movie['id']; ?>" class="btn btn-primary w-100">
+                                                <a href="<?php echo htmlspecialchars($movie['link'] ?? '/movie/' . $movie['id']); ?>" class="btn btn-primary w-100">
                                                     Play Now
                                                 </a>
                                             </div>

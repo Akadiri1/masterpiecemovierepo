@@ -48,9 +48,6 @@ $rows = function (string $sql, array $params = []) use ($conn): array {
 // 2. Headline figures
 $totalUsers    = (int) $scalar("SELECT COUNT(*) FROM users");
 $newUsersWeek  = (int) $scalar("SELECT COUNT(*) FROM users WHERE created_at >= NOW() - INTERVAL 7 DAY");
-$payingNow     = (int) $scalar("SELECT COUNT(DISTINCT user_id) FROM subscriptions WHERE status = 'active' AND expires_at > NOW()");
-$paymentsTotal = (int) $scalar("SELECT COUNT(*) FROM subscriptions");
-$revenueTotal  = (float) $scalar("SELECT SUM(p.price) FROM subscriptions s JOIN plans p ON LOWER(p.name) = LOWER(s.plan_name)");
 $viewersWeek   = (int) $scalar("SELECT COUNT(DISTINCT user_id) FROM watch_history WHERE last_watched >= NOW() - INTERVAL 7 DAY");
 $titlesWeek    = (int) $scalar("SELECT COUNT(*) FROM watch_history WHERE last_watched >= NOW() - INTERVAL 7 DAY");
 $totalViews    = (int) $scalar("SELECT SUM(views) FROM content_views");
@@ -291,12 +288,12 @@ include APP_PATH . '/admin/includes/header.php';
             <p class="adm-kpi-value"><?php echo number_format($totalUsers); ?></p>
             <span class="adm-kpi-note<?php echo $newUsersWeek ? ' up' : ''; ?>"><?php echo $newUsersWeek ? '+' . number_format($newUsersWeek) . ' this week' : 'No new members this week'; ?></span>
         </div>
-        <div class="adm-card adm-kpi">
-            <span class="adm-kpi-icon tone-amber"><i class="ph ph-crown"></i></span>
-            <p class="adm-kpi-label">Paying members</p>
-            <p class="adm-kpi-value"><?php echo number_format($payingNow); ?></p>
-            <span class="adm-kpi-note"><?php echo $paymentsTotal ? number_format($paymentsTotal) . ' ' . ($paymentsTotal === 1 ? 'payment' : 'payments') . ' · $' . number_format($revenueTotal, 2) . ' all time' : 'No payments yet'; ?></span>
-        </div>
+        <a class="adm-card adm-kpi" href="/admin-free-films" style="color: inherit;">
+            <span class="adm-kpi-icon tone-amber"><i class="ph ph-film-strip"></i></span>
+            <p class="adm-kpi-label">Films playing in full</p>
+            <p class="adm-kpi-value"><?php echo number_format($playableTitles); ?></p>
+            <span class="adm-kpi-note"><?php echo $playableTitles ? 'Free films and your own files' : 'Add free films'; ?></span>
+        </a>
         <div class="adm-card adm-kpi">
             <span class="adm-kpi-icon tone-cyan"><i class="ph ph-television-simple"></i></span>
             <p class="adm-kpi-label">Watching this week</p>

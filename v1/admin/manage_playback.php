@@ -219,7 +219,10 @@ if (!isset($regions[$defaultRegion])) {
   .pb-tag.live { background: rgba(52, 211, 153, .16); color: var(--adm-green, #34d399); }
   .pb-tag.safe { background: rgba(34, 211, 238, .12); color: var(--adm-cyan, #22d3ee); }
   .pb-status { margin: 14px 0 0; color: var(--adm-muted, #8b929c); font-size: .84rem; }
-  .pb-only-some { display: flex; align-items: baseline; gap: 8px; margin: 14px 0 0; padding: 10px 14px; border-radius: 10px; background: rgba(34, 211, 238, .07); border: 1px solid rgba(34, 211, 238, .22); color: var(--adm-text, #e9eaee); font-size: .86rem; line-height: 1.5; }
+  /* The text is one flex item; without the span every word between the links
+     became its own item and the line broke into oddly spaced columns. */
+  .pb-only-some { display: flex; align-items: baseline; gap: 10px; margin: 14px 0 0; padding: 10px 14px; border-radius: 10px; background: rgba(34, 211, 238, .07); border: 1px solid rgba(34, 211, 238, .22); color: var(--adm-text, #e9eaee); font-size: .86rem; line-height: 1.55; }
+  .pb-only-some span { flex: 1; min-width: 0; }
   .pb-only-some i { color: var(--adm-cyan, #22d3ee); }
   .pb-only-some a { color: var(--adm-cyan, #22d3ee) !important; font-weight: 600; }
   .pb-preview { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -288,8 +291,10 @@ if (!isset($regions[$defaultRegion])) {
                   </div>
                   <p class="pb-only-some">
                     <i class="feather icon-users"></i>
-                    Only for specific accounts? Keep <strong>Discover</strong> and add them under
-                    <a href="#access">Access by email</a>, or switch on <strong>Streaming access</strong> for a member in <a href="/admin-view-users">Members</a>.
+                    <span>Want the streaming servers for a few people only? Keep <strong>Discover</strong> on for everyone,
+                      then add those people under <a href="#access">Access by email</a> below, or turn on
+                      <strong>Streaming access</strong> for them in <a href="/admin-view-users">Members</a>.
+                      They get the servers when signed in; everyone else keeps Discover.</span>
                   </p>
                   <p class="pb-status">
                     <?php if ($modeChanged): ?>

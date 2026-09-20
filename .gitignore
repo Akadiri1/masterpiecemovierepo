@@ -5,3 +5,5 @@ Vagrantfile
 .env/config.php
 ngrok.exe
 .htaccess
+# Per-member recommendation cache (personal viewing data; rebuilt as needed)
+v1/cache/recs/

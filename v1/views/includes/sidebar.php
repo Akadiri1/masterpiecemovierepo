@@ -234,9 +234,23 @@ $current_plan = $_SESSION['plan_name'] ?? 'Free';
         <a href="javascript:void(0)" onclick="if(typeof openThemeModal==='function') openThemeModal(); return false;" class="sidebar-link">
             <i class="ph ph-sparkle text-primary"></i><span>Color House</span>
         </a>
+        <?php if (!empty($_SESSION['user_id'])): ?>
+        <div class="sidebar-section-label">You</div>
+        <a href="/dashboard" class="sidebar-link <?php echo strtok($_SERVER['REQUEST_URI'], '?') === '/dashboard' ? 'active' : ''; ?>">
+            <i class="ph ph-squares-four"></i><span>My Dashboard</span>
+        </a>
+        <?php endif; ?>
         <a href="/profile" class="sidebar-link">
             <i class="ph ph-heart"></i><span>Watchlist</span>
         </a>
+        <?php if (!empty($_SESSION['user_id'])): ?>
+        <a href="/profile#history" class="sidebar-link">
+            <i class="ph ph-clock-counter-clockwise"></i><span>Watch History</span>
+        </a>
+        <a href="/profile" class="sidebar-link">
+            <i class="ph ph-user-circle"></i><span>Profile</span>
+        </a>
+        <?php endif; ?>
 
         <?php if (!$isKidsMode): ?>
         <a href="/pricing-plan" class="sidebar-link">
@@ -248,6 +262,31 @@ $current_plan = $_SESSION['plan_name'] ?? 'Free';
             <i class="ph <?php echo $isKidsMode ? 'ph-user-switch' : 'ph-smiley'; ?>"></i>
             <span><?php echo $isKidsMode ? 'Leave Kids Mode' : 'Kids Mode'; ?></span>
         </a>
+
+        <?php
+        // Admins reach the admin panel from here rather than typing the address.
+        // Hidden in Kids Mode, where the site is locked to the child's catalogue.
+        if (!empty($_SESSION['user_id']) && !$isKidsMode && isset($conn)) {
+            try {
+                $adminCheck = $conn->prepare("SELECT is_admin FROM users WHERE id = ?");
+                $adminCheck->execute([(int) $_SESSION['user_id']]);
+                $sidebarIsAdmin = (int) $adminCheck->fetchColumn() === 1;
+            } catch (PDOException $e) {
+                $sidebarIsAdmin = false;
+            }
+            if ($sidebarIsAdmin): ?>
+        <div class="sidebar-section-label">Admin</div>
+        <a href="/admin" class="sidebar-link">
+            <i class="ph ph-shield-star"></i><span>Admin Panel</span>
+        </a>
+        <a href="/admin-free-films" class="sidebar-link">
+            <i class="ph ph-film-script"></i><span>Free Films</span>
+        </a>
+        <a href="/admin-view-users" class="sidebar-link">
+            <i class="ph ph-users-three"></i><span>Members</span>
+        </a>
+        <?php endif;
+        } ?>
     </nav>
 
     <div class="sidebar-footer">
