@@ -11,6 +11,10 @@ services:
     runtime: docker
     plan: free
     branch: master
+    # Deploy every push to master. If pushes still don't deploy, the service's
+    # own setting wins: Render > the service > Settings > Build & Deploy >
+    # Auto-Deploy.
+    autoDeploy: true
     dockerfilePath: ./Dockerfile
     healthCheckPath: /login
     envVars:
