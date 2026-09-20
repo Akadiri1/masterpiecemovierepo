@@ -73,8 +73,11 @@ $signups14 = array_sum(array_column($days, 'signups'));
 
 // 4. Tools and what needs attention
 $playbackMode   = siteSetting('playback_mode') === PLAYBACK_SERVERS ? PLAYBACK_SERVERS : PLAYBACK_DISCOVER;
-$playableTitles = (int) $scalar("SELECT COUNT(*) FROM media_sources WHERE COALESCE(check_status, '') <> 'unavailable'")
-                + (int) $scalar("SELECT COUNT(*) FROM media_downloads WHERE is_active = 1 AND download_url REGEXP '\\\\.(mp4|mkv|webm|m3u8)(\\\\?|$)'");
+// A film kept in several sizes is one film, so count titles, not files.
+$playableTitles = (int) $scalar("SELECT COUNT(DISTINCT CONCAT_WS(':', tmdb_id, media_type, season, episode))
+                                   FROM media_sources WHERE COALESCE(check_status, '') <> 'unavailable'")
+                + (int) $scalar("SELECT COUNT(DISTINCT CONCAT_WS(':', tmdb_id, media_type, season, episode))
+                                   FROM media_downloads WHERE is_active = 1 AND download_url REGEXP '\\\\.(mp4|mkv|webm|m3u8)(\\\\?|$)'");
 $aiChatsToday   = (int) $scalar("SELECT COUNT(*) FROM zen_search_history WHERE created_at >= CURDATE()");
 $aiUnverified   = (int) $scalar("SELECT COUNT(*) FROM ai_hooks WHERE model = 'imported-from-json'");
 $aiFailures     = (int) $scalar("SELECT COUNT(*) FROM ai_usage_log WHERE status IN ('error','blocked') AND created_at >= CURDATE()");

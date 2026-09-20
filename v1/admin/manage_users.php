@@ -112,8 +112,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                         }
                         // An admin's own preview (Playback & access) would hide
                         // the change from them, so it gives way.
-                        if ($isMe && isset($_SESSION['playback_preview'])) {
-                            unset($_SESSION['playback_preview']);
+                        if ($isMe && adminPreviewMode() !== null) {
+                            saveAdminPreview($conn, $memberId, null);
                             $flash[1] .= ' Your Preview was turned off so you see the result.';
                         }
                         break;

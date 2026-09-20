@@ -41,6 +41,7 @@ function ensureMediaSourcesTable(PDO $conn): void
         'source_owner'  => "VARCHAR(255) NULL",    // YouTube channel or archive.org creator
         'checked_at'    => "DATETIME NULL",
         'check_status'  => "VARCHAR(20) NULL",     // ok, unavailable
+        'quality_label' => "VARCHAR(30) NULL",     // e.g. 480p, Data saver (one row per file size)
     ];
     foreach ($add as $column => $definition) {
         if (!in_array($column, $columns, true)) {
@@ -79,22 +80,74 @@ function freeFilmParseLink(string $link): ?array
     return null;
 }
 
-/** GET a URL. Returns [HTTP status (0 when unreachable), decoded JSON or null]. */
-function freeFilmFetchJson(string $url, int $timeout = 15): array
+/**
+ * The files of an archive.org film to play in the site's own player: the best
+ * H.264 file, plus archive.org's small "512Kb" copy as "Data saver" when it is
+ * clearly smaller. Only H.264 is used, since browsers can't play archive.org's
+ * older MPEG-4 and DivX files. Empty when there is none (the archive.org
+ * embedded player is used instead).
+ *
+ * @return array list of {label, url, size}
+ */
+function freeFilmArchiveFiles(string $identifier, array $files): array
 {
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_FOLLOWLOCATION => true,
-        CURLOPT_TIMEOUT        => $timeout,
-        CURLOPT_USERAGENT      => 'ZEN-Admin/1.0 (free film lookup)',
-        CURLOPT_HTTPHEADER     => ['Accept: application/json'],
-    ]);
-    app_apply_tls($ch);
-    $body = curl_exec($ch);
-    $status = curl_errno($ch) ? 0 : (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $data = is_string($body) ? json_decode($body, true) : null;
-    return [$status, is_array($data) ? $data : null];
+    $playable = [];
+    foreach ($files as $file) {
+        $name = (string) ($file['name'] ?? '');
+        $format = strtolower((string) ($file['format'] ?? ''));
+        if (preg_match('/\.(mp4|m4v)$/i', $name) && (strpos($format, 'h.264') !== false || strpos($format, '512kb mpeg4') !== false)) {
+            $playable[] = ['name' => $name, 'height' => (int) ($file['height'] ?? 0), 'size' => (int) ($file['size'] ?? 0), 'lite' => strpos($format, '512kb') !== false];
+        }
+    }
+    if (!$playable) {
+        return [];
+    }
+    $url = fn($f) => 'https://archive.org/download/' . rawurlencode($identifier) . '/' . str_replace('%2F', '/', rawurlencode($f['name']));
+    $label = fn($h) => $h >= 1000 ? '1080p' : ($h >= 700 ? '720p' : ($h >= 460 ? '480p' : ($h >= 340 ? '360p' : ($h > 0 ? '240p' : 'Full quality'))));
+
+    $full = array_values(array_filter($playable, fn($f) => !$f['lite'])) ?: $playable;
+    usort($full, fn($a, $b) => [$b['height'], $b['size']] <=> [$a['height'], $a['size']]);
+    $best = $full[0];
+    $out = [['label' => $label($best['height']), 'url' => $url($best), 'size' => $best['size']]];
+
+    foreach ($playable as $f) {
+        if ($f['lite'] && $f['name'] !== $best['name'] && $f['size'] && $best['size'] && $f['size'] < $best['size'] * 0.85) {
+            $out[] = ['label' => 'Data saver', 'url' => $url($f), 'size' => $f['size']];
+            break;
+        }
+    }
+    return $out;
+}
+
+/**
+ * GET a URL. Returns [HTTP status (0 when unreachable), decoded JSON or null].
+ * archive.org's servers are often slow to answer, so a timeout is tried twice.
+ */
+function freeFilmFetchJson(string $url, int $timeout = 25, int $attempts = 2): array
+{
+    for ($attempt = 1; ; $attempt++) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT        => $timeout,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_USERAGENT      => 'ZEN-Admin/1.0 (free film lookup)',
+            CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+        ]);
+        app_apply_tls($ch);
+        $body = curl_exec($ch);
+        $failed = curl_errno($ch);
+        $status = $failed ? 0 : (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        if ($failed) {
+            error_log('freeFilmFetchJson ' . $url . ': ' . curl_error($ch));
+        }
+        curl_close($ch);
+        if (!$failed || $attempt >= $attempts) {
+            $data = is_string($body) ? json_decode($body, true) : null;
+            return [$status, is_array($data) ? $data : null];
+        }
+    }
 }
 
 /** "PT1H52M3S" -> 112 */
@@ -199,7 +252,7 @@ function freeFilmLookup(string $link): array
     $result = [
         'ok' => false, 'error' => '', 'source' => '', 'source_id' => '', 'link' => trim($link),
         'title' => '', 'owner' => '', 'owner_url' => '', 'thumbnail' => '', 'year' => null,
-        'minutes' => null, 'embed_url' => '', 'watch_url' => '',
+        'minutes' => null, 'embed_url' => '', 'watch_url' => '', 'files' => [],
         'rights' => ['status' => 'check', 'label' => '', 'note' => ''], 'warnings' => [],
     ];
 
@@ -260,7 +313,7 @@ function freeFilmLookup(string $link): array
         ];
         $result['warnings'][] = "Only add it if {$result['owner']} is the film's studio, distributor or filmmaker. Films re-uploaded by other channels are pirated, even on YouTube.";
     } else {
-        [$status, $data] = freeFilmFetchJson('https://archive.org/metadata/' . rawurlencode($parsed['id']), 20);
+        [$status, $data] = freeFilmFetchJson('https://archive.org/metadata/' . rawurlencode($parsed['id']), 30);
         if ($status !== 200) {
             $result['error'] = "Couldn't reach archive.org to check the film. Please try again.";
             return $result;
@@ -303,6 +356,9 @@ function freeFilmLookup(string $link): array
         } elseif (empty($data['files'])) {
             $result['warnings'][] = 'archive.org lists no video files for this item, so it may not play.';
         }
+        // Played in the site's own player where possible, which offers the
+        // smaller "Data saver" copy on slow connections.
+        $result['files'] = freeFilmArchiveFiles($parsed['id'], $data['files'] ?? []);
 
         $licence = ingest_classify_license($meta, true);
         $status = ['accept' => 'ok', 'review' => 'check', 'reject' => 'blocked'][$licence['decision']];

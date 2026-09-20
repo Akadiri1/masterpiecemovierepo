@@ -8,7 +8,7 @@ define("DBHOST", getenv('DB_HOST') ?: 'localhost');
 define("DBPORT", getenv('DB_PORT') ?: '3306');
 
 // Bump this when the schema checks below change, so they run again once.
-define("DB_SCHEMA_VERSION", '2026-09-17.2');
+define("DB_SCHEMA_VERSION", '2026-09-19');
 
 try {
     $dbOptions = [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION];

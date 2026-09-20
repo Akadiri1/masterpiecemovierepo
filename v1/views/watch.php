@@ -206,6 +206,7 @@ if (!$isUpcoming && $playbackMode === PLAYBACK_SERVERS) {
     }
     $servers[] = ['name' => 'Server 7 (Demo)', 'url' => "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"];
 }
+$servers = markLightestSource($servers);
 $videoSrc = !empty($servers) ? $servers[0]['url'] : '';
 $serversJson = json_encode($servers);
 $canPlay = !empty($servers);
@@ -827,7 +828,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         <div class="center-top-bar">
             <a href="javascript:history.back()" class="back-btn"><i class="ph ph-arrow-left"></i></a>
             <h2><?php echo htmlspecialchars($videoTitle); ?></h2>
-            <?php if (!empty($_SESSION['admin_id']) && isset($_SESSION['playback_preview'])): ?>
+            <?php if (adminPreviewMode() !== null): ?>
             <!-- Only the admin previewing a mode sees this; everyone else gets the site setting. -->
             <a href="/admin-playback" class="playback-preview-pill" title="Change in Admin > Playback">
                 <i class="ph ph-eye"></i> Preview: <?php echo $playbackMode === PLAYBACK_SERVERS ? 'Streaming servers' : 'Discover'; ?>
@@ -876,7 +877,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                  $isDirectVideo = preg_match('/\.(mp4|mkv|webm|m3u8)(\?|$)/i', $videoSrc);
               ?>
                  <iframe id="playerIframe" src="<?php echo !$isDirectVideo ? $videoSrc : ''; ?>" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" style="width:100%; height:100%; border:none; display: <?php echo !$isDirectVideo ? 'block' : 'none'; ?>;"></iframe>
-                 <video id="playerVideo" src="<?php echo $isDirectVideo ? $videoSrc : ''; ?>" controls style="width:100%; height:100%; background:#000; display: <?php echo $isDirectVideo ? 'block' : 'none'; ?>; border: none;" playsinline></video>
+                 <video id="playerVideo" src="<?php echo $isDirectVideo ? htmlspecialchars($videoSrc) : ''; ?>" controls preload="metadata" style="width:100%; height:100%; background:#000; display: <?php echo $isDirectVideo ? 'block' : 'none'; ?>; border: none;" playsinline></video>
               <?php endif; ?>
         </div>
 
@@ -896,7 +897,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                   <!-- Server Switcher Inline -->
                   <div style="position:relative;">
                       <button class="btn-action server-switcher-btn" id="serverBtn" title="Servers" style="width:auto; padding:0 15px; font-size:0.9rem;">
-                          <i class="ph ph-hard-drives"></i> <span class="srv-label ms-2 d-none d-md-block">Server 1</span>
+                          <i class="ph ph-hard-drives"></i> <span class="srv-label ms-2 d-none d-md-block"><?php echo htmlspecialchars($servers[0]['name'] ?? 'Server 1'); ?></span>
                       </button>
                       <div class="server-dropdown" id="serverDropdown" style="position:absolute; bottom:100%; right:0; background:#111; border:1px solid #333; border-radius:8px; display:none; min-width:150px; z-index:100;">
                           <?php foreach ($servers as $i => $srv): ?>
@@ -1329,7 +1330,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         );
 
         // --- Server switching ---
-        function switchToServer(index) {
+        function switchToServer(index, resumeAt) {
             if (!servers[index]) return;
             currentServer = index;
 
@@ -1348,6 +1349,10 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                     setDirectVideoVisible(true);
                     playerVideo.src = url;
                     playerVideo.load();
+                    if (resumeAt > 0) {
+                        // Carry on from the same moment in the new file.
+                        playerVideo.addEventListener('loadedmetadata', () => { playerVideo.currentTime = resumeAt; }, { once: true });
+                    }
                     playerVideo.play().catch(e => console.log("Play failed: ", e));
                 }
             } else {
@@ -1381,6 +1386,56 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         if (playerIframe) {
             playerIframe.addEventListener('load', () => {
                 if (playerLoading) playerLoading.classList.remove('visible');
+            });
+        }
+        // A video file has no iframe load event: hide the overlay once the
+        // file starts (or fails) instead.
+        if (playerVideo) {
+            ['loadeddata', 'playing', 'error'].forEach(evt => playerVideo.addEventListener(evt, () => {
+                if (playerLoading) playerLoading.classList.remove('visible');
+            }));
+        }
+
+        // --- Slow connections ---
+        // Films the site plays itself can come in several sizes (Admin > Free
+        // films, the ingestion pipeline); the server marks the smallest
+        // 'light'. On a slow or data-saving connection, start on it. If the
+        // film keeps stopping to buffer, drop to it and carry on from the same
+        // moment. YouTube and archive.org players adjust quality themselves.
+        const lightIndex = servers.findIndex(s => s.light);
+        const isDirectUrl = url => /\.(mp4|mkv|webm|m3u8)(\?|$)/i.test(url || '');
+        const netInfo = navigator.connection || null;
+        // Deliberately cautious: only clearly slow connections start small,
+        // because browsers report a conservative "3g" estimate before they
+        // have measured anything. Everything else starts at full quality and
+        // drops only if it really keeps buffering.
+        function connectionIsSlow() {
+            if (!netInfo) return false;
+            if (netInfo.saveData) return true;
+            if (['slow-2g', '2g'].includes(netInfo.effectiveType)) return true;
+            return netInfo.effectiveType === '3g' && typeof netInfo.downlink === 'number'
+                && netInfo.downlink > 0 && netInfo.downlink < 1;
+        }
+        if (lightIndex > 0 && connectionIsSlow()) {
+            switchToServer(lightIndex);
+            showBanner('slow', '<i class="fa-solid fa-signal" style="opacity:0.8"></i> Slow connection: playing the data saver version');
+            hideBanner(5000);
+        }
+        if (lightIndex >= 0 && playerVideo) {
+            let stalls = [];
+            let started = false;
+            playerVideo.addEventListener('playing', () => { started = true; });
+            playerVideo.addEventListener('waiting', () => {
+                if (!started || currentServer === lightIndex || !isDirectUrl(servers[currentServer] && servers[currentServer].url)) return;
+                const now = Date.now();
+                stalls = stalls.filter(t => now - t < 60000).concat(now);
+                if (stalls.length >= 3) {
+                    stalls = [];
+                    started = false;
+                    switchToServer(lightIndex, playerVideo.currentTime);
+                    showBanner('slow', '<i class="fa-solid fa-signal" style="opacity:0.8"></i> It kept buffering, so we switched to the data saver version');
+                    hideBanner(6000);
+                }
             });
         }
 
@@ -1436,6 +1491,8 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
         if ('connection' in navigator) {
             const conn = navigator.connection;
             function checkSpeed() {
+                // Already playing the data saver file: nothing to suggest.
+                if (lightIndex >= 0 && currentServer === lightIndex) return;
                 if (conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g') {
                     showBanner('slow', '<i class="fa-solid fa-signal" style="opacity:0.8"></i> Slow connection — try switching servers with the <i class="fa-solid fa-server"></i> button');
                     hideBanner(6000);

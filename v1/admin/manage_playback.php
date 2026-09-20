@@ -80,13 +80,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     break;
 
                 case 'preview':
+                    // Saved to the admin's account, so it survives signing out.
                     $preview = $_POST['preview'] ?? '';
-                    if (in_array($preview, [PLAYBACK_DISCOVER, PLAYBACK_SERVERS], true)) {
-                        $_SESSION['playback_preview'] = $preview;
+                    $myUserId = (int) ($_SESSION['user_id'] ?? 0);
+                    if (!$myUserId) {
+                        $flash = ['danger', 'Preview needs you to be signed in to the site with your admin account.'];
+                    } elseif (in_array($preview, [PLAYBACK_DISCOVER, PLAYBACK_SERVERS], true)) {
+                        saveAdminPreview($conn, $myUserId, $preview);
                         $flash = ['success', 'You now see ' . ($preview === PLAYBACK_SERVERS ? 'Streaming servers' : 'Discover')
-                            . ' mode. Nobody else is affected.'];
+                            . ' mode, even after signing out, until you switch it back. Nobody else is affected.'];
                     } else {
-                        unset($_SESSION['playback_preview']);
+                        saveAdminPreview($conn, $myUserId, null);
                         $flash = ['success', 'Preview off. You see what visitors see.'];
                     }
                     break;
@@ -152,7 +156,7 @@ unset($_SESSION['playback_flash']);
 
 // -------------------------------------------------------------------- data --
 $mode = siteSetting('playback_mode') === PLAYBACK_SERVERS ? PLAYBACK_SERVERS : PLAYBACK_DISCOVER;
-$preview = $_SESSION['playback_preview'] ?? '';
+$preview = adminPreviewMode() ?? '';
 $defaultRegion = strtoupper(siteSetting('wtw_default_region', 'US'));
 $amazonTag = siteSetting('amazon_tag', '');
 
@@ -187,7 +191,9 @@ $canEmail = mailConfigured();
 
 $playableCount = 0;
 try {
-    $playableCount = (int) $conn->query("SELECT COUNT(*) FROM media_sources WHERE COALESCE(check_status, '') <> 'unavailable'")->fetchColumn();
+    // A film kept in several sizes is one film.
+    $playableCount = (int) $conn->query("SELECT COUNT(DISTINCT CONCAT_WS(':', tmdb_id, media_type, season, episode))
+                                           FROM media_sources WHERE COALESCE(check_status, '') <> 'unavailable'")->fetchColumn();
 } catch (PDOException $e) {}
 
 $regions = [];
@@ -301,7 +307,7 @@ if (!isset($regions[$defaultRegion])) {
             <div class="card">
               <div class="card-header"><h5>Preview (only you)</h5></div>
               <div class="card-body">
-                <p class="text-muted mb-3">Try a mode on the watch page before visitors get it. Only your browser changes, and a yellow "Preview" label shows on the watch page while it's on.</p>
+                <p class="text-muted mb-3">Try a mode on the watch page before visitors get it. Only your account changes, and it stays on (even after you sign out, and on your other devices) until you switch it back. A yellow "Preview" label shows on the watch page while it's on.</p>
                 <form method="POST" class="pb-preview">
                   <input type="hidden" name="csrf" value="<?php echo $csrf; ?>">
                   <input type="hidden" name="action" value="preview">

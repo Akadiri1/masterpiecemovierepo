@@ -27,6 +27,18 @@ try {
 $watchUrlFor = fn(array $s) => '/watch?id=' . (int) $s['tmdb_id'] . '&type=' . $s['media_type']
     . ($s['media_type'] === 'tv' ? '&season=' . (int) $s['season'] . '&episode=' . (int) $s['episode'] : '');
 
+// One film can be saved as several rows (one per file size). They share the
+// title and the link it came from.
+$filmRow = function (int $id) use ($conn): ?array {
+    $stmt = $conn->prepare("SELECT * FROM media_sources WHERE id = ?");
+    $stmt->execute([$id]);
+    return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+};
+$sameFilm = fn(array $row) => !empty($row['source_url'])
+    ? ['tmdb_id = ? AND media_type = ? AND season = ? AND episode = ? AND source_url = ?',
+       [$row['tmdb_id'], $row['media_type'], $row['season'], $row['episode'], $row['source_url']]]
+    : ['id = ?', [$row['id']]];
+
 // ------------------------------------------------------------------ actions --
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
     $flash = ['danger', 'Your session expired. Please try again.'];
@@ -61,28 +73,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                     } elseif ($rights === '') {
                         $flash = ['danger', 'Say why the film may be shown (the rights note).'];
                     } else {
-                        $dupe = $conn->prepare("SELECT id FROM media_sources WHERE tmdb_id = ? AND media_type = ? AND season = ? AND episode = ? AND video_url = ? LIMIT 1");
-                        $dupe->execute([$tmdbId, $type, $season, $episode, $film['embed_url']]);
+                        $dupe = $conn->prepare("SELECT id FROM media_sources WHERE tmdb_id = ? AND media_type = ? AND season = ? AND episode = ?
+                                                 AND (source_url = ? OR video_url = ?) LIMIT 1");
+                        $dupe->execute([$tmdbId, $type, $season, $episode, $film['watch_url'], $film['embed_url']]);
                         if ($existing = $dupe->fetchColumn()) {
                             $flash = ['info', "That video is already added to $tmdbTitle."];
                             $anchor = '#film-' . $existing;
                             break;
                         }
-                        $conn->prepare("INSERT INTO media_sources
-                                (tmdb_id, media_type, season, episode, video_url, is_embed, rights_note,
+                        // archive.org films are saved as their files (full size and
+                        // "Data saver") for the site's own player; YouTube, and
+                        // archive.org items without a usable file, as the embed.
+                        $files = $film['files'] ?: [['label' => null, 'url' => $film['embed_url']]];
+                        $insert = $conn->prepare("INSERT INTO media_sources
+                                (tmdb_id, media_type, season, episode, video_url, is_embed, quality_label, rights_note,
                                  source, source_url, source_title, source_owner, checked_at, check_status)
-                                VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, NOW(), 'ok')")
-                             ->execute([
-                                 $tmdbId, $type, $season, $episode, $film['embed_url'], mb_substr($rights, 0, 255),
-                                 $film['source'], mb_substr($film['watch_url'], 0, 500), mb_substr($film['title'], 0, 255), mb_substr($film['owner'], 0, 255),
-                             ]);
-                        $anchor = '#film-' . $conn->lastInsertId();
-                        $flash = ['success', "Added. $tmdbTitle" . ($type === 'tv' ? " S{$season} E{$episode}" : '') . ' now plays in full on ZEN.'];
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 'ok')");
+                        foreach ($files as $i => $file) {
+                            $insert->execute([
+                                $tmdbId, $type, $season, $episode, $file['url'], isDirectVideoUrl($file['url']) ? 0 : 1, $file['label'],
+                                mb_substr($rights, 0, 255), $film['source'], mb_substr($film['watch_url'], 0, 500),
+                                mb_substr($film['title'], 0, 255), mb_substr($film['owner'], 0, 255),
+                            ]);
+                            if ($i === 0) {
+                                $anchor = '#film-' . $conn->lastInsertId();
+                            }
+                        }
+                        $flash = ['success', "Added. $tmdbTitle" . ($type === 'tv' ? " S{$season} E{$episode}" : '') . ' now plays in full on ZEN'
+                            . (count($files) > 1 ? ', with a data saver version for slow connections.' : '.')];
                     }
                     break;
 
                 case 'remove':
-                    $conn->prepare("DELETE FROM media_sources WHERE id = ?")->execute([(int) ($_POST['film_id'] ?? 0)]);
+                    // A film saved in several sizes is one entry: all its files go.
+                    $row = $filmRow((int) ($_POST['film_id'] ?? 0));
+                    if ($row) {
+                        [$where, $params] = $sameFilm($row);
+                        $conn->prepare("DELETE FROM media_sources WHERE $where")->execute($params);
+                    }
                     $flash = ['success', 'Removed. That title no longer plays on ZEN.'];
                     break;
 
@@ -90,19 +118,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 case 'check_all':
                     $query = $_POST['action'] === 'check'
                         ? $conn->prepare("SELECT * FROM media_sources WHERE id = ?")
-                        : $conn->prepare("SELECT * FROM media_sources ORDER BY checked_at IS NOT NULL, checked_at LIMIT 40");
+                        : $conn->prepare("SELECT * FROM media_sources ORDER BY checked_at IS NOT NULL, checked_at LIMIT 60");
                     $query->execute($_POST['action'] === 'check' ? [(int) ($_POST['film_id'] ?? 0)] : []);
                     $checked = $gone = $unknown = 0;
                     $started = time();
+                    $seen = [];
                     foreach ($query->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                        [$where, $params] = $sameFilm($row);
+                        $key = $where . '|' . implode('|', $params);
+                        if (isset($seen[$key])) continue; // another size of a film already checked
+                        $seen[$key] = true;
                         if (time() - $started > 60) break;
                         $available = freeFilmStillAvailable((string) ($row['source_url'] ?: $row['video_url']));
                         if ($available === null) {
                             $unknown++;
                             continue;
                         }
-                        $conn->prepare("UPDATE media_sources SET checked_at = NOW(), check_status = ? WHERE id = ?")
-                             ->execute([$available ? 'ok' : 'unavailable', $row['id']]);
+                        $conn->prepare("UPDATE media_sources SET checked_at = NOW(), check_status = ? WHERE $where")
+                             ->execute(array_merge([$available ? 'ok' : 'unavailable'], $params));
                         $checked++;
                         $gone += $available ? 0 : 1;
                         $anchor = $_POST['action'] === 'check' ? '#film-' . $row['id'] : '';
@@ -153,6 +186,19 @@ try {
 if ($films && function_exists('prefetchTmdbApi')) {
     prefetchTmdbApi(array_map(fn($f) => ["{$f['media_type']}/{$f['tmdb_id']}", []], $films));
 }
+// A film saved in several sizes is listed once, with its sizes.
+$groups = [];
+foreach ($films as $f) {
+    $key = implode('|', $sameFilm($f)[1]);
+    if (!isset($groups[$key])) {
+        $groups[$key] = $f + ['qualities' => []];
+    }
+    $groups[$key]['id'] = min((int) $groups[$key]['id'], (int) $f['id']);
+    if (!empty($f['quality_label'])) {
+        array_unshift($groups[$key]['qualities'], $f['quality_label']);
+    }
+}
+$films = array_values($groups);
 $playing = count(array_filter($films, fn($f) => ($f['check_status'] ?? '') !== 'unavailable'));
 $unavailable = count($films) - $playing;
 $sourceLabel = ['youtube' => 'YouTube', 'archive' => 'archive.org'];
@@ -402,7 +448,7 @@ $sourceLabel = ['youtube' => 'YouTube', 'archive' => 'archive.org'];
                     <div style="min-width:0;">
                       <a class="ff-name" href="<?php echo htmlspecialchars($watchUrlFor($f)); ?>" target="_blank" rel="noopener"><?php echo htmlspecialchars($name); ?><?php echo $f['media_type'] === 'tv' ? ' · S' . (int) $f['season'] . ' E' . (int) $f['episode'] : ($year ? " ($year)" : ''); ?></a>
                       <span class="ff-sub">
-                        <?php echo htmlspecialchars($sourceLabel[$f['source'] ?? ''] ?? 'Video link'); ?><?php echo !empty($f['source_owner']) ? ' · ' . htmlspecialchars($f['source_owner']) : ''; ?>
+                        <?php echo htmlspecialchars($sourceLabel[$f['source'] ?? ''] ?? 'Video link'); ?><?php echo !empty($f['source_owner']) ? ' · ' . htmlspecialchars($f['source_owner']) : ''; ?><?php echo $f['qualities'] ? ' · ' . htmlspecialchars(implode(' + ', $f['qualities'])) : ''; ?>
                         <?php if (!empty($f['source_url'])): ?> · <a href="<?php echo htmlspecialchars($f['source_url']); ?>" target="_blank" rel="noopener" style="color:var(--adm-cyan)!important;">original</a><?php endif; ?>
                       </span>
                       <?php if ($status === 'unavailable'): ?><span class="ff-status gone">Doesn't play · checked <?php echo htmlspecialchars(date('j M', strtotime($f['checked_at']))); ?></span>

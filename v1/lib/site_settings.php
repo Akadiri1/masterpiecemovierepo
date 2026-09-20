@@ -68,14 +68,55 @@ function saveSiteSetting(PDO $conn, string $key, ?string $value, ?int $adminId =
  */
 function playbackMode(): string
 {
-    $preview = $_SESSION['playback_preview'] ?? null;
-    if (!empty($_SESSION['admin_id']) && in_array($preview, [PLAYBACK_DISCOVER, PLAYBACK_SERVERS], true)) {
+    if ($preview = adminPreviewMode()) {
         return $preview;
     }
     if (siteSetting('playback_mode') === PLAYBACK_SERVERS || hasPlaybackAccess()) {
         return PLAYBACK_SERVERS;
     }
     return PLAYBACK_DISCOVER;
+}
+
+/** The signed-in member's id, email and admin flag, read once per request. */
+function currentMemberAccount(): ?array
+{
+    static $account = false;
+    if ($account !== false) {
+        return $account;
+    }
+    $account = null;
+    $conn = $GLOBALS['conn'] ?? null;
+    if (!empty($_SESSION['user_id']) && $conn instanceof PDO) {
+        try {
+            $stmt = $conn->prepare("SELECT id, email, is_admin FROM users WHERE id = ?");
+            $stmt->execute([(int) $_SESSION['user_id']]);
+            $account = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        } catch (PDOException $e) {
+            // Leave it unknown.
+        }
+    }
+    return $account;
+}
+
+/**
+ * The mode an admin chose to preview for themselves, if any. Saved to their
+ * account (site_settings "preview:<user id>") rather than the session, so it
+ * stays on after signing out and on other devices until they switch it back.
+ */
+function adminPreviewMode(): ?string
+{
+    $account = currentMemberAccount();
+    if (!$account || (int) $account['is_admin'] !== 1) {
+        return null;
+    }
+    $mode = siteSetting('preview:' . (int) $account['id']);
+    return in_array($mode, [PLAYBACK_DISCOVER, PLAYBACK_SERVERS], true) ? $mode : null;
+}
+
+/** Sets or (with null) clears an admin's preview. */
+function saveAdminPreview(PDO $conn, int $userId, ?string $mode): void
+{
+    saveSiteSetting($conn, 'preview:' . $userId, $mode, $userId);
 }
 
 function ensurePlaybackAccessTable(PDO $conn): void
@@ -102,16 +143,11 @@ function hasPlaybackAccess(): bool
     }
     $granted = false;
     $conn = $GLOBALS['conn'] ?? null;
-    if (empty($_SESSION['user_id']) || !$conn instanceof PDO) {
+    $email = strtolower(trim((string) (currentMemberAccount()['email'] ?? '')));
+    if ($email === '' || !$conn instanceof PDO) {
         return $granted;
     }
     try {
-        $stmt = $conn->prepare("SELECT email FROM users WHERE id = ?");
-        $stmt->execute([(int) $_SESSION['user_id']]);
-        $email = strtolower(trim((string) $stmt->fetchColumn()));
-        if ($email === '') {
-            return $granted;
-        }
         $stmt = $conn->prepare("SELECT 1 FROM playback_access WHERE email = ?");
         $stmt->execute([$email]);
         $granted = (bool) $stmt->fetchColumn();
@@ -156,7 +192,11 @@ function licensedSources(PDO $conn, int $tmdbId, string $type, int $season, int 
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
             if (empty($row['video_url']) || ($row['check_status'] ?? null) === 'unavailable') continue;
             $label = ['youtube' => 'YouTube', 'archive' => 'archive.org'][$row['source'] ?? ''] ?? 'ZEN';
-            $sources[] = ['name' => $label . (count($sources) ? ' ' . (count($sources) + 1) : ''), 'url' => $row['video_url']];
+            // Free films from archive.org come in two sizes; the watch page
+            // picks "Data saver" on slow connections.
+            $sources[] = ['name' => !empty($row['quality_label'])
+                ? "$label · {$row['quality_label']}"
+                : $label . (count($sources) ? ' ' . (count($sources) + 1) : ''), 'url' => $row['video_url']];
         }
     } catch (PDOException $e) {
         error_log('licensedSources media_sources: ' . $e->getMessage());
@@ -175,6 +215,36 @@ function licensedSources(PDO $conn, int $tmdbId, string $type, int $season, int 
         error_log('licensedSources media_downloads: ' . $e->getMessage());
     }
     return $sources;
+}
+
+/**
+ * Marks the smallest of several video files for the same film (by the height
+ * in its name, "Data saver" smallest) with 'light' => true. The watch page
+ * starts on it for slow connections and falls back to it when playback keeps
+ * stalling. Embedded players (YouTube, archive.org) adapt by themselves.
+ */
+function markLightestSource(array $servers): array
+{
+    $lightest = null;
+    $lightestWeight = PHP_INT_MAX;
+    $direct = 0;
+    foreach ($servers as $i => $server) {
+        if (!isDirectVideoUrl($server['url'])) {
+            continue;
+        }
+        $direct++;
+        $weight = stripos($server['name'], 'data saver') !== false
+            ? 1
+            : (preg_match('/(\d{3,4})p\b/', $server['name'], $m) ? (int) $m[1] : 10000);
+        if ($weight < $lightestWeight) {
+            $lightestWeight = $weight;
+            $lightest = $i;
+        }
+    }
+    if ($direct > 1 && $lightest !== null) {
+        $servers[$lightest]['light'] = true;
+    }
+    return $servers;
 }
 
 /**

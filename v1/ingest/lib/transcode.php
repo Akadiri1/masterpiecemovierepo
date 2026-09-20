@@ -9,6 +9,10 @@
 
 /** Rendition definitions, smallest first. */
 const FF_LADDER = [
+    // The two small rungs keep films playing on slow mobile data: the watch
+    // page switches to the smallest file when the connection is slow.
+    '240p'  => ['height' => 240,  'crf' => 26, 'maxrate' => '350k',  'bufsize' => '700k',  'audio' => '64k'],
+    '360p'  => ['height' => 360,  'crf' => 24, 'maxrate' => '700k',  'bufsize' => '1400k', 'audio' => '96k'],
     '480p'  => ['height' => 480,  'crf' => 21, 'maxrate' => '1400k', 'bufsize' => '2800k', 'audio' => '128k'],
     '720p'  => ['height' => 720,  'crf' => 21, 'maxrate' => '2800k', 'bufsize' => '5600k', 'audio' => '128k'],
     '1080p' => ['height' => 1080, 'crf' => 21, 'maxrate' => '5000k', 'bufsize' => '10000k', 'audio' => '192k'],
@@ -101,9 +105,9 @@ function ff_ladder_for(int $sourceHeight): array
 
     if (empty($out)) {
         // Source is smaller than our lowest rung: re-encode at native height
-        // rather than upscaling it to 480p.
-        $out['480p'] = ['height' => $sourceHeight, 'crf' => 21,
-                        'maxrate' => '1000k', 'bufsize' => '2000k', 'audio' => '128k'];
+        // rather than upscaling it.
+        $out[$sourceHeight . 'p'] = ['height' => $sourceHeight, 'crf' => 26,
+                        'maxrate' => '350k', 'bufsize' => '700k', 'audio' => '64k'];
     }
 
     return $out;
