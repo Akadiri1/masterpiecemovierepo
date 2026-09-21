@@ -1,4 +1,9 @@
 <?php
+// Some pages include this directly and others get it through the footer; only
+// the first one renders, or the ids and the script would be duplicated.
+if (defined('ZEN_AI_RENDERED')) { return; }
+define('ZEN_AI_RENDERED', true);
+
 // Configuration Check
 $sessStarted = false;
 if (session_status() === PHP_SESSION_NONE) { session_start(); $sessStarted = true; }
@@ -14,192 +19,235 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
 
 <style>
     :root {
-        --zen-bg-deep: #0b0c15;
-        --zen-sidebar-bg: #13131f;
+        --zen-bg-deep: #0a0b12;
+        --zen-panel: #101119;
+        --zen-sidebar-bg: #0d0e16;
+        --zen-line: rgba(255, 255, 255, 0.07);
+        --zen-line-strong: rgba(255, 255, 255, 0.14);
         --zen-accent-cyan: #00e0ff;
         --zen-accent-purple: #7b2cbf;
-        --zen-text-muted: #8d8d9b;
-        --zen-pill-bg: #1e1e2d;
-        --zen-user-msg-bg: #2a2a35;
+        --zen-text: #e8e9ee;
+        --zen-text-muted: #8b8f9c;
+        --zen-pill-bg: #1a1b26;
     }
 
-    /* Floating Trigger */
+    /* ---------------------------------------------------- floating orb --- */
     .zen-ai-float {
-        position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
+        position: fixed; bottom: 30px; right: 30px; width: 58px; height: 58px;
         z-index: 999999 !important; cursor: pointer;
         display: flex; align-items: center; justify-content: center;
         transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .zen-ai-float:hover { transform: scale(1.15); }
+    .zen-ai-float:hover { transform: scale(1.12); }
+    @media (max-width: 991px) { .zen-ai-float { bottom: 90px !important; right: 18px; } }
 
-    /* Adjust for mobile footer */
-    @media (max-width: 991px) {
-        .zen-ai-float { bottom: 90px !important; }
+    .zen-orb-wrapper {
+        position: relative; width: 100%; height: 100%;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 50%;
+        background: radial-gradient(circle at 30% 30%, rgba(0, 224, 255, 0.28), rgba(123, 44, 191, 0.4));
+        border: 1px solid rgba(0, 224, 255, 0.45);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 22px rgba(0, 224, 255, 0.18);
+        color: #fff; font-size: 1.5rem;
     }
-
-    .zen-orb-wrapper { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-    .zen-orb-wrapper i {
-        font-size: 28px;
-        background: linear-gradient(135deg, #fff 0%, #00e0ff 100%);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        z-index: 2; filter: drop-shadow(0 0 10px rgba(0, 224, 255, 0.5));
-    }
+    .zen-orb-wrapper.zen-orb-locked { filter: grayscale(0.6); }
     .zen-orbit-ring {
-        position: absolute; width: 100%; height: 100%; border-radius: 50%;
-        border: 2px solid transparent;
-        background: linear-gradient(#0b0c15, #0b0c15) padding-box,
-                    linear-gradient(90deg, #00e0ff, #7b2cbf, #00e0ff) border-box;
-        animation: orbitSpin 4s linear infinite; opacity: 0.7;
+        position: absolute; inset: -4px; border-radius: 50%;
+        border: 1px solid rgba(0, 224, 255, 0.35); border-top-color: transparent;
+        animation: zenSpin 4s linear infinite;
     }
-    .zen-ai-float:hover .zen-orbit-ring { animation: orbitSpin 1s linear infinite; opacity: 1; box-shadow: 0 0 20px rgba(0, 224, 255, 0.3); }
-    @keyframes orbitSpin { to { transform: rotate(360deg); } }
-    
-    .zen-orb-locked i { background: #555; -webkit-text-fill-color: #888; filter: none; }
-    .zen-orb-locked .zen-orbit-ring { background: #222; border: 2px solid #333; animation: none; }
+    @keyframes zenSpin { to { transform: rotate(360deg); } }
 
-    /* Modal Layout */
+    /* --------------------------------------------------------- the room --- */
     .zen-fs-dialog { max-width: 100% !important; margin: 0 !important; height: 100% !important; padding: 0 !important; }
     .zen-modal-content {
-        height: 100%; border: none; border-radius: 0;
-        background: rgba(11, 12, 21, 0.98); backdrop-filter: blur(20px);
-        display: flex; flex-direction: row; 
-        overflow: hidden; 
+        height: 100vh; border: none; border-radius: 0;
+        background: var(--zen-bg-deep); color: var(--zen-text);
+        display: flex; flex-direction: row; overflow: hidden;
     }
 
-    /* Sidebar */
+    /* Past chats */
     .zen-sidebar {
-        width: 280px; background: var(--zen-sidebar-bg);
-        border-right: 1px solid rgba(255,255,255,0.05);
-        display: flex; flex-direction: column;
-        flex-shrink: 0; transition: transform 0.3s ease;
-        z-index: 20;
+        width: 280px; flex-shrink: 0; background: var(--zen-sidebar-bg);
+        border-right: 1px solid var(--zen-line);
+        display: flex; flex-direction: column; z-index: 5;
+        transition: transform 0.25s ease;
     }
-    .zen-sidebar-header { padding: 20px; display: flex; align-items: center; gap: 10px; }
-    
+    .zen-sidebar-header { padding: 16px; display: flex; align-items: center; gap: 10px; }
+    .zen-sidebar-header .zen-side-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--zen-text-muted); }
     .zen-new-chat-btn {
-        margin: 0 15px 10px;
-        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-        color: #ddd; padding: 10px 15px; border-radius: 50px;
-        cursor: pointer; display: flex; align-items: center; gap: 10px;
-        font-size: 0.9rem; transition: all 0.2s;
+        margin: 0 16px 12px; padding: 11px 14px; border-radius: 12px;
+        border: 1px solid var(--zen-line-strong); background: rgba(255, 255, 255, 0.04);
+        color: var(--zen-text); font-size: 0.88rem; font-weight: 600;
+        display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background 0.15s, border-color 0.15s;
     }
-    .zen-new-chat-btn:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: rgba(255,255,255,0.2); }
-    
-    .zen-hist-label { padding: 15px 20px 5px; font-size: 0.8rem; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 1px; }
-    
-    .zen-hist-scroll { flex-grow: 1; overflow-y: auto; padding: 10px; }
-    .zen-hist-scroll::-webkit-scrollbar { width: 4px; }
-    .zen-hist-scroll::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-
-    /* History Items */
+    .zen-new-chat-btn:hover { background: rgba(255, 255, 255, 0.08); border-color: rgba(0, 224, 255, 0.35); }
+    .zen-hist-label { padding: 8px 20px; font-size: 0.68rem; font-weight: 700; color: #5d616e; text-transform: uppercase; letter-spacing: 0.1em; }
+    .zen-hist-scroll { flex: 1; overflow-y: auto; padding: 4px 12px 16px; scrollbar-width: thin; }
     .zen-hist-item {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 10px 15px; border-radius: 8px; cursor: pointer;
-        color: #bbb; font-size: 0.9rem; transition: all 0.2s;
-        margin-bottom: 2px;
+        display: flex; align-items: center; justify-content: space-between; gap: 8px;
+        padding: 10px 12px; margin-bottom: 4px; border-radius: 10px;
+        color: var(--zen-text-muted); font-size: 0.85rem; cursor: pointer; transition: background 0.15s, color 0.15s;
     }
-    .zen-hist-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
-    .zen-hist-item.active { background: rgba(0, 224, 255, 0.1); color: #fff; border: 1px solid rgba(0, 224, 255, 0.2); }
-    
+    .zen-hist-item:hover { background: rgba(255, 255, 255, 0.05); color: var(--zen-text); }
+    .zen-hist-item.active { background: rgba(0, 224, 255, 0.1); color: #fff; }
     .zen-hist-content { display: flex; align-items: center; gap: 10px; overflow: hidden; }
-    .zen-hist-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
-    
-    .zen-hist-actions { display: flex; gap: 5px; opacity: 0; transition: opacity 0.2s; }
+    .zen-hist-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px; }
+    .zen-hist-actions { display: flex; gap: 2px; opacity: 0; transition: opacity 0.15s; }
     .zen-hist-item:hover .zen-hist-actions { opacity: 1; }
-    
-    .zen-action-mini { background: none; border: none; color: #666; cursor: pointer; padding: 2px; font-size: 1rem; width: 24px; height: 24px; display:flex; align-items:center; justify-content:center;}
-    .zen-action-mini:hover { color: #fff; }
-    .zen-action-mini.active { color: var(--zen-accent-cyan); opacity: 1; display: block !important; }
+    .zen-action-mini { background: none; border: none; color: #6b7080; cursor: pointer; padding: 2px; font-size: 0.95rem; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
+    .zen-action-mini:hover { color: #fff; background: rgba(255, 255, 255, 0.08); }
+    .zen-action-mini.pinned { color: var(--zen-accent-cyan); }
 
-    /* Main Area */
-    .zen-main-area { flex-grow: 1; display: flex; flex-direction: column; position: relative; }
+    .zen-side-search { padding: 0 16px 10px; }
+    .zen-side-search-wrap { position: relative; }
+    .zen-side-search-wrap i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #5d616e; font-size: 0.95rem; }
+    .zen-side-search input {
+        width: 100%; padding: 9px 12px 9px 34px; border-radius: 10px;
+        border: 1px solid var(--zen-line); background: rgba(255, 255, 255, 0.03);
+        color: var(--zen-text); font-size: 0.83rem; outline: none;
+    }
+    .zen-side-search input::placeholder { color: #5d616e; }
+    .zen-side-search input:focus { border-color: rgba(0, 224, 255, 0.4); }
+    .zen-hist-empty { padding: 26px 18px; text-align: center; color: var(--zen-text-muted); font-size: 0.82rem; line-height: 1.6; }
+    .zen-hist-empty i { display: block; font-size: 1.6rem; margin-bottom: 8px; color: #3c4150; }
+    .zen-hist-when { flex-shrink: 0; font-size: 0.68rem; color: #5d616e; }
+    .zen-hist-item.active .zen-hist-when { color: #8fd8e8; }
 
+    .zen-side-foot { border-top: 1px solid var(--zen-line); padding: 14px 16px; }
+    .zen-usage-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; color: var(--zen-text-muted); margin-bottom: 7px; }
+    .zen-usage-row strong { color: var(--zen-text); font-weight: 600; }
+    .zen-usage-bar { height: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+    .zen-usage-fill { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, var(--zen-accent-cyan), var(--zen-accent-purple)); transition: width 0.4s ease; }
+    .zen-usage-fill.low { background: linear-gradient(90deg, #ffb020, #ff5c5c); }
+    .zen-side-tip { margin: 10px 0 0; font-size: 0.7rem; color: #5d616e; line-height: 1.5; }
+
+    /* Conversation */
+    .zen-main-area { flex: 1; display: flex; flex-direction: column; position: relative; min-width: 0; }
     .zen-top-bar {
-        position: absolute; top: 0; left: 0; width: 100%;
-        padding: 20px; display: flex; justify-content: space-between; align-items: center; z-index: 10;
-        background: transparent;
+        display: flex; align-items: center; justify-content: space-between; gap: 12px;
+        padding: 14px 22px; border-bottom: 1px solid var(--zen-line);
+        background: rgba(10, 11, 18, 0.9); backdrop-filter: blur(12px);
     }
-    .zen-mobile-toggle { display: none; background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; }
-    .zen-brand { font-size: 1.2rem; font-weight: 700; letter-spacing: 2px; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .zen-mobile-toggle { display: none; background: none; border: none; color: var(--zen-text); font-size: 1.4rem; cursor: pointer; }
+    .zen-brand { display: flex; align-items: center; gap: 10px; font-size: 1rem; font-weight: 700; letter-spacing: 0.04em; color: #fff; }
+    .zen-brand i { color: var(--zen-accent-cyan); font-size: 1.15rem; }
+    .zen-brand small { display: block; font-size: 0.68rem; font-weight: 500; letter-spacing: 0; color: var(--zen-text-muted); }
+    .zen-context-pill {
+        display: inline-flex; align-items: center; gap: 6px; max-width: 320px;
+        padding: 5px 12px; border-radius: 999px; border: 1px solid rgba(0, 224, 255, 0.28);
+        background: rgba(0, 224, 255, 0.08); color: #b9f1ff; font-size: 0.74rem; font-weight: 600;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .zen-close-btn { background: none; border: none; color: var(--zen-text-muted); font-size: 1.5rem; cursor: pointer; line-height: 1; padding: 4px 8px; border-radius: 8px; }
+    .zen-close-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.07); }
 
-    .zen-chat-scroll {
-        flex-grow: 1; width: 100%; max-width: 850px; margin: 0 auto;
-        overflow-y: auto; padding: 80px 20px 220px; 
-        display: flex; flex-direction: column; gap: 30px;
-        -webkit-mask-image: linear-gradient(to bottom, black 0%, black 85%, transparent 100%);
-        mask-image: linear-gradient(to bottom, black 0%, black 85%, transparent 100%);
-        -ms-overflow-style: none; scrollbar-width: none;
-    }
-    .zen-chat-scroll::-webkit-scrollbar { display: none; }
+    .zen-chat-scroll { flex: 1; overflow-y: auto; padding: 26px 22px 8px; display: flex; flex-direction: column; gap: 22px; scroll-behavior: smooth; }
+    .zen-chat-scroll > * { width: 100%; max-width: 820px; margin-left: auto; margin-right: auto; }
 
-    .zen-greeting { text-align: center; margin-top: 15vh; animation: fadeIn 0.5s; }
-    .zen-greeting h2 {
-        font-size: 3rem; font-weight: 700; margin-bottom: 10px;
-        background: linear-gradient(to right, #ffffff, #a0a0a0);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    .zen-chips-row { display: flex; gap: 10px; justify-content: center; margin-top: 30px; flex-wrap: wrap; }
+    /* Opening screen */
+    .zen-greeting { text-align: center; margin: auto 0; animation: zenFade 0.4s ease; }
+    .zen-greeting-orb { width: 62px; height: 62px; margin: 0 auto 18px; border-radius: 50%; display: grid; place-items: center; font-size: 1.7rem; color: #fff;
+        background: radial-gradient(circle at 30% 30%, rgba(0, 224, 255, 0.35), rgba(123, 44, 191, 0.5)); border: 1px solid rgba(0, 224, 255, 0.4); }
+    .zen-greeting h2 { font-size: clamp(1.3rem, 3vw, 1.8rem); font-weight: 700; color: #fff; margin: 0 0 8px; }
+    .zen-greeting p { color: var(--zen-text-muted); font-size: 0.92rem; margin: 0 auto; max-width: 440px; line-height: 1.6; }
+    .zen-chips-row { display: flex; gap: 8px; justify-content: center; margin-top: 24px; flex-wrap: wrap; }
     .zen-chip {
-        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-        color: #ccc; padding: 10px 20px; border-radius: 20px; font-size: 0.9rem; cursor: pointer; transition: 0.2s;
+        padding: 9px 16px; border-radius: 999px; border: 1px solid var(--zen-line-strong);
+        background: rgba(255, 255, 255, 0.03); color: var(--zen-text); font-size: 0.84rem; font-weight: 500; cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, transform 0.15s;
     }
-    .zen-chip:hover { border-color: var(--zen-accent-cyan); color: #fff; background: rgba(255,255,255,0.1); }
+    .zen-chip:hover { background: rgba(0, 224, 255, 0.1); border-color: rgba(0, 224, 255, 0.4); transform: translateY(-1px); }
 
-    /* Input */
-    .zen-input-container {
-        position: absolute; bottom: 0; left: 0; width: 100%;
-        padding: 20px 0 40px; display: flex; flex-direction: column; align-items: center;
-        background: linear-gradient(to top, rgba(11, 12, 21, 1) 40%, rgba(11, 12, 21, 0) 100%);
-        z-index: 20;
+    /* Messages */
+    /* The row keeps the question inside the reading column; the bubble sits at its right edge. */
+    .zen-msg-row { display: flex; justify-content: flex-end; }
+    .zen-msg-user {
+        max-width: min(78%, 620px);
+        padding: 12px 18px; border-radius: 18px 18px 5px 18px;
+        background: linear-gradient(135deg, rgba(0, 224, 255, 0.16), rgba(123, 44, 191, 0.22));
+        border: 1px solid rgba(0, 224, 255, 0.22); color: #fff; font-size: 0.95rem; line-height: 1.55;
+        animation: zenSlideRight 0.25s ease;
     }
+    .zen-msg-ai-container { display: flex; gap: 12px; align-items: flex-start; animation: zenSlideLeft 0.25s ease; }
+    .zen-ai-avatar {
+        flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center;
+        background: radial-gradient(circle at 30% 30%, rgba(0, 224, 255, 0.3), rgba(123, 44, 191, 0.45));
+        border: 1px solid rgba(0, 224, 255, 0.35); color: #fff; font-size: 0.95rem;
+    }
+    .zen-ai-body { flex: 1; min-width: 0; color: var(--zen-text); font-size: 0.97rem; line-height: 1.7; }
+    .zen-ai-body p { margin: 0 0 10px; }
+    .zen-loading-spinner { display: flex; gap: 10px; color: var(--zen-text-muted); align-items: center; font-size: 0.92rem; }
+    .zen-dots span { display: inline-block; width: 6px; height: 6px; margin-right: 3px; border-radius: 50%; background: var(--zen-accent-cyan); animation: zenBounce 1.2s infinite; }
+    .zen-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .zen-dots span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes zenBounce { 0%, 60%, 100% { opacity: 0.25; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
+
+    .zen-thinking-box { background: rgba(255, 255, 255, 0.03); border-radius: 12px; overflow: hidden; margin-bottom: 16px; width: fit-content; }
+    .zen-thinking-header { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; color: var(--zen-text-muted); font-size: 0.88rem; }
+    .zen-thinking-content { height: 0; overflow: hidden; padding: 0 16px; color: #888; border-top: 1px solid transparent; transition: 0.3s; font-family: monospace; font-size: 0.88rem; }
+
+    /* Title cards */
+    .zen-results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 14px; margin-top: 16px; }
+    .zen-card { display: block; color: inherit; text-decoration: none; }
+    .zen-card-poster { position: relative; aspect-ratio: 2 / 3; border-radius: 12px; overflow: hidden; background: #15161f; border: 1px solid var(--zen-line); }
+    .zen-card-poster img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.25s ease; }
+    .zen-card:hover .zen-card-poster img { transform: scale(1.06); }
+    .zen-card:hover .zen-card-poster { border-color: rgba(0, 224, 255, 0.45); }
+    .zen-card-free { position: absolute; top: 8px; left: 8px; padding: 3px 8px; border-radius: 999px; background: rgba(29, 209, 161, 0.92); color: #06281f; font-size: 0.64rem; font-weight: 800; letter-spacing: 0.02em; }
+    .zen-card-open { position: absolute; inset: auto 0 0 0; padding: 22px 10px 10px; background: linear-gradient(transparent, rgba(0, 0, 0, 0.85)); color: #fff; font-size: 0.74rem; font-weight: 600; text-align: center; opacity: 0; transition: opacity 0.2s; }
+    .zen-card:hover .zen-card-open { opacity: 1; }
+    .zen-card-title { display: block; margin-top: 8px; font-size: 0.85rem; font-weight: 600; color: var(--zen-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .zen-card-meta { display: flex; align-items: center; gap: 8px; margin-top: 2px; color: var(--zen-text-muted); font-size: 0.74rem; }
+    .zen-card-meta .zen-card-rating { color: #ffc107; display: inline-flex; align-items: center; gap: 3px; }
+
+    /* Composer */
+    .zen-input-container { padding: 14px 22px 18px; border-top: 1px solid var(--zen-line); background: rgba(10, 11, 18, 0.92); }
+    .zen-input-container > * { width: 100%; max-width: 820px; margin-left: auto; margin-right: auto; }
     .zen-input-wrapper {
-        position: relative; background: var(--zen-pill-bg); border-radius: 50px; padding: 5px;
-        width: 90%; max-width: 700px; box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-        border: 1px solid rgba(255,255,255,0.05); transition: 0.3s;
+        position: relative; border-radius: 16px; border: 1px solid var(--zen-line-strong);
+        background: var(--zen-pill-bg); transition: border-color 0.2s, box-shadow 0.2s;
     }
-    .zen-input-wrapper::before {
-        content: ""; position: absolute; inset: -2px; border-radius: 50px; padding: 2px;
-        background: linear-gradient(90deg, var(--zen-accent-cyan), var(--zen-accent-purple), var(--zen-accent-cyan));
-        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-        -webkit-mask-composite: xor; mask-composite: exclude;
-        opacity: 0; transition: opacity 0.3s; background-size: 200% auto;
-    }
-    .zen-input-wrapper:focus-within::before, .zen-loading-border .zen-input-wrapper::before { 
-        opacity: 1; animation: rotateBorder 2s linear infinite; 
-    }
-    @keyframes rotateBorder { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+    .zen-input-wrapper:focus-within { border-color: rgba(0, 224, 255, 0.55); box-shadow: 0 0 0 3px rgba(0, 224, 255, 0.12); }
+    .zen-input-wrapper.zen-loading-border { border-color: rgba(0, 224, 255, 0.55); animation: zenPulse 1.4s ease-in-out infinite; }
+    @keyframes zenPulse { 50% { box-shadow: 0 0 0 4px rgba(0, 224, 255, 0.1); } }
+    .zen-form { display: flex; align-items: center; gap: 6px; padding: 0 10px 0 18px; height: 54px; }
+    .zen-input { flex: 1; background: transparent; border: none; color: #fff; font-size: 1rem; outline: none; min-width: 0; }
+    .zen-input::placeholder { color: #666b7a; }
+    .zen-icon-btn { width: 38px; height: 38px; border-radius: 50%; border: none; background: transparent; color: #7b8092; cursor: pointer; font-size: 1.15rem; display: grid; place-items: center; transition: 0.15s; }
+    .zen-icon-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.07); }
+    .zen-send-btn { background: linear-gradient(135deg, var(--zen-accent-cyan), var(--zen-accent-purple)); color: #fff; }
+    .zen-send-btn:hover { color: #fff; filter: brightness(1.12); }
+    .zen-mic-btn.listening { color: #ff5c5c; background: rgba(255, 92, 92, 0.12); }
+    .zen-foot-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+    .zen-foot-note { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #zen-limit-display { flex-shrink: 0; white-space: nowrap; }
 
-    .zen-form { display: flex; align-items: center; padding: 0 15px; height: 50px; position: relative; z-index: 2; }
-    .zen-input { flex-grow: 1; background: transparent; border: none; color: #fff; font-size: 1.1rem; outline: none; padding-right: 15px; }
-    .zen-icon-btn { width: 40px; height: 40px; border-radius: 50%; border: none; background: transparent; color: #777; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
-    
-    .zen-send-btn:hover { background: rgba(0, 224, 255, 0.1); color: var(--zen-accent-cyan); }
-    .zen-mic-btn.listening { color: #ff3b30; animation: pulseRed 1.5s infinite; background: rgba(255,59,48,0.1); }
-    @keyframes pulseRed { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    /* While the chat is open, nothing else floats over it. */
+    body.zen-chat-open .zen-ai-float,
+    body.zen-chat-open .theme-switcher-float,
+    body.zen-chat-open #mobileAiBtn,
+    body.zen-chat-open .mobile-ep-fab,
+    body.zen-chat-open .streamit-mobile-footer-menu { display: none !important; }
 
-    .zen-msg-user { align-self: flex-end; background: #2a2a35; color: #fff; padding: 12px 20px; border-radius: 20px 20px 4px 20px; max-width: 80%; animation: slideInRight 0.3s; }
-    .zen-msg-ai-container { align-self: flex-start; width: 100%; animation: slideInLeft 0.3s; }
-    
-    .zen-thinking-box { background: rgba(255,255,255,0.03); border-radius: 12px; overflow: hidden; margin-bottom: 20px; width: fit-content; }
-    .zen-thinking-header { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; color: #aaa; font-size: 0.9rem; }
-    .zen-thinking-header:hover { color: #fff; }
-    .zen-thinking-content { height: 0; overflow: hidden; padding: 0 16px; color: #888; border-top: 1px solid transparent; transition: 0.3s; font-family: monospace; font-size: 0.9rem; }
-    .zen-thinking-box.open .zen-thinking-content { height: auto; padding: 10px 16px 16px; border-top-color: rgba(255,255,255,0.05); }
+    @keyframes zenFade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes zenSlideRight { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+    @keyframes zenSlideLeft { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-    .zen-results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-    .vod-card { aspect-ratio: 2/3; border-radius: 8px; overflow: hidden; position: relative; transition: 0.2s; border: 1px solid rgba(255,255,255,0.1); }
-    .vod-card:hover { transform: translateY(-5px); border-color: var(--zen-accent-cyan); }
-    .vod-card img { width: 100%; height: 100%; object-fit: cover; }
-
-    @media (max-width: 768px) {
-        .zen-sidebar { position: absolute; height: 100%; transform: translateX(-100%); box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
+    /* Phones: history slides over, everything else goes full width */
+    @media (max-width: 767.98px) {
+        .zen-sidebar { position: absolute; top: 0; bottom: 0; left: 0; width: 82vw; max-width: 300px; transform: translateX(-100%); box-shadow: 18px 0 40px rgba(0, 0, 0, 0.55); }
         .zen-sidebar.active { transform: translateX(0); }
         .zen-mobile-toggle { display: block; }
+        .zen-chat-scroll { padding: 18px 14px 4px; gap: 18px; }
+        .zen-input-container { padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); }
+        .zen-form { height: 50px; padding-left: 14px; }
+        .zen-results-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+        .zen-context-pill { max-width: 150px; }
+        .zen-msg-user { max-width: 88%; }
     }
-    @keyframes slideInRight { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-    @keyframes slideInLeft { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
-    @keyframes fadeInUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
 </style>
 
 <div class="zen-ai-float" onclick="triggerZenAI()">
@@ -215,17 +263,33 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
             
             <aside class="zen-sidebar" id="zenSidebar">
                 <div class="zen-sidebar-header">
-                    <button class="zen-mobile-toggle" onclick="toggleSidebar()"><i class="ph ph-list"></i></button>
-                    <div class="text-white small fw-bold text-uppercase ls-2">History</div>
-                </div>
-                
-                <div class="zen-new-chat-btn" onclick="startNewChat()">
-                    <i class="ph ph-plus"></i> New Chat
+                    <button class="zen-mobile-toggle" onclick="toggleSidebar()" aria-label="Close list"><i class="ph ph-x"></i></button>
+                    <div class="zen-side-title">Your chats</div>
                 </div>
 
-                <div class="zen-hist-label">Recent</div>
+                <div class="zen-new-chat-btn" onclick="startNewChat()">
+                    <i class="ph ph-plus"></i> New chat
+                </div>
+
+                <div class="zen-side-search">
+                    <div class="zen-side-search-wrap">
+                        <i class="ph ph-magnifying-glass"></i>
+                        <input type="search" id="zenHistSearch" placeholder="Search your chats" autocomplete="off"
+                               oninput="filterZenHistory(this.value)" aria-label="Search your chats">
+                    </div>
+                </div>
+
                 <div class="zen-hist-scroll" id="zenHistoryList">
                     <div class="text-center mt-3"><i class="ph ph-spinner fa-spin text-muted"></i></div>
+                </div>
+
+                <div class="zen-side-foot">
+                    <div class="zen-usage-row">
+                        <span>Questions today</span>
+                        <strong id="zenUsageCount">&mdash;</strong>
+                    </div>
+                    <div class="zen-usage-bar"><span class="zen-usage-fill" id="zenUsageFill"></span></div>
+                    <p class="zen-side-tip" id="zenUsageTip">Pin a chat to keep it at the top.</p>
                 </div>
             </aside>
 
@@ -233,20 +297,27 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
                 
                 <div class="zen-top-bar">
                     <div class="d-flex align-items-center gap-3">
-                        <button class="zen-mobile-toggle" onclick="toggleSidebar(event)"><i class="ph ph-list"></i></button>
-                        <div class="zen-brand"><i class="ph-fill ph-sparkle"></i> ZEN AI</div>
+                        <button class="zen-mobile-toggle" onclick="toggleSidebar(event)" aria-label="Past chats"><i class="ph ph-list"></i></button>
+                        <div class="zen-brand">
+                            <i class="ph-fill ph-sparkle"></i>
+                            <span>ZEN AI<small>Your film companion</small></span>
+                        </div>
                     </div>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="zen-context-pill" id="zenContextPill" style="display:none;"></span>
+                        <button type="button" class="zen-close-btn" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+                    </div>
                 </div>
 
                 <div class="zen-chat-scroll" id="zen-chat-container">
                     <div class="zen-greeting" id="zen-greeting">
-                        <h2>Hello, Movie Buff.</h2>
-                        <p style="color:#888;">How can I help you discover movies today?</p>
-                        <div class="zen-chips-row">
-                            <span class="zen-chip" onclick="fillZenInput('Movies about artificial intelligence')">AI Movies</span>
-                            <span class="zen-chip" onclick="fillZenInput('Top rated horror from the 80s')">80s Horror</span>
-                            <span class="zen-chip" onclick="fillZenInput('Comedy movies for family night')">Family Comedy</span>
+                        <div class="zen-greeting-orb"><i class="ph-fill ph-sparkle"></i></div>
+                        <h2 id="zenGreetingTitle">What are we watching?</h2>
+                        <p id="zenGreetingLine">Ask for something to watch, a plot you half remember, or what a film is about &mdash; I know what ZEN carries.</p>
+                        <div class="zen-chips-row" id="zenChipsRow">
+                            <span class="zen-chip" onclick="fillZenInput('Something to watch tonight, about 90 minutes')">Something for tonight</span>
+                            <span class="zen-chip" onclick="fillZenInput('What can I watch free on ZEN right now?')">Free on ZEN</span>
+                            <span class="zen-chip" onclick="fillZenInput('More like the last thing I watched')">More like my last watch</span>
                         </div>
                     </div>
                 </div>
@@ -254,16 +325,16 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
                 <div class="zen-input-container">
                     <div class="zen-input-wrapper" id="zen-input-wrapper">
                         <form class="zen-form" onsubmit="handleZenSubmit(event)">
-                            <input type="text" id="zen-input" class="zen-input" placeholder="Ask ZEN AI..." autocomplete="off">
-                            <div class="zen-btn-group" style="display:flex; align-items:center; gap:5px;">
-                                <button type="button" class="zen-icon-btn zen-mic-btn" id="zen-mic-btn" onclick="toggleMic()"><i class="ph-fill ph-microphone"></i></button>
-                                <button type="submit" class="zen-icon-btn zen-send-btn"><i class="ph-fill ph-paper-plane-right"></i></button>
+                            <input type="text" id="zen-input" class="zen-input" placeholder="Ask ZEN AI anything about films..." autocomplete="off">
+                            <div class="zen-btn-group" style="display:flex; align-items:center; gap:2px;">
+                                <button type="button" class="zen-icon-btn zen-mic-btn" id="zen-mic-btn" onclick="toggleMic()" aria-label="Speak"><i class="ph-fill ph-microphone"></i></button>
+                                <button type="submit" class="zen-icon-btn zen-send-btn" aria-label="Send"><i class="ph-fill ph-paper-plane-right"></i></button>
                             </div>
                         </form>
                     </div>
-                    <div style="display:flex; justify-content:space-between; width:90%; max-width:700px; padding: 0 10px; margin-top:8px;">
-                        <p class="text-muted small" style="font-size:0.75rem; margin:0;">AI can make mistakes. Check important info.</p>
-                        <p class="text-muted small" id="zen-limit-display" style="font-size:0.75rem; margin:0; font-weight: 500; color: #00e0ff !important;">Loading limit...</p>
+                    <div class="zen-foot-row">
+                        <p class="text-muted small zen-foot-note" style="font-size:0.72rem; margin:0;">ZEN AI can be wrong &mdash; check what matters.</p>
+                        <p class="small" id="zen-limit-display" style="font-size:0.72rem; margin:0; font-weight: 600; color: #00e0ff;">&nbsp;</p>
                     </div>
                 </div>
 
@@ -279,6 +350,14 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
     const hasAccess = <?php echo json_encode($hasAccess); ?>;
     const chatContainer = document.getElementById('zen-chat-container');
     let activeChatId = null;
+    // A page may set window.zenAiContext (e.g. the watch page: the title playing).
+    function zenContext() {
+        const c = window.zenAiContext;
+        return (c && typeof c === 'object' && c.title) ? c : null;
+    }
+    function zenEscape(t) {
+        return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
 
     // Helper: Generate UUID for new conversation IDs
     function generateUUID() {
@@ -305,14 +384,37 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
         new bootstrap.Modal(document.getElementById('zenAIModal')).show();
         startNewChat(false); // Initialize a fresh ID but don't wipe UI yet
         loadSidebar();
+        applyZenContext();
+        setTimeout(() => { const i = document.getElementById('zen-input'); if (i && window.innerWidth > 767) i.focus(); }, 350);
 
         if (prefilledQuery) {
             // Slight delay to allow modal to open
             setTimeout(() => {
                 const input = document.getElementById('zen-input');
                 input.value = prefilledQuery;
-                zenSubmit(new Event('submit'));
+                handleZenSubmit(new Event('submit'));
             }, 300);
+        }
+    }
+
+    function applyZenContext() {
+        const ctx = zenContext();
+        const pill = document.getElementById('zenContextPill');
+        const title = document.getElementById('zenGreetingTitle');
+        const line = document.getElementById('zenGreetingLine');
+        const chips = document.getElementById('zenChipsRow');
+        if (!pill) return;
+        if (!ctx) { pill.style.display = 'none'; return; }
+        pill.style.display = 'inline-flex';
+        pill.innerHTML = `<i class="ph-fill ph-play-circle"></i> ${zenEscape(ctx.title)}`;
+        if (title) title.textContent = 'Watching ' + ctx.title;
+        if (line) line.textContent = 'Ask about the cast, the ending, or what to watch after it. I already know what you have on.';
+        if (chips) {
+            chips.innerHTML = [
+                ['Who is in it?', 'Who stars in ' + ctx.title + '?'],
+                ['What is it about?', 'What is ' + ctx.title + ' about, no spoilers?'],
+                ['Watch next', 'What should I watch after ' + ctx.title + '?'],
+            ].map(([label, q]) => `<span class="zen-chip" onclick="fillZenInput(${JSON.stringify(q).replace(/"/g, '&quot;')})">${zenEscape(label)}</span>`).join('');
         }
     }
 
@@ -335,6 +437,8 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
                 if (child.id !== 'zen-greeting') child.remove();
             });
             document.getElementById('zen-input').value = '';
+            const search = document.getElementById('zenHistSearch');
+            if (search && search.value) { search.value = ''; filterZenHistory(''); }
             // Deselect sidebar items
             document.querySelectorAll('.zen-hist-item').forEach(el => el.classList.remove('active'));
         }
@@ -343,65 +447,119 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
 
     // --- HISTORY SIDEBAR ---
 
-    function loadSidebar() {
+    let zenHistoryCache = [];
+
+    // "2026-09-21 14:03:00" -> which heading it belongs under, and a short stamp.
+    function zenWhen(raw) {
+        const d = raw ? new Date(String(raw).replace(' ', 'T')) : null;
+        if (!d || isNaN(d)) return { group: 'Earlier', stamp: '' };
+        const startOf = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+        const days = Math.round((startOf(new Date()) - startOf(d)) / 86400000);
+        if (days <= 0) return { group: 'Today', stamp: d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) };
+        if (days === 1) return { group: 'Yesterday', stamp: 'Yesterday' };
+        if (days < 7) return { group: 'Earlier this week', stamp: d.toLocaleDateString([], { weekday: 'short' }) };
+        if (days < 30) return { group: 'This month', stamp: d.toLocaleDateString([], { day: 'numeric', month: 'short' }) };
+        return { group: 'Older', stamp: d.toLocaleDateString([], { day: 'numeric', month: 'short' }) };
+    }
+
+    function zenHistItem(item) {
+        const active = item.conversation_id === activeChatId ? ' active' : '';
+        const pinned = item.is_pinned == 1;
+        const when = zenWhen(item.created_at);
+        const cid = zenEscape(item.conversation_id);
+        return `
+        <div class="zen-hist-item${active}" onclick="loadChat('${cid}', this)" title="${zenEscape(item.query)}">
+            <div class="zen-hist-content">
+                <i class="ph ${pinned ? 'ph-push-pin-fill' : 'ph-chat-circle'}"></i>
+                <div class="zen-hist-text">${zenEscape(item.query)}</div>
+            </div>
+            <div class="zen-hist-actions">
+                <button class="zen-action-mini${pinned ? ' pinned' : ''}" onclick="event.stopPropagation(); togglePin('${cid}', this)" title="${pinned ? 'Unpin' : 'Pin to the top'}">
+                    <i class="ph ${pinned ? 'ph-push-pin-fill' : 'ph-push-pin'}"></i>
+                </button>
+                <button class="zen-action-mini" onclick="event.stopPropagation(); deleteHistory('${cid}', this)" title="Delete">
+                    <i class="ph ph-trash"></i>
+                </button>
+            </div>
+            <span class="zen-hist-when">${zenEscape(when.stamp)}</span>
+        </div>`;
+    }
+
+    // Pinned first, then everything else under the day it happened.
+    function renderZenHistory(items) {
         const list = document.getElementById('zenHistoryList');
+        if (!items.length) {
+            const searching = (document.getElementById('zenHistSearch') || {}).value;
+            list.innerHTML = searching
+                ? `<div class="zen-hist-empty"><i class="ph ph-magnifying-glass"></i>Nothing matches &ldquo;${zenEscape(searching)}&rdquo;.</div>`
+                : `<div class="zen-hist-empty"><i class="ph ph-chat-circle-dots"></i>No chats yet.<br>Ask something and it will appear here.</div>`;
+            return;
+        }
+        const pinned = items.filter(i => i.is_pinned == 1);
+        const rest = items.filter(i => i.is_pinned != 1);
+        let html = '';
+        if (pinned.length) html += `<div class="zen-hist-label">Pinned</div>` + pinned.map(zenHistItem).join('');
+        let lastGroup = '';
+        rest.forEach(item => {
+            const g = zenWhen(item.created_at).group;
+            if (g !== lastGroup) { html += `<div class="zen-hist-label">${g}</div>`; lastGroup = g; }
+            html += zenHistItem(item);
+        });
+        list.innerHTML = html;
+    }
+
+    function filterZenHistory(term) {
+        const t = (term || '').trim().toLowerCase();
+        renderZenHistory(t ? zenHistoryCache.filter(i => String(i.query || '').toLowerCase().includes(t)) : zenHistoryCache);
+    }
+
+    function renderZenUsage(d) {
+        const count = document.getElementById('zenUsageCount');
+        const fill = document.getElementById('zenUsageFill');
+        const tip = document.getElementById('zenUsageTip');
+        const limitDisplay = document.getElementById('zen-limit-display');
+        if (d.daily_used === undefined) return;
+        const used = parseInt(d.daily_used) || 0;
+        if (d.limit === -1) {
+            if (count) count.textContent = used + ' asked';
+            if (fill) { fill.style.width = '100%'; fill.classList.remove('low'); }
+            if (tip) tip.textContent = 'You have no daily limit.';
+            if (limitDisplay) limitDisplay.innerHTML = `<i class="ph-fill ph-lightning"></i> Unlimited`;
+            return;
+        }
+        const limit = parseInt(d.limit || 10);
+        const remaining = Math.max(0, limit - used);
+        if (count) count.textContent = `${used} of ${limit}`;
+        if (fill) {
+            fill.style.width = Math.min(100, Math.round((used / Math.max(1, limit)) * 100)) + '%';
+            fill.classList.toggle('low', remaining <= Math.max(1, Math.floor(limit * 0.2)));
+        }
+        if (tip) tip.textContent = remaining === 0
+            ? 'You have used today\u2019s questions. They reset tomorrow.'
+            : `${remaining} question${remaining === 1 ? '' : 's'} left today.`;
+        if (limitDisplay) limitDisplay.innerHTML = `<i class="ph-fill ph-lightning"></i> ${remaining}/${limit} left today`;
+    }
+
+    function loadSidebar() {
         const fd = new FormData();
         fd.append('zen_action', 'fetch_sidebar');
 
         fetch(API_URL, { method: 'POST', body: fd })
             .then(r => r.json())
             .then(d => {
-                // Update Limit Display
-                const limitDisplay = document.getElementById('zen-limit-display');
-                if (limitDisplay && d.daily_used !== undefined) {
-                    if (d.limit === -1) {
-                        limitDisplay.innerHTML = `<i class="ph-fill ph-lightning"></i> Unlimited Queries`;
-                    } else {
-                        const limit = parseInt(d.limit || 10);
-                        const remaining = Math.max(0, limit - parseInt(d.daily_used));
-                        limitDisplay.innerHTML = `<i class="ph-fill ph-lightning"></i> ${remaining}/${limit} Queries Left`;
-                    }
-                }
-
-                if (!d.data || d.data.length === 0) {
-                    list.innerHTML = '<div class="text-muted small text-center mt-4">No history yet</div>';
-                    return;
-                }
-
-                let html = '';
-                d.data.forEach(item => {
-                    const isActive = item.conversation_id === activeChatId ? 'active' : '';
-                    const pinClass = item.is_pinned == 1 ? 'active' : '';
-                    // Use filled icon if pinned, outline if not
-                    const pinIcon = item.is_pinned == 1 ? 'ph-push-pin-fill text-info' : 'ph-push-pin';
-
-                    html += `
-                    <div class="zen-hist-item ${isActive}" onclick="loadChat('${item.conversation_id}')">
-                        <div class="zen-hist-content">
-                            <i class="ph ${item.is_pinned == 1 ? 'ph-chat-circle-dots' : 'ph-chat-circle'}"></i>
-                            <div class="zen-hist-text">${item.query}</div>
-                        </div>
-                        <div class="zen-hist-actions">
-                            <button class="zen-action-mini ${pinClass}" onclick="event.stopPropagation(); togglePin('${item.conversation_id}', this)" title="Pin">
-                                <i class="ph ${pinIcon}"></i>
-                            </button>
-                            <button class="zen-action-mini" onclick="event.stopPropagation(); deleteHistory('${item.conversation_id}', this)" title="Delete">
-                                <i class="ph ph-trash"></i>
-                            </button>
-                        </div>
-                    </div>`;
-                });
-                list.innerHTML = html;
+                renderZenUsage(d);
+                zenHistoryCache = Array.isArray(d.data) ? d.data : [];
+                filterZenHistory((document.getElementById('zenHistSearch') || {}).value);
             })
             .catch(e => console.error("Sidebar Load Error:", e));
     }
 
-    function loadChat(cid) {
+    function loadChat(cid, el) {
         activeChatId = cid;
         
         // Highlight active item visually
         document.querySelectorAll('.zen-hist-item').forEach(el => el.classList.remove('active'));
-        // (Optional: add .active to the clicked element here)
+        if (el && el.classList) el.classList.add('active');
 
         // Clear current view
         document.getElementById('zen-greeting').style.display = 'none';
@@ -422,10 +580,23 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
                 document.getElementById('chat-loader').remove();
                 if (d.data) {
                     d.data.forEach(msg => {
-                        // In a real app, you distinguish between 'user' and 'ai' messages.
-                        // Since we only stored the user query in this simple DB schema:
-                        chatContainer.innerHTML += `<div class="zen-msg-user">${msg.query}</div>`;
+                        chatContainer.innerHTML += `<div class="zen-msg-row"><div class="zen-msg-user">${zenEscape(msg.query)}</div></div>`;
                     });
+                    // Only the questions are kept, so say so rather than showing
+                    // a one-sided conversation and letting it look broken.
+                    if (d.data.length) {
+                        const last = String(d.data[d.data.length - 1].query || '');
+                        chatContainer.innerHTML += `
+                            <div class="zen-msg-ai-container">
+                                <span class="zen-ai-avatar"><i class="ph-fill ph-clock-counter-clockwise"></i></span>
+                                <div class="zen-ai-body">
+                                    <p style="color: var(--zen-text-muted);">This is what you asked here. The answers are not kept &mdash; ask again for a fresh one.</p>
+                                    <button type="button" class="zen-chip" onclick="fillZenInput(${JSON.stringify(last).replace(/"/g, '&quot;')})">
+                                        <i class="ph ph-arrow-counter-clockwise"></i> Ask that again
+                                    </button>
+                                </div>
+                            </div>`;
+                    }
                     chatContainer.scrollTop = chatContainer.scrollHeight;
                 }
             });
@@ -496,16 +667,19 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
         closeSidebarOnMobile();
 
         // 1. Add User Message to UI
-        chatContainer.innerHTML += `<div class="zen-msg-user">${query}</div>`;
+        chatContainer.innerHTML += `<div class="zen-msg-row"><div class="zen-msg-user">${zenEscape(query)}</div></div>`;
         chatContainer.scrollTop = chatContainer.scrollHeight;
         input.value = '';
 
         // 2. Add AI Loading Indicator
         const loaderId = 'loader-' + Date.now();
         chatContainer.innerHTML += `
-            <div id="${loaderId}" class="zen-msg-ai-container">
-                <div class="zen-loading-spinner" style="display:flex; gap:10px; color:#888; align-items:center;">
-                    <i class="ph-fill ph-sparkle fa-spin text-info" style="font-size:1.2rem;"></i> <span>Thinking...</span>
+            <div class="zen-msg-ai-container">
+                <span class="zen-ai-avatar"><i class="ph-fill ph-sparkle"></i></span>
+                <div id="${loaderId}" class="zen-ai-body">
+                    <div class="zen-loading-spinner">
+                        <span class="zen-dots"><span></span><span></span><span></span></span> Thinking&hellip;
+                    </div>
                 </div>
             </div>`;
         chatContainer.scrollTop = chatContainer.scrollHeight;
@@ -522,7 +696,8 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
 
         // 4. Fetch AI Response
         const fd = new FormData();
-        fd.append('query', query);
+        const ctx = zenContext();
+        fd.append('query', ctx ? `(I am watching "${ctx.title}" right now.) ${query}` : query);
         fd.append('conversation_id', activeChatId);
         
         fetch('/ask', { method: 'POST', body: fd }) 
@@ -536,7 +711,7 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
                     const moviesId = 'movies-' + Date.now();
                     
                     loader.innerHTML = `
-                        <div id="${textId}" style="color:#ccc; line-height:1.7; margin-bottom:15px; font-size:1rem;"></div>
+                        <div id="${textId}"></div>
                         <div id="${moviesId}" class="zen-results-grid" style="display:none; opacity:0; transition: opacity 0.5s ease-in;"></div>
                     `;
                     
@@ -545,17 +720,24 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
 
                     // Generate Movie Cards with titles
                     if (data.movies && data.movies.length > 0) {
-                        const moviesHtml = data.movies.map((m, idx) => `
-                            <div class="vod-card" style="opacity:0; animation: fadeInUp 0.5s ease forwards ${idx * 0.1}s; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
-                                <a href="/${m.type || 'movie'}/${m.id}" style="text-decoration:none; color:inherit;">
-                                    <img src="${m.poster_path || 'assets/images/media/placeholder.webp'}" alt="${m.title || ''}" loading="lazy">
-                                    <div style="position:absolute; bottom:0; left:0; right:0; padding:20px 10px 10px; background:linear-gradient(transparent, rgba(0,0,0,0.95)); font-size:0.85rem; color:#fff; font-weight:700; text-align:center; line-height:1.3; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
-                                        ${m.title || ''}
-                                        ${m.rating ? '<div style="color:#ffc107; font-size:0.75rem; margin-top:5px; display:flex; justify-content:center; align-items:center; gap:3px;"><i class="ph-fill ph-star"></i> ' + Number(m.rating).toFixed(1) + '</div>' : ''}
-                                        ${m.available ? '<div style="color:#1dd1a1; font-size:0.7rem; margin-top:4px; display:flex; justify-content:center; align-items:center; gap:4px;"><i class="ph-fill ph-download-simple"></i> ' + (m.qualities ? String(m.qualities).split(',')[0] : 'Available') + '</div>' : ''}
-                                    </div>
-                                </a>
-                            </div>`).join('');
+                        const moviesHtml = data.movies.map((m, idx) => {
+                            const rawDate = (m.release_date || m.year || '').toString();
+                            const year = /^\d{4}/.test(rawDate) ? rawDate.slice(0, 4) : '';
+                            const rating = m.rating ? Number(m.rating).toFixed(1) : '';
+                            return `
+                            <a class="zen-card" href="/${m.type || 'movie'}/${m.id}" style="opacity:0; animation: fadeInUp 0.45s ease forwards ${idx * 0.07}s;">
+                                <span class="zen-card-poster">
+                                    <img src="${m.poster_path || '/assets/images/media/placeholder.webp'}" alt="${zenEscape(m.title)}" loading="lazy">
+                                    ${m.available ? '<span class="zen-card-free">ON ZEN</span>' : ''}
+                                    <span class="zen-card-open">Open</span>
+                                </span>
+                                <span class="zen-card-title">${zenEscape(m.title)}</span>
+                                <span class="zen-card-meta">
+                                    ${year ? `<span>${year}</span>` : ''}
+                                    ${rating ? `<span class="zen-card-rating"><i class="ph-fill ph-star"></i> ${rating}</span>` : ''}
+                                </span>
+                            </a>`;
+                        }).join('');
                         moviesContainer.innerHTML = moviesHtml;
                     }
 
@@ -565,7 +747,7 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
                         let i = 0;
                         let isTag = false;
                         let textAccumulator = '';
-                        const speed = 25; // ms per char
+                        const speed = 12; // ms per char
                         
                         function typeWriter() {
                             if (i < fullText.length) {
@@ -607,15 +789,23 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
 
                 } else {
                     const errorMsg = data.message || `No results found for "${query}".`;
-                    loader.innerHTML = `<div class="text-danger p-3" style="font-weight: 500;"><i class="ph-bold ph-warning-circle"></i> ${errorMsg}</div>`;
+                    loader.innerHTML = `<div class="text-danger" style="font-weight: 500;"><i class="ph-bold ph-warning-circle"></i> ${zenEscape(errorMsg)}</div>`;
                 }
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             })
             .catch(() => {
                 document.getElementById('zen-input-wrapper').classList.remove('zen-loading-border');
-                document.getElementById(loaderId).innerHTML = `<div class="text-danger p-3">Error connecting to AI.</div>`;
+                document.getElementById(loaderId).innerHTML = `<div class="text-danger"><i class="ph-bold ph-warning-circle"></i> I could not reach ZEN AI just then. Try again in a moment.</div>`;
             });
     }
+
+    // --- KEEP THE PAGE'S FLOATING BUTTONS OUT OF THE WAY ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('zenAIModal');
+        if (!modal) return;
+        modal.addEventListener('show.bs.modal', () => document.body.classList.add('zen-chat-open'));
+        modal.addEventListener('hidden.bs.modal', () => document.body.classList.remove('zen-chat-open'));
+    });
 
     // --- MIC LOGIC ---
     let recognition;
@@ -647,7 +837,7 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
         recognition.onend = () => {
             isRecognizing = false;
             btn.classList.remove('listening');
-            input.placeholder = "Ask ZEN AI...";
+            input.placeholder = "Ask ZEN AI anything about films...";
         };
         
         recognition.onresult = (e) => {

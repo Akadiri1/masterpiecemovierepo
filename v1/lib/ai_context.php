@@ -258,3 +258,144 @@ function zen_availability(?PDO $conn, array $items): array
         return [];
     }
 }
+
+/**
+ * Facts about whatever the message seems to be asking about, read from TMDB.
+ *
+ * The model's training data is older than the catalogue, so left to its own
+ * memory it gets release dates, cast and "does this exist?" wrong, and it used
+ * to be told to never say a title is unknown, which turned uncertainty into
+ * invention. Looking the titles up first and handing the model the facts fixes
+ * both: it answers from data, and can say plainly when TMDB has nothing.
+ *
+ * @param string $query      what the viewer just typed
+ * @param array  $lastTitles the titles the conversation was already about, for
+ *                           follow-ups like "how did it end?" or "the second one"
+ */
+function zen_query_facts(string $query, array $lastTitles = []): string
+{
+    if (!function_exists('fetchTmdbApi')) {
+        return '';
+    }
+
+    // Strip the question around the title: "when does dune part three come
+    // out?" searches better as "dune part three".
+    $term = trim(preg_replace([
+        '/^(hi|hey|hello|please|pls|yo)\b[\s,]*/i',
+        '/\b(when (does|is|will)|what(\'s| is)?|who (starred|stars|acted|is|are)|tell me about|how (did|does|long)|is there|can i (watch|see)|do you (know|have)|i want( to watch)?|show me|find|search( for)?|recommend|give me|play|plot of|cast of|rating of|release date( of)?)\b/i',
+        '/\b(movie|film|series|show|tv show|please|about|the plot|end|ending|come out|coming out|available|on zen|for me)\b/i',
+        '/[?!.,]+/',
+    ], ' ', $query));
+    $term = trim(preg_replace('/\s+/', ' ', $term));
+
+    // "who is in it?" leaves "in it", which matches a real show and sends the
+    // answer somewhere else entirely. Leftovers like that are dropped, and the
+    // title already under discussion is used instead.
+    $leftover = ['it', 'that', 'this', 'one', 'them', 'they', 'he', 'she', 'in', 'on', 'of', 'me', 'you', 'we',
+                 'yes', 'no', 'ok', 'okay', 'thanks', 'thank', 'good', 'nice', 'more', 'other', 'another',
+                 'so', 'and', 'but', 'too', 'also', 'again', 'now', 'there', 'here', 'like', 'any', 'some', 'a', 'an', 'the'];
+    $words = array_filter(preg_split('/\s+/', mb_strtolower($term)));
+    $meaningful = array_diff($words, $leftover);
+
+    $terms = [];
+    $namesATitle = $meaningful && mb_strlen($term) >= 3 && preg_match('/[a-z0-9]/i', $term);
+    if ($namesATitle) {
+        $terms[] = $term;
+    }
+    // A follow-up ("who is in it?", "tell me more about the second one") names
+    // no title, so the ones just shown are looked up instead.
+    foreach (array_slice($lastTitles, 0, $namesATitle ? 1 : 3) as $previous) {
+        if ($previous !== '' && ($term === '' || stripos($term, $previous) === false)) {
+            $terms[] = $previous;
+        }
+    }
+    if (!$terms) {
+        return '';
+    }
+
+    $lines = [];
+    foreach (array_slice(array_unique($terms), 0, 2) as $search) {
+        // A leading "the" throws TMDB's search off badly -- "the Sinners"
+        // returns The Garden of Sinners, while "Sinners" returns the film
+        // being asked about -- so both spellings are searched and merged.
+        $bare = trim(preg_replace('/^(the|a|an)\s+/i', '', $search));
+        $results = [];
+        foreach (array_unique([$search, $bare]) as $variant) {
+            foreach (fetchTmdbApi('search/multi', ['query' => $variant, 'include_adult' => 'false'], 43200)['results'] ?? [] as $item) {
+                if (in_array($item['media_type'] ?? '', ['movie', 'tv'], true)) {
+                    $results[$item['media_type'] . ':' . $item['id']] ??= $item;
+                }
+            }
+        }
+        $results = array_values($results);
+        if (!$results) {
+            $lines[] = "- Nothing on TMDB matches \"$search\", so that title may not exist.";
+            continue;
+        }
+        // Most talked-about first, so an unqualified name lands on the film
+        // people actually mean.
+        usort($results, fn($a, $b) => ($b['popularity'] ?? 0) <=> ($a['popularity'] ?? 0));
+
+        // An exact name match beats a more popular near-miss: asked about
+        // "Sinners", the answer must not wander off to "Saints & Sinners".
+        // "The" is ignored on both sides, and when several titles share a name
+        // the best known one wins, so "the sinners" finds Sinners (2025)
+        // rather than The Sinners (2020).
+        $plain = static fn(string $text): string => trim(preg_replace(
+            ['/^(the|a|an)\s+/i', '/[^a-z0-9 ]+/i', '/\s+/'], ['', '', ' '], mb_strtolower($text)
+        ));
+        $wanted = $plain($search);
+        $best = $results[0];
+        $bestScore = -1;
+        foreach ($results as $item) {
+            if ($plain((string) ($item['title'] ?? $item['name'] ?? '')) !== $wanted) {
+                continue;
+            }
+            $score = (float) ($item['popularity'] ?? 0);
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $best = $item;
+            }
+        }
+
+        $type = $best['media_type'] === 'tv' ? 'tv' : 'movie';
+        $full = fetchTmdbApi("$type/{$best['id']}", ['append_to_response' => 'credits'], 43200) ?: $best;
+        $date = $full['release_date'] ?? $full['first_air_date'] ?? '';
+        $cast = implode(', ', array_slice(array_column($full['credits']['cast'] ?? [], 'name'), 0, 5));
+        $directors = [];
+        foreach ($full['credits']['crew'] ?? [] as $crew) {
+            if (($crew['job'] ?? '') === 'Director') {
+                $directors[] = $crew['name'];
+            }
+        }
+        $overview = trim((string) ($full['overview'] ?? ''));
+
+        $lines[] = sprintf('- THE TITLE THEY MEAN by "%s": %s (%s, %s)%s%s%s%s%s',
+            $search,
+            $full['title'] ?? $full['name'] ?? 'Untitled',
+            $type === 'tv' ? 'TV show' : 'movie',
+            $date !== '' ? $date : 'release date not set',
+            !empty($full['vote_average']) ? ', rated ' . round((float) $full['vote_average'], 1) . '/10' : '',
+            $directors ? '. Directed by ' . implode(' and ', array_slice($directors, 0, 2)) : '',
+            $cast !== '' ? '. Starring ' . $cast : '',
+            !empty($full['genres']) ? '. Genres: ' . implode(', ', array_column($full['genres'], 'name')) : '',
+            $overview !== '' ? '. Story: ' . mb_substr($overview, 0, 260) . (mb_strlen($overview) > 260 ? '…' : '') : ''
+        );
+
+        foreach (array_slice(array_filter($results, fn($i) => $i['id'] !== $best['id']), 0, 2) as $other) {
+            $otherDate = $other['release_date'] ?? $other['first_air_date'] ?? '';
+            $lines[] = sprintf('- Also named similarly: %s (%s%s)',
+                $other['title'] ?? $other['name'] ?? 'Untitled',
+                ($other['media_type'] ?? '') === 'tv' ? 'TV show' : 'movie',
+                $otherDate ? ', ' . substr($otherDate, 0, 4) : ''
+            );
+        }
+    }
+
+    if (!$lines) {
+        return '';
+    }
+    return "\n\nFROM TMDB, LOOKED UP JUST NOW. These are current and your memory is not, so answer from them. "
+         . "Answer about the title marked THE TITLE THEY MEAN, not a similarly named one, and ignore any line that "
+         . "is clearly unrelated to the question:\n" . implode("\n", array_slice($lines, 0, 7));
+}
