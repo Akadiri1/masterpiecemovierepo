@@ -1,5 +1,7 @@
 <?php include APP_PATH . '/views/zen-ai.php'; ?>
 
+<?php include APP_PATH . '/views/includes/pwa-update.php'; ?>
+
 <?php include APP_PATH . '/views/includes/mobile-footer.php'; ?>
 
 <!-- toggleMobileSidebar is now defined in sidebar.php -->

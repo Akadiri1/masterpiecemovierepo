@@ -1318,6 +1318,8 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
     </div>
 </div>
 
+<?php include __DIR__ . '/includes/pwa-update.php'; ?>
+
 <?php include __DIR__ . '/zen-ai.php'; ?>
 <?php include __DIR__ . '/includes/theme-modal.php'; ?>
 <?php include __DIR__ . '/includes/kids-mode.php'; ?>

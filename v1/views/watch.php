@@ -1740,6 +1740,8 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
     });
 </script>
 
+<?php include __DIR__ . '/includes/pwa-update.php'; ?>
+
 <?php include __DIR__ . '/zen-ai.php'; ?>
 
 <!-- Theme Modal (Color House) -->

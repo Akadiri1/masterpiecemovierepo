@@ -45,3 +45,10 @@ RUN cp .env/config.env.php .env/config.php \
  && mkdir -p v1/cache/tmdb www/uploads/avatars \
  && chown -R www-data:www-data v1/cache www/uploads \
  && chmod 644 /etc/ssl/certs/db-ca.pem
+
+# Stamps this build. Pages carry the value and compare it against /version.php,
+# which is how an installed app knows a newer version has been deployed and can
+# offer to pick it up. A fresh value every build is the whole point, so this
+# layer is deliberately not cacheable.
+RUN date -u +%Y%m%d%H%M%S > .build-version \
+ && chmod 644 .build-version

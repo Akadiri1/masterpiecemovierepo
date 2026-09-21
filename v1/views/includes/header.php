@@ -317,6 +317,8 @@ $pageThemeClass = $pageThemeClass ?? '';
 </head>
 
 <body class=" <?php echo htmlspecialchars($pageThemeClass); ?>  <?php echo $isKidsMode ? 'kids-mode-active' : ''; ?>">
+<?php include APP_PATH . '/views/includes/pwa-update.php'; ?>
+
 <!-- PWA Install Modal -->
 <div id="pwa-install-modal" class="pwa-modal">
     <div class="pwa-content">

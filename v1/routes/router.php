@@ -63,6 +63,15 @@ if (count($uri) > 2) {
   }
 
   // $query_string = explode("?",$uri[1])[1];
+
+  // A query string on the home URL fell past every case below and rendered a
+  // blank page: "/?utm_source=...", "/?fbclid=...", the parameters Facebook and
+  // Google add to any link that gets shared. Only the home path is normalised,
+  // so the cases matching on "page?" . $query_string still work.
+  if (strpos($uri[1], "?") !== false && explode("?", $uri[1])[0] === "") {
+      $uri[1] = "";
+  }
+
   switch ($uri[1]) {
     case 'test':
     include APP_PATH."/views/test.php";
