@@ -190,7 +190,9 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
     /* Title cards */
     .zen-results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 14px; margin-top: 16px; }
     .zen-card { display: block; color: inherit; text-decoration: none; }
-    .zen-card-poster { position: relative; aspect-ratio: 2 / 3; border-radius: 12px; overflow: hidden; background: #15161f; border: 1px solid var(--zen-line); }
+    /* display:block matters: these are spans, and aspect-ratio and overflow do
+       not apply to an inline box, so the poster spills out and the rows collide. */
+    .zen-card-poster { display: block; position: relative; aspect-ratio: 2 / 3; border-radius: 12px; overflow: hidden; background: #15161f; border: 1px solid var(--zen-line); }
     .zen-card-poster img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.25s ease; }
     .zen-card:hover .zen-card-poster img { transform: scale(1.06); }
     .zen-card:hover .zen-card-poster { border-color: rgba(0, 224, 255, 0.45); }
@@ -198,7 +200,7 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
     .zen-card-open { position: absolute; inset: auto 0 0 0; padding: 22px 10px 10px; background: linear-gradient(transparent, rgba(0, 0, 0, 0.85)); color: #fff; font-size: 0.74rem; font-weight: 600; text-align: center; opacity: 0; transition: opacity 0.2s; }
     .zen-card:hover .zen-card-open { opacity: 1; }
     .zen-card-title { display: block; margin-top: 8px; font-size: 0.85rem; font-weight: 600; color: var(--zen-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .zen-card-meta { display: flex; align-items: center; gap: 8px; margin-top: 2px; color: var(--zen-text-muted); font-size: 0.74rem; }
+    .zen-card-meta { display: flex; align-items: center; gap: 8px; margin-top: 2px; min-height: 1em; color: var(--zen-text-muted); font-size: 0.74rem; }
     .zen-card-meta .zen-card-rating { color: #ffc107; display: inline-flex; align-items: center; gap: 3px; }
 
     /* Composer */
@@ -244,7 +246,9 @@ $hasAccess = $isLoggedIn; // Must be logged in to use AI
         .zen-chat-scroll { padding: 18px 14px 4px; gap: 18px; }
         .zen-input-container { padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); }
         .zen-form { height: 50px; padding-left: 14px; }
-        .zen-results-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px; }
+        /* The avatar indents the answer, which on a narrow screen costs a whole
+           column. The grid reclaims that width so three posters fit across. */
+        .zen-results-grid { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 10px; margin-left: -44px; }
         .zen-context-pill { max-width: 150px; }
         .zen-msg-user { max-width: 88%; }
     }
