@@ -1269,6 +1269,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
             const isDirect = url.match(/\.(mp4|mkv|webm|m3u8)(\?|$)/i);
 
             if (isDirect) {
+                clearTimeout(loadTimeout);
                 if (playerIframe) {
                     playerIframe.style.display = 'none';
                     playerIframe.src = '';
@@ -1291,6 +1292,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                 if (playerIframe) {
                     playerIframe.style.display = 'block';
                     playerIframe.src = url;
+                    if (window.zenArmIframeWatchdog) window.zenArmIframeWatchdog();
                 }
             }
 
@@ -1310,9 +1312,10 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
             // Auto-switch disabled: let the user manually switch if it buffers
         }
 
-        // Iframe loaded successfully — hide loading overlay
+        // Iframe answered — hide the overlay and call off the watchdog below.
         if (playerIframe) {
             playerIframe.addEventListener('load', () => {
+                clearTimeout(loadTimeout);
                 if (playerLoading) playerLoading.classList.remove('visible');
             });
         }
@@ -1365,6 +1368,127 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                     hideBanner(6000);
                 }
             });
+        }
+
+        // =================================================================
+        // WHEN A SOURCE WILL NOT PLAY, MOVE TO THE NEXT ONE
+        // =================================================================
+        // Three things can go wrong and only two of them are visible here:
+        //   a file that 404s or will not decode - the <video> says so exactly;
+        //   an embed host that has gone away    - the iframe never loads;
+        //   an embed that loads with no film in it - sealed off, invisible.
+        // The first two move on by themselves. The third is why the menu also
+        // offers "Not playing? Try the next one".
+        const deadSources = new Set();
+        const IFRAME_GIVE_UP_MS = 15000;
+
+        function serverHost(url) {
+            try { return new URL(url, location.href).hostname; } catch (e) { return ''; }
+        }
+
+        function markServerDead(index, note) {
+            deadSources.add(index);
+            if (!serverDropdown) return;
+            const opt = serverDropdown.querySelector('.server-option[data-index="' + index + '"]');
+            if (opt && !opt.dataset.dead) {
+                opt.dataset.dead = '1';
+                opt.style.opacity = '0.45';
+                opt.title = note || 'Not responding';
+            }
+        }
+
+        function nextLiveServer(from) {
+            for (let step = 1; step <= servers.length; step++) {
+                const idx = (from + step) % servers.length;
+                if (idx !== from && !deadSources.has(idx)) return idx;
+            }
+            return -1;
+        }
+
+        function failoverFrom(index, reason) {
+            if (index !== currentServer) return;   // something already moved on
+            markServerDead(index, reason);
+            const next = nextLiveServer(index);
+            const failedName = (servers[index] && servers[index].name) || 'That source';
+            if (next < 0) {
+                clearTimeout(loadTimeout);
+                if (playerLoading) playerLoading.classList.remove('visible');
+                showBanner('offline', '<i class="fa-solid fa-circle-exclamation" style="opacity:0.8"></i> None of the sources would play this one. Try again later.');
+                return;
+            }
+            const resumeAt = (playerVideo && isDirectUrl(servers[index].url) && playerVideo.currentTime > 5) ? playerVideo.currentTime : 0;
+            switchToServer(next, resumeAt);
+            showBanner('slow', '<i class="fa-solid fa-arrows-rotate" style="opacity:0.8"></i> ' + failedName + ' was not responding, so we moved to ' + ((servers[next] && servers[next].name) || 'another source'));
+            hideBanner(6000);
+        }
+
+        // A file that cannot be fetched or decoded. The browser is exact here,
+        // which is why the site's own licensed files are judged only this way.
+        if (playerVideo) {
+            playerVideo.addEventListener('error', () => {
+                const src = playerVideo.getAttribute('src');
+                if (!src) return;                               // cleared on purpose
+                const current = servers[currentServer];
+                if (!current || !isDirectUrl(current.url)) return;
+                // Changing source aborts the load in progress and raises an
+                // error for the source being left. Neither that, nor an error
+                // that arrives for a source already moved on from, says
+                // anything about the file now in the element.
+                const err = playerVideo.error;
+                if (err && err.code === (err.MEDIA_ERR_ABORTED || 1)) return;
+                if (src !== current.url) return;
+                failoverFrom(currentServer, 'The file would not play');
+            });
+        }
+
+        // An embed host that never answers. A cross-origin iframe fires load
+        // for anything at all, even an error page, so this catches only a host
+        // that is genuinely unreachable — the case a viewer can do nothing about.
+        window.zenArmIframeWatchdog = function () {
+            clearTimeout(loadTimeout);
+            if (!playerIframe || !playerIframe.src) return;
+            const armedFor = currentServer;
+            loadTimeout = setTimeout(function () {
+                if (!navigator.onLine) return;   // offline has its own message
+                failoverFrom(armedFor, 'The server did not answer');
+            }, IFRAME_GIVE_UP_MS);
+        };
+        if (playerIframe && playerIframe.src) window.zenArmIframeWatchdog();
+
+        // What this side can see and the browser cannot: whether the embed
+        // hosts are answering at all. Asked for after the page is up, so it
+        // delays nothing, and only ever applied to embeds.
+        if (servers.some(s => !isDirectUrl(s.url))) {
+            fetch('/server-health.php', { credentials: 'same-origin' })
+                .then(r => (r.ok ? r.json() : null))
+                .then(d => {
+                    if (!d || !d.hosts) return;
+                    servers.forEach((s, i) => {
+                        if (isDirectUrl(s.url)) return;          // the browser judges those
+                        const info = d.hosts[serverHost(s.url)];
+                        if (info && info.up === false) markServerDead(i, 'Not responding');
+                    });
+                    if (deadSources.has(currentServer)) failoverFrom(currentServer, 'That server is down');
+                })
+                .catch(() => {});
+        }
+
+        // The undetectable case: it loaded, but there is no film in it. Only
+        // the viewer can see that, so it takes one tap rather than a hunt
+        // through the list. Deliberately not a .server-option: that class is
+        // matched by position elsewhere.
+        if (serverDropdown && servers.length > 1) {
+            const tryNext = document.createElement('button');
+            tryNext.type = 'button';
+            tryNext.className = 'srv-try-next w-100 text-start px-3 py-2 border-0 bg-transparent';
+            tryNext.innerHTML = '<i class="ph ph-arrows-clockwise"></i> Not playing? Try the next one';
+            tryNext.style.cssText = 'cursor:pointer; border-bottom:1px solid #222; color:#00e0ff; font-weight:600;';
+            tryNext.addEventListener('click', function (e) {
+                e.stopPropagation();
+                serverDropdown.classList.remove('open');
+                failoverFrom(currentServer, 'You said it was not playing');
+            });
+            serverDropdown.insertBefore(tryNext, serverDropdown.firstChild);
         }
 
         // --- Server dropdown UI ---
