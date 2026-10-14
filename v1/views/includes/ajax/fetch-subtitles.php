@@ -120,14 +120,26 @@ foreach ($rawList as $item) {
 
     if (empty($downloadUrl)) continue;
 
+    // Detect if subtitle is for a WEB-DL / WEBRip release (best matches streaming servers)
+    $isWeb = (bool) preg_match('/(web|web-?dl|web-?rip|amzn|netflix|nf|hulu|dsnp|disney|max|atvp|itunes)/i', $release);
+
     $subtitles[] = [
         'id'        => $item['id'] ?? uniqid(),
         'lang_code' => $code,
         'lang_name' => $name,
         'release'   => $release,
+        'is_web'    => $isWeb,
         'proxy_url' => '/proxy-subtitle?url=' . urlencode($downloadUrl)
     ];
 }
+
+// Prioritize WEB-DL / streaming releases first within each language
+usort($subtitles, function($a, $b) {
+    if ($a['is_web'] !== $b['is_web']) {
+        return $b['is_web'] ? 1 : -1;
+    }
+    return 0;
+});
 
 echo json_encode([
     'status'    => 'success',

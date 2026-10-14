@@ -401,6 +401,11 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
           font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
           padding: 2px 6px; border-radius: 4px;
       }
+      .sub-badge-best {
+          background: rgba(255, 215, 0, 0.18);
+          color: #ffd700;
+          border: 1px solid rgba(255, 215, 0, 0.4);
+      }
       .sub-item-title {
           font-size: 0.82rem; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
@@ -456,10 +461,10 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
           position: absolute;
           top: 14px;
           right: 14px;
-          background: rgba(14, 15, 22, 0.88);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          border: 1px solid rgba(0, 224, 255, 0.35);
+          background: rgba(14, 15, 22, 0.92);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          border: 1px solid rgba(0, 224, 255, 0.4);
           border-radius: 30px;
           padding: 4px 10px;
           display: flex;
@@ -472,16 +477,42 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
       .sub-mini-bar:hover { opacity: 1; border-color: #00e0ff; }
       .sub-mini-time {
           font-family: monospace;
-          font-size: 0.8rem;
+          font-size: 0.82rem;
           font-weight: 700;
           color: #00e0ff;
-          padding: 3px 6px;
-          background: rgba(0,0,0,0.5);
-          border-radius: 4px;
+          padding: 3px 8px;
+          background: rgba(0,0,0,0.6);
+          border-radius: 6px;
+          border: 1px solid rgba(0, 224, 255, 0.25);
           cursor: pointer;
           white-space: nowrap;
+          transition: 0.2s;
       }
-      .sub-mini-time:hover { text-decoration: underline; background: rgba(0, 224, 255, 0.15); }
+      .sub-mini-time:hover {
+          background: rgba(0, 224, 255, 0.2);
+          border-color: #00e0ff;
+          color: #fff;
+      }
+      .btn-sub-rhyme {
+          background: linear-gradient(135deg, #00e0ff, #7b2cbf);
+          border: none;
+          color: #fff;
+          font-weight: 700;
+          padding: 4px 10px;
+          border-radius: 12px;
+          font-size: 0.74rem;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          cursor: pointer;
+          transition: transform 0.15s ease, box-shadow 0.15s ease;
+          box-shadow: 0 0 10px rgba(0, 224, 255, 0.3);
+      }
+      .btn-sub-rhyme:hover {
+          transform: scale(1.05);
+          box-shadow: 0 0 16px rgba(0, 224, 255, 0.6);
+          color: #fff;
+      }
       .sub-mini-actions { display: flex; align-items: center; gap: 4px; }
       .btn-sub-mini {
           background: rgba(255,255,255,0.06);
@@ -496,12 +527,116 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
           display: inline-flex; align-items: center; justify-content: center;
       }
       .btn-sub-mini:hover { background: #00e0ff; color: #000; border-color: #00e0ff; }
-      .btn-sub-mini-set { background: rgba(0, 224, 255, 0.15); border-color: rgba(0, 224, 255, 0.3); color: #00e0ff; }
       .btn-sub-mini-close {
-          background: transparent; border: none; color: #888; font-size: 0.75rem;
+          background: transparent; border: none; color: #888; font-size: 0.85rem;
           cursor: pointer; padding: 2px 4px; line-height: 1;
       }
       .btn-sub-mini-close:hover { color: #fff; }
+
+      /* In-Video Rhyme / Sync Modal */
+      .sub-rhyme-modal {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(12, 14, 22, 0.96);
+          border: 1px solid rgba(0, 224, 255, 0.4);
+          box-shadow: 0 12px 45px rgba(0, 0, 0, 0.9), 0 0 25px rgba(0, 224, 255, 0.2);
+          backdrop-filter: blur(18px);
+          -webkit-backdrop-filter: blur(18px);
+          border-radius: 14px;
+          padding: 18px 22px;
+          z-index: 10000;
+          width: 90%;
+          max-width: 420px;
+          animation: fadeIn 0.2s ease;
+      }
+      .sub-rhyme-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 10px;
+          border-bottom: 1px solid rgba(255,255,255,0.08);
+          padding-bottom: 8px;
+      }
+      .sub-rhyme-title {
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+      }
+      .sub-rhyme-close {
+          background: transparent;
+          border: none;
+          color: #888;
+          font-size: 1.2rem;
+          cursor: pointer;
+          line-height: 1;
+      }
+      .sub-rhyme-close:hover { color: #fff; }
+      .sub-rhyme-input-row {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 12px;
+      }
+      .sub-rhyme-input {
+          flex: 1;
+          background: #08090f;
+          border: 1px solid rgba(255,255,255,0.18);
+          border-radius: 8px;
+          padding: 8px 12px;
+          color: #00e0ff;
+          font-size: 1rem;
+          font-family: monospace;
+          font-weight: 700;
+          outline: none;
+      }
+      .sub-rhyme-input:focus {
+          border-color: #00e0ff;
+          box-shadow: 0 0 10px rgba(0,224,255,0.35);
+      }
+      .btn-rhyme-action {
+          background: #00e0ff;
+          color: #000;
+          font-weight: 700;
+          border: none;
+          border-radius: 8px;
+          padding: 8px 16px;
+          cursor: pointer;
+          font-size: 0.85rem;
+          white-space: nowrap;
+          transition: background 0.15s;
+      }
+      .btn-rhyme-action:hover { background: #33e7ff; }
+      .sub-rhyme-nudges {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-wrap: wrap;
+      }
+      .btn-rhyme-pill {
+          background: #181a26;
+          border: 1px solid rgba(255,255,255,0.1);
+          color: #ddd;
+          padding: 4px 8px;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: 0.15s;
+      }
+      .btn-rhyme-pill:hover {
+          background: rgba(0, 224, 255, 0.15);
+          color: #00e0ff;
+          border-color: rgba(0, 224, 255, 0.3);
+      }
+      .btn-rhyme-restart {
+          background: rgba(229, 9, 20, 0.15);
+          color: #ff6b81;
+          border-color: rgba(229, 9, 20, 0.3);
+      }
 
       /* Cinematic Mode */
       body.cinematic-active::before {
@@ -1103,20 +1238,55 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 
               <!-- Mini Subtitle Sync Bar (HUD for iframes / Server 3 Auto) -->
               <div id="subMiniBar" class="sub-mini-bar" style="display:none;">
-                  <button type="button" class="btn-sub-mini" id="subMiniPlayPause" onclick="ZenSubtitles.togglePlayback()" title="Pause/Resume Subtitles">
-                      <i class="fa-solid fa-pause"></i>
+                  <button type="button" class="btn-sub-mini" id="subMiniPlayPause" onclick="ZenSubtitles.togglePlayback()" title="Pause/Resume Subtitles (Space)">
+                      <i class="fa-solid fa-play"></i>
                   </button>
-                  <div class="sub-mini-time" id="subMiniTime" title="Current Subtitle Time (Click to edit/sync)" onclick="ZenSubtitles.promptSeekTime()">00:00</div>
+                  <div class="sub-mini-time" id="subMiniTime" title="Current Subtitle Time (Click to Rhyme)" onclick="ZenSubtitles.openRhymeDialog()">00:00</div>
+                  <button type="button" class="btn-sub-rhyme" onclick="ZenSubtitles.openRhymeDialog()" title="Rhyme Subtitles with Video (Press R)">
+                      <i class="fa-solid fa-wand-magic-sparkles"></i> Rhyme / Sync
+                  </button>
                   <div class="sub-mini-actions">
-                      <button type="button" class="btn-sub-mini" onclick="ZenSubtitles.seekRelative(-5)" title="Rewind 5s">-5s</button>
-                      <button type="button" class="btn-sub-mini" onclick="ZenSubtitles.seekRelative(5)" title="Forward 5s">+5s</button>
-                      <button type="button" class="btn-sub-mini" onclick="ZenSubtitles.adjustOffset(-0.5)" title="Nudge text -0.5s">-0.5s</button>
-                      <button type="button" class="btn-sub-mini" onclick="ZenSubtitles.adjustOffset(0.5)" title="Nudge text +0.5s">+0.5s</button>
-                      <button type="button" class="btn-sub-mini btn-sub-mini-set" onclick="ZenSubtitles.promptSeekTime()" title="Sync with Movie Time">
-                          <i class="fa-solid fa-clock"></i> Set Time
-                      </button>
+                      <button type="button" class="btn-sub-mini" onclick="ZenSubtitles.adjustOffset(-0.5)" title="Delay subtitles 0.5s (earlier)">-0.5s</button>
+                      <button type="button" class="btn-sub-mini" onclick="ZenSubtitles.adjustOffset(0.5)" title="Advance subtitles 0.5s (later)">+0.5s</button>
+                      <button type="button" class="btn-sub-mini" onclick="ZenSubtitles.seekRelative(-5)" title="Rewind subtitles 5s">-5s</button>
+                      <button type="button" class="btn-sub-mini" onclick="ZenSubtitles.seekRelative(5)" title="Forward subtitles 5s">+5s</button>
+                      <button type="button" class="btn-sub-mini" onclick="ZenSubtitles.openModal()" title="Subtitles Menu & Tracks"><i class="fa-solid fa-gear"></i></button>
                   </div>
-                  <button type="button" class="btn-sub-mini-close" onclick="ZenSubtitles.toggleMiniBar()" title="Hide Bar">&times;</button>
+                  <button type="button" class="btn-sub-mini-close" onclick="ZenSubtitles.toggleMiniBar()" title="Hide HUD">&times;</button>
+              </div>
+
+              <!-- In-Video Rhyme / Sync Dialog -->
+              <div id="subRhymeModal" class="sub-rhyme-modal" style="display:none;">
+                  <div class="sub-rhyme-header">
+                      <div class="sub-rhyme-title">
+                          <i class="fa-solid fa-wand-magic-sparkles" style="color:#00e0ff;"></i> Rhyme with Video
+                      </div>
+                      <button type="button" class="sub-rhyme-close" onclick="ZenSubtitles.closeRhymeDialog()">&times;</button>
+                  </div>
+                  <p style="font-size:0.8rem; color:#aaa; margin:0 0 10px 0;">Look at the timestamp on your video player and enter it here to sync instantly:</p>
+                  <div class="sub-rhyme-input-row">
+                      <input type="text" id="subRhymeTimeInput" class="sub-rhyme-input" placeholder="e.g. 04:30 or 1:15:00">
+                      <button type="button" class="btn-rhyme-action" onclick="ZenSubtitles.applyRhymeInput()">Rhyme Now</button>
+                  </div>
+                  <div class="sub-rhyme-nudges">
+                      <span style="font-size:0.75rem; color:#888; margin-right:4px;">Quick jumps:</span>
+                      <button type="button" class="btn-rhyme-pill btn-rhyme-restart" onclick="ZenSubtitles.seekTo(0); ZenSubtitles.closeRhymeDialog();">0:00</button>
+                      <button type="button" class="btn-rhyme-pill" onclick="ZenSubtitles.seekRelative(-10)">-10s</button>
+                      <button type="button" class="btn-rhyme-pill" onclick="ZenSubtitles.seekRelative(-5)">-5s</button>
+                      <button type="button" class="btn-rhyme-pill" onclick="ZenSubtitles.seekRelative(-1)">-1s</button>
+                      <button type="button" class="btn-rhyme-pill" onclick="ZenSubtitles.seekRelative(1)">+1s</button>
+                      <button type="button" class="btn-rhyme-pill" onclick="ZenSubtitles.seekRelative(5)">+5s</button>
+                      <button type="button" class="btn-rhyme-pill" onclick="ZenSubtitles.seekRelative(10)">+10s</button>
+                  </div>
+                  <div class="sub-rhyme-nudges" style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.06);">
+                      <span style="font-size:0.75rem; color:#888; margin-right:4px;">Fine offset:</span>
+                      <button type="button" class="btn-rhyme-pill" onclick="ZenSubtitles.adjustOffset(-0.5)">-0.5s</button>
+                      <button type="button" class="btn-rhyme-pill" onclick="ZenSubtitles.adjustOffset(-0.25)">-0.25s</button>
+                      <span id="subRhymeOffsetDisplay" style="color:#00e0ff; font-family:monospace; font-weight:700; font-size:0.8rem; min-width:40px; text-align:center;">0.0s</span>
+                      <button type="button" class="btn-rhyme-pill" onclick="ZenSubtitles.adjustOffset(0.25)">+0.25s</button>
+                      <button type="button" class="btn-rhyme-pill" onclick="ZenSubtitles.adjustOffset(0.5)">+0.5s</button>
+                      <button type="button" class="btn-rhyme-pill btn-rhyme-restart" onclick="ZenSubtitles.resetOffset()">Reset</button>
+                  </div>
               </div>
         </div>
 

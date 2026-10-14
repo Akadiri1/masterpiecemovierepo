@@ -1,13 +1,15 @@
 /**
  * ZenSubtitles - Universal Subtitle System for Masterpiece Movie
- * Supports:
- *   - Auto-fetching OpenSubtitles by TMDB/IMDb ID
- *   - Custom .srt & .vtt file upload from device
- *   - Universal floating overlay with independent clock for iframes (Server 3 Auto, etc.)
- *   - Mini on-screen Sync Bar (Play/Pause, Seek +/- 5s, Nudge +/- 0.5s, Set Timestamp)
- *   - Fullscreen container sync (keeps subtitles visible in fullscreen)
+ * Features:
+ *   - Auto-fetching OpenSubtitles by TMDB/IMDb ID with WEB-DL streaming prioritization
+ *   - Universal floating overlay with autonomous delta clock for cross-origin iframes
+ *   - Multi-protocol PostMessage bridge (PlayerJS, Vidlink, Player.js, HTML5)
+ *   - Interactive in-video "Rhyme with Video" (Sync) dialog that stays inside Fullscreen
+ *   - Quick-nudge controls ([-0.5s], [+0.5s], [-5s], [+5s], [-10s], [+10s])
+ *   - Keyboard shortcuts: [ / Z (earlier), ] / X (later), R (Rhyme dialog), Space (Play/Pause), C (Subtitles menu)
+ *   - Fresh per-title sync offset (prevents offset pollution across movies)
+ *   - Custom .srt & .vtt local file upload
  *   - Native <track> injection for direct <video> players
- *   - Typography & styling customization
  */
 (function(window) {
     'use strict';
@@ -15,14 +17,14 @@
     const STATE = {
         cues: [],
         activeCue: null,
-        offset: parseFloat(localStorage.getItem('zen_sub_offset') || '0'),
+        offset: 0, // starts at 0.0s clean for each title
         fontSize: localStorage.getItem('zen_sub_fontsize') || '20px',
         color: localStorage.getItem('zen_sub_color') || '#ffffff',
         activeName: '',
         activeLang: '',
         blobUrl: null,
         currentTime: 0,
-        isPlaying: true,
+        isPlaying: false,
         lastFrameTime: performance.now(),
         miniBarVisible: true
     };
@@ -52,7 +54,10 @@
             playerIframe: document.getElementById('playerIframe'),
             miniBar: document.getElementById('subMiniBar'),
             miniTime: document.getElementById('subMiniTime'),
-            miniPlayPause: document.getElementById('subMiniPlayPause')
+            miniPlayPause: document.getElementById('subMiniPlayPause'),
+            rhymeModal: document.getElementById('subRhymeModal'),
+            rhymeInput: document.getElementById('subRhymeTimeInput'),
+            rhymeOffsetDisplay: document.getElementById('subRhymeOffsetDisplay')
         };
 
         applyStyle();
@@ -61,6 +66,9 @@
 
         STATE.lastFrameTime = performance.now();
         requestAnimationFrame(updateLoop);
+
+        // Proactively query iframe players every 1 second in case they support PlayerJS or Player.js postMessage APIs
+        setInterval(queryIframeTime, 1000);
     }
 
     function bindEvents() {
@@ -155,36 +163,66 @@
         }
 
         // Cross-origin iframe postMessage listeners
-        window.addEventListener('message', function(event) {
-            if (!event.data) return;
-            try {
-                const d = (typeof event.data === 'string') ? JSON.parse(event.data) : event.data;
-                if (d.type === 'MEDIA_DATA' && d.data && typeof d.data.currentTime === 'number') {
-                    STATE.currentTime = d.data.currentTime;
-                    if (typeof d.data.isPaused === 'boolean') {
-                        STATE.isPlaying = !d.data.isPaused;
-                        updateMiniPlayPauseUI();
-                    }
-                } else if (typeof d.currentTime === 'number') {
-                    STATE.currentTime = d.currentTime;
+        window.addEventListener('message', handlePostMessage);
+
+        // When user interacts with the video area in iframe mode, start clock if ready
+        if (elements.videoArea) {
+            elements.videoArea.addEventListener('click', function() {
+                if (isIframeMode() && STATE.cues.length > 0 && !STATE.isPlaying && STATE.currentTime === 0) {
+                    STATE.isPlaying = true;
+                    STATE.lastFrameTime = performance.now();
+                    updateMiniPlayPauseUI();
                 }
-            } catch(e) {}
+            });
+        }
+
+        // Window blur event: fires when viewer clicks into the cross-origin iframe to click Play!
+        window.addEventListener('blur', function() {
+            if (isIframeMode() && STATE.cues.length > 0 && !STATE.isPlaying && STATE.currentTime === 0) {
+                STATE.isPlaying = true;
+                STATE.lastFrameTime = performance.now();
+                updateMiniPlayPauseUI();
+            }
         });
 
         // Keyboard shortcuts
         document.addEventListener('keydown', function(e) {
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                if (e.key === 'Enter' && e.target === elements.rhymeInput) {
+                    applyRhymeInput();
+                }
+                if (e.key === 'Escape' && elements.rhymeModal && elements.rhymeModal.style.display !== 'none') {
+                    closeRhymeDialog();
+                }
+                return;
+            }
+
             if (e.key === 'c' || e.key === 'C') {
                 if (elements.modal && elements.modal.style.display !== 'none') {
                     closeModal();
                 } else {
                     openModal();
                 }
-            } else if (e.key === 'Escape' && elements.modal && elements.modal.style.display !== 'none') {
-                closeModal();
+            } else if (e.key === 'r' || e.key === 'R') {
+                if (STATE.cues.length > 0) {
+                    if (elements.rhymeModal && elements.rhymeModal.style.display !== 'none') {
+                        closeRhymeDialog();
+                    } else {
+                        openRhymeDialog();
+                    }
+                }
+            } else if (e.key === 'Escape') {
+                if (elements.rhymeModal && elements.rhymeModal.style.display !== 'none') {
+                    closeRhymeDialog();
+                } else if (elements.modal && elements.modal.style.display !== 'none') {
+                    closeModal();
+                }
             } else if ((e.key === ' ' || e.code === 'Space') && STATE.cues.length > 0 && isIframeMode()) {
-                // Toggle subtitle clock on spacebar if in iframe mode
                 togglePlayback();
+            } else if (e.key === '[' || e.key === 'z' || e.key === 'Z') {
+                if (STATE.cues.length > 0) adjustOffset(e.shiftKey ? -2.0 : -0.5);
+            } else if (e.key === ']' || e.key === 'x' || e.key === 'X') {
+                if (STATE.cues.length > 0) adjustOffset(e.shiftKey ? 2.0 : 0.5);
             }
         });
     }
@@ -192,6 +230,79 @@
     function isIframeMode() {
         return elements.playerIframe && elements.playerIframe.style.display !== 'none';
     }
+
+    // --- MULTI-PROTOCOL POSTMESSAGE BRIDGE ---
+
+    function handlePostMessage(event) {
+        if (!event.data) return;
+        let d = event.data;
+        if (typeof d === 'string') {
+            try { d = JSON.parse(d); } catch(e) { return; }
+        }
+        if (typeof d !== 'object' || d === null) return;
+
+        let detectedTime = null;
+        let detectedPlaying = null;
+
+        // Vidlink format: { type: 'PLAYER_EVENT', data: { event: 'timeupdate', currentTime: 12.3 } }
+        if (d.data && typeof d.data === 'object') {
+            if (typeof d.data.currentTime === 'number') detectedTime = d.data.currentTime;
+            else if (typeof d.data.time === 'number') detectedTime = d.data.time;
+            else if (typeof d.data.seconds === 'number') detectedTime = d.data.seconds;
+
+            if (d.data.event === 'play' || d.data.event === 'playing') detectedPlaying = true;
+            else if (d.data.event === 'pause' || d.data.event === 'paused' || d.data.event === 'ended') detectedPlaying = false;
+            if (typeof d.data.isPaused === 'boolean') detectedPlaying = !d.data.isPaused;
+        }
+
+        // Direct properties
+        if (typeof d.currentTime === 'number') detectedTime = d.currentTime;
+        else if (typeof d.time === 'number') detectedTime = d.time;
+        else if (typeof d.seconds === 'number') detectedTime = d.seconds;
+        else if (typeof d.position === 'number') detectedTime = d.position;
+
+        // PlayerJS format: { event: 'time', answer: 12.3 } or { answer: 12.3 }
+        if (typeof d.answer === 'number') detectedTime = d.answer;
+        else if (typeof d.answer === 'string' && !isNaN(parseFloat(d.answer))) detectedTime = parseFloat(d.answer);
+
+        // Player.js format
+        if (d.value) {
+            if (typeof d.value === 'number') detectedTime = d.value;
+            else if (typeof d.value.seconds === 'number') detectedTime = d.value.seconds;
+            else if (typeof d.value.currentTime === 'number') detectedTime = d.value.currentTime;
+        }
+
+        if (d.event === 'play' || d.event === 'playing') detectedPlaying = true;
+        else if (d.event === 'pause' || d.event === 'paused' || d.event === 'ended') detectedPlaying = false;
+        if (typeof d.paused === 'boolean') detectedPlaying = !d.paused;
+
+        // Apply detected values
+        if (detectedTime !== null && !isNaN(detectedTime) && detectedTime >= 0) {
+            STATE.currentTime = detectedTime;
+            updateMiniTimeUI();
+        }
+        if (detectedPlaying !== null) {
+            STATE.isPlaying = detectedPlaying;
+            updateMiniPlayPauseUI();
+        }
+    }
+
+    function queryIframeTime() {
+        if (!isIframeMode() || !elements.playerIframe || !elements.playerIframe.contentWindow) return;
+        try {
+            const cw = elements.playerIframe.contentWindow;
+            // PlayerJS queries
+            cw.postMessage({ api: 'time' }, '*');
+            cw.postMessage('{"api":"time"}', '*');
+            cw.postMessage({ api: 'events' }, '*');
+            // Player.js standard queries
+            cw.postMessage({ method: 'getCurrentTime' }, '*');
+            cw.postMessage(JSON.stringify({ context: 'player.js', method: 'getCurrentTime' }), '*');
+            cw.postMessage({ type: 'get_time' }, '*');
+        } catch(e) {}
+    }
+
+    // --- MODAL CONTROLS ---
 
     function switchTab(tabName) {
         if (!elements.modal) return;
@@ -225,10 +336,11 @@
 
     function togglePlayback() {
         STATE.isPlaying = !STATE.isPlaying;
+        STATE.lastFrameTime = performance.now();
         updateMiniPlayPauseUI();
         if (typeof Toastify === 'function') {
             Toastify({
-                text: STATE.isPlaying ? "▶ Subtitles resumed" : "⏸ Subtitles paused",
+                text: STATE.isPlaying ? "▶ Subtitles ticking" : "⏸ Subtitles paused",
                 duration: 1500,
                 style: { background: "#111", color: "#00e0ff" }
             }).showToast();
@@ -240,12 +352,15 @@
         elements.miniPlayPause.innerHTML = STATE.isPlaying 
             ? '<i class="fa-solid fa-pause"></i>' 
             : '<i class="fa-solid fa-play"></i>';
-        elements.miniPlayPause.title = STATE.isPlaying ? 'Pause Subtitles' : 'Resume Subtitles';
+        elements.miniPlayPause.title = STATE.isPlaying ? 'Pause Subtitles (Space)' : 'Resume Subtitles (Space)';
     }
 
     function seekRelative(seconds) {
         STATE.currentTime = Math.max(0, STATE.currentTime + seconds);
         updateMiniTimeUI();
+        if (elements.rhymeInput && elements.rhymeModal && elements.rhymeModal.style.display !== 'none') {
+            elements.rhymeInput.value = formatTime(STATE.currentTime);
+        }
         if (typeof Toastify === 'function') {
             Toastify({
                 text: (seconds > 0 ? `+${seconds}s` : `${seconds}s`) + ` (${formatTime(STATE.currentTime)})`,
@@ -255,30 +370,61 @@
         }
     }
 
-    function promptSeekTime() {
-        const currentStr = formatTime(STATE.currentTime);
-        const input = prompt("Enter current movie time (e.g. 05:30 or 1:15:00 or in seconds):", currentStr);
-        if (input !== null && input.trim() !== '') {
-            const sec = parseTimeString(input.trim());
+    function seekTo(seconds) {
+        STATE.currentTime = Math.max(0, seconds);
+        updateMiniTimeUI();
+        if (elements.rhymeInput) elements.rhymeInput.value = formatTime(STATE.currentTime);
+    }
+
+    // --- IN-VIDEO RHYME / SYNC DIALOG ---
+
+    function openRhymeDialog() {
+        if (!elements.rhymeModal) return;
+        if (elements.rhymeInput) {
+            elements.rhymeInput.value = formatTime(STATE.currentTime);
+        }
+        updateOffsetUI();
+        elements.rhymeModal.style.display = 'block';
+        if (elements.rhymeInput) {
+            elements.rhymeInput.focus();
+            elements.rhymeInput.select();
+        }
+    }
+
+    function closeRhymeDialog() {
+        if (!elements.rhymeModal) return;
+        elements.rhymeModal.style.display = 'none';
+    }
+
+    function applyRhymeInput() {
+        if (!elements.rhymeInput) return;
+        const val = elements.rhymeInput.value.trim();
+        if (val) {
+            const sec = parseTimeString(val);
             if (!isNaN(sec) && sec >= 0) {
-                STATE.currentTime = sec;
+                seekTo(sec);
                 STATE.isPlaying = true;
+                STATE.lastFrameTime = performance.now();
                 updateMiniPlayPauseUI();
-                updateMiniTimeUI();
+                closeRhymeDialog();
                 if (typeof Toastify === 'function') {
                     Toastify({
-                        text: "⏱ Subtitles synced to " + formatTime(STATE.currentTime),
+                        text: "✨ Subtitles rhymed to " + formatTime(sec),
                         duration: 2500,
-                        style: { background: "#00e0ff", color: "#000", fontWeight: "bold" }
+                        style: { background: "linear-gradient(135deg, #00e0ff, #7b2cbf)", color: "#fff", fontWeight: "bold" }
                     }).showToast();
                 }
             } else {
-                alert("Invalid time format. Please use MM:SS or HH:MM:SS.");
+                alert("Please enter a valid time (e.g. 04:30 or 1:15:00 or seconds)");
             }
         }
     }
 
     function parseTimeString(str) {
+        str = (str || '').trim();
+        if (/^\d+(\.\d+)?$/.test(str)) {
+            return parseFloat(str);
+        }
         const parts = str.split(':').map(Number);
         if (parts.some(isNaN)) return NaN;
         if (parts.length === 3) return (parts[0] * 3600) + (parts[1] * 60) + parts[2];
@@ -336,9 +482,11 @@
         timeStr = (timeStr || '').trim().replace(',', '.');
         const parts = timeStr.split(':');
         if (parts.length === 3) {
-            return (parseFloat(parts[0]) * 3600) + (parseFloat(parts[1]) * 60) + parseFloat(parts[2]);
+            const secPart = (parts[2] || '').split(' ')[0];
+            return (parseFloat(parts[0]) * 3600) + (parseFloat(parts[1]) * 60) + parseFloat(secPart);
         } else if (parts.length === 2) {
-            return (parseFloat(parts[0]) * 60) + parseFloat(parts[1]);
+            const secPart = (parts[1] || '').split(' ')[0];
+            return (parseFloat(parts[0]) * 60) + parseFloat(secPart);
         }
         return parseFloat(timeStr) || 0;
     }
@@ -403,11 +551,16 @@
         STATE.cues = cues;
         STATE.activeName = title || 'Custom Subtitles';
         STATE.activeLang = lang || 'en';
-        STATE.isPlaying = true;
+        STATE.offset = 0; // Clean start for newly selected subtitle
 
-        // If in iframe mode and current time is 0, start clock
-        if (isIframeMode() && STATE.currentTime === 0) {
+        if (elements.playerVideo && elements.playerVideo.style.display !== 'none') {
+            STATE.currentTime = elements.playerVideo.currentTime;
+            STATE.isPlaying = !elements.playerVideo.paused;
+        } else {
+            // Iframe mode (Server 3 Auto, etc.)
             STATE.currentTime = 0;
+            STATE.isPlaying = true;
+            STATE.lastFrameTime = performance.now();
         }
 
         // Update UI
@@ -416,12 +569,12 @@
         if (elements.turnOffBtn) elements.turnOffBtn.style.display = 'inline-flex';
         if (elements.activeDot) elements.activeDot.style.display = 'block';
 
-        // Show Mini Sync Bar for iframes
         if (elements.miniBar) {
             elements.miniBar.style.display = isIframeMode() ? 'flex' : 'none';
         }
         updateMiniPlayPauseUI();
         updateMiniTimeUI();
+        updateOffsetUI();
 
         // Attach native track to direct <video> if present
         if (elements.playerVideo && elements.playerVideo.style.display !== 'none') {
@@ -432,9 +585,9 @@
 
         if (typeof Toastify === 'function') {
             Toastify({
-                text: "✨ Subtitles loaded: " + STATE.activeName,
-                duration: 3500,
-                style: { background: "#00e0ff", color: "#000", fontWeight: "bold" }
+                text: "✨ Subtitles loaded: " + STATE.activeName + " (Click Rhyme if out of sync)",
+                duration: 4000,
+                style: { background: "linear-gradient(135deg, #00e0ff, #7b2cbf)", color: "#fff", fontWeight: "bold" }
             }).showToast();
         }
 
@@ -477,6 +630,7 @@
         if (elements.turnOffBtn) elements.turnOffBtn.style.display = 'none';
         if (elements.activeDot) elements.activeDot.style.display = 'none';
         if (elements.miniBar) elements.miniBar.style.display = 'none';
+        if (elements.rhymeModal) elements.rhymeModal.style.display = 'none';
 
         if (elements.playerVideo) {
             const oldTracks = elements.playerVideo.querySelectorAll('track[kind="subtitles"]');
@@ -575,10 +729,14 @@
         let html = '';
         filtered.forEach(sub => {
             const isCurrent = STATE.activeName === sub.release;
+            const badgeHtml = sub.is_web 
+                ? `<span class="sub-item-badge sub-badge-best"><i class="fa-solid fa-star"></i> Best Sync (WEB)</span>`
+                : `<span class="sub-item-badge">${sub.lang_name}</span>`;
+
             html += `
             <div class="sub-item ${isCurrent ? 'active' : ''}">
                 <div class="sub-item-meta">
-                    <span class="sub-item-badge">${sub.lang_name}</span>
+                    <div>${badgeHtml} <span style="font-size:0.75rem; color:#aaa; margin-left:4px;">${sub.lang_name}</span></div>
                     <span class="sub-item-title" title="${sub.release}">${sub.release}</span>
                 </div>
                 <button type="button" class="btn-sub-apply" onclick="ZenSubtitles.applyRemoteSubtitle('${encodeURIComponent(sub.proxy_url)}', '${encodeURIComponent(sub.release)}', '${sub.lang_code}')">
@@ -620,12 +778,11 @@
     // --- TIMING OFFSET CONTROLS ---
 
     function adjustOffset(delta) {
-        STATE.offset = Math.round((STATE.offset + delta) * 10) / 10;
-        localStorage.setItem('zen_sub_offset', STATE.offset);
+        STATE.offset = Math.round((STATE.offset + delta) * 100) / 100;
         updateOffsetUI();
         if (typeof Toastify === 'function') {
             Toastify({
-                text: `Subtitle Offset: ${STATE.offset > 0 ? '+' : ''}${STATE.offset.toFixed(1)}s`,
+                text: `Subtitle Offset: ${STATE.offset > 0 ? '+' : ''}${STATE.offset.toFixed(2)}s`,
                 duration: 1200,
                 style: { background: "#111", color: "#00e0ff" }
             }).showToast();
@@ -634,14 +791,13 @@
 
     function resetOffset() {
         STATE.offset = 0;
-        localStorage.setItem('zen_sub_offset', '0');
         updateOffsetUI();
     }
 
     function updateOffsetUI() {
-        if (elements.offsetDisplay) {
-            elements.offsetDisplay.textContent = (STATE.offset > 0 ? '+' : '') + STATE.offset.toFixed(1) + 's';
-        }
+        const text = (STATE.offset > 0 ? '+' : '') + STATE.offset.toFixed(2) + 's';
+        if (elements.offsetDisplay) elements.offsetDisplay.textContent = text;
+        if (elements.rhymeOffsetDisplay) elements.rhymeOffsetDisplay.textContent = text;
     }
 
     // --- TYPOGRAPHY & STYLING ---
@@ -666,7 +822,6 @@
                 STATE.currentTime = elements.playerVideo.currentTime;
             } else if (STATE.isPlaying) {
                 // Cross-origin iframe mode (Server 3 Auto, VidSrc, etc.)
-                // Advance clock with real seconds!
                 STATE.currentTime += delta;
             }
             updateMiniTimeUI();
@@ -722,7 +877,10 @@
         applyRemoteSubtitle: applyRemoteSubtitle,
         togglePlayback: togglePlayback,
         seekRelative: seekRelative,
-        promptSeekTime: promptSeekTime,
+        seekTo: seekTo,
+        openRhymeDialog: openRhymeDialog,
+        closeRhymeDialog: closeRhymeDialog,
+        applyRhymeInput: applyRhymeInput,
         toggleMiniBar: toggleMiniBar,
         toggleFullscreen: toggleFullscreen
     };
