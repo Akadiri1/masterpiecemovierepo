@@ -1729,58 +1729,18 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 
         // --- Slow connections ---
         // Films the site plays itself can come in several sizes (Admin > Free
-        // films, the ingestion pipeline); the server marks the smallest
-        // 'light'. On a slow or data-saving connection, start on it. If the
-        // film keeps stopping to buffer, drop to it and carry on from the same
-        // moment. YouTube and archive.org players adjust quality themselves.
+        // films, the ingestion pipeline); the server marks the smallest 'light'.
         const lightIndex = servers.findIndex(s => s.light);
         const isDirectUrl = url => /\.(mp4|mkv|webm|m3u8)(\?|$)/i.test(url || '');
         const netInfo = navigator.connection || null;
-        // Deliberately cautious: only clearly slow connections start small,
-        // because browsers report a conservative "3g" estimate before they
-        // have measured anything. Everything else starts at full quality and
-        // drops only if it really keeps buffering.
-        function connectionIsSlow() {
-            if (!netInfo) return false;
-            if (netInfo.saveData) return true;
-            if (['slow-2g', '2g'].includes(netInfo.effectiveType)) return true;
-            return netInfo.effectiveType === '3g' && typeof netInfo.downlink === 'number'
-                && netInfo.downlink > 0 && netInfo.downlink < 1;
-        }
-        if (lightIndex > 0 && connectionIsSlow()) {
-            switchToServer(lightIndex);
-            showBanner('slow', '<i class="fa-solid fa-signal" style="opacity:0.8"></i> Slow connection: playing the data saver version');
-            hideBanner(5000);
-        }
-        if (lightIndex >= 0 && playerVideo) {
-            let stalls = [];
-            let started = false;
-            playerVideo.addEventListener('playing', () => { started = true; });
-            playerVideo.addEventListener('waiting', () => {
-                if (!started || currentServer === lightIndex || !isDirectUrl(servers[currentServer] && servers[currentServer].url)) return;
-                const now = Date.now();
-                stalls = stalls.filter(t => now - t < 60000).concat(now);
-                if (stalls.length >= 3) {
-                    stalls = [];
-                    started = false;
-                    switchToServer(lightIndex, playerVideo.currentTime);
-                    showBanner('slow', '<i class="fa-solid fa-signal" style="opacity:0.8"></i> It kept buffering, so we switched to the data saver version');
-                    hideBanner(6000);
-                }
-            });
-        }
+
+        // Auto-switch disabled: user manually selects servers.
 
         // =================================================================
-        // WHEN A SOURCE WILL NOT PLAY, MOVE TO THE NEXT ONE
+        // SERVER OPTIONS & MANUAL SWITCHING
         // =================================================================
-        // Three things can go wrong and only two of them are visible here:
-        //   a file that 404s or will not decode - the <video> says so exactly;
-        //   an embed host that has gone away    - the iframe never loads;
-        //   an embed that loads with no film in it - sealed off, invisible.
-        // The first two move on by themselves. The third is why the menu also
-        // offers "Not playing? Try the next one".
+        // Automatic server switching is disabled — the user controls playback manually.
         const deadSources = new Set();
-        const IFRAME_GIVE_UP_MS = 15000;
 
         function serverHost(url) {
             try { return new URL(url, location.href).hostname; } catch (e) { return ''; }
@@ -1797,86 +1757,55 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
             }
         }
 
-        function nextLiveServer(from) {
-            for (let step = 1; step <= servers.length; step++) {
-                const idx = (from + step) % servers.length;
-                if (idx !== from && !deadSources.has(idx)) return idx;
-            }
-            return -1;
+        function switchToNextServer() {
+            if (servers.length <= 1) return;
+            const next = (currentServer + 1) % servers.length;
+            const nextName = (servers[next] && servers[next].name) || 'another source';
+            switchToServer(next);
+            showBanner('slow', '<i class="fa-solid fa-arrows-rotate" style="opacity:0.8"></i> Switched to ' + nextName);
+            hideBanner(4000);
         }
 
-        function failoverFrom(index, reason) {
-            if (index !== currentServer) return;   // something already moved on
-            markServerDead(index, reason);
-            const next = nextLiveServer(index);
-            const failedName = (servers[index] && servers[index].name) || 'That source';
-            if (next < 0) {
-                clearTimeout(loadTimeout);
-                if (playerLoading) playerLoading.classList.remove('visible');
-                showBanner('offline', '<i class="fa-solid fa-circle-exclamation" style="opacity:0.8"></i> None of the sources would play this one. Try again later.');
-                return;
-            }
-            const resumeAt = (playerVideo && isDirectUrl(servers[index].url) && playerVideo.currentTime > 5) ? playerVideo.currentTime : 0;
-            switchToServer(next, resumeAt);
-            showBanner('slow', '<i class="fa-solid fa-arrows-rotate" style="opacity:0.8"></i> ' + failedName + ' was not responding, so we moved to ' + ((servers[next] && servers[next].name) || 'another source'));
-            hideBanner(6000);
-        }
-
-        // A file that cannot be fetched or decoded. The browser is exact here,
-        // which is why the site's own licensed files are judged only this way.
+        // Direct video errors — inform user without automatic switching
         if (playerVideo) {
             playerVideo.addEventListener('error', () => {
                 const src = playerVideo.getAttribute('src');
-                if (!src) return;                               // cleared on purpose
+                if (!src) return;
                 const current = servers[currentServer];
                 if (!current || !isDirectUrl(current.url)) return;
-                // Changing source aborts the load in progress and raises an
-                // error for the source being left. Neither that, nor an error
-                // that arrives for a source already moved on from, says
-                // anything about the file now in the element.
                 const err = playerVideo.error;
                 if (err && err.code === (err.MEDIA_ERR_ABORTED || 1)) return;
                 if (src !== current.url) return;
-                failoverFrom(currentServer, 'The file would not play');
+                if (playerLoading) playerLoading.classList.remove('visible');
+                showBanner('offline', '<i class="fa-solid fa-circle-exclamation" style="opacity:0.8"></i> Video playback error. You can select another server from the list.');
             });
         }
 
-        // An embed host that never answers. A cross-origin iframe fires load
-        // for anything at all, even an error page, so this catches only a host
-        // that is genuinely unreachable — the case a viewer can do nothing about.
+        // Iframe watchdog: hide loading overlay after 10s so it doesn't block the screen indefinitely, without switching servers
         window.zenArmIframeWatchdog = function () {
             clearTimeout(loadTimeout);
-            if (!playerIframe || !playerIframe.src) return;
-            const armedFor = currentServer;
             loadTimeout = setTimeout(function () {
-                if (!navigator.onLine) return;   // offline has its own message
-                failoverFrom(armedFor, 'The server did not answer');
-            }, IFRAME_GIVE_UP_MS);
+                if (playerLoading) playerLoading.classList.remove('visible');
+            }, 10000);
         };
         if (playerIframe && playerIframe.src) window.zenArmIframeWatchdog();
 
-        // What this side can see and the browser cannot: whether the embed
-        // hosts are answering at all. Asked for after the page is up, so it
-        // delays nothing, and only ever applied to embeds.
+        // Optional server health check to hint in the dropdown list (visual hint only, never switches automatically)
         if (servers.some(s => !isDirectUrl(s.url))) {
             fetch('/server-health.php', { credentials: 'same-origin' })
                 .then(r => (r.ok ? r.json() : null))
                 .then(d => {
                     if (!d || !d.hosts) return;
                     servers.forEach((s, i) => {
-                        if (isDirectUrl(s.url)) return;          // the browser judges those
+                        if (isDirectUrl(s.url)) return;
                         const info = d.hosts[serverHost(s.url)];
-                        if (info && info.up === false) markServerDead(i, 'Not responding');
+                        if (info && info.up === false) markServerDead(i, 'May be slow or unresponsive');
                     });
-                    if (deadSources.has(currentServer)) failoverFrom(currentServer, 'That server is down');
                 })
                 .catch(() => {});
         }
 
-        // The undetectable case: it loaded, but there is no film in it. Only
-        // the viewer can see that, so it takes one tap rather than a hunt
-        // through the list. Deliberately not a .server-option: that class is
-        // matched by position elsewhere.
+        // Manual option in dropdown: "Not playing? Try the next one"
         if (serverDropdown && servers.length > 1) {
             const tryNext = document.createElement('button');
             tryNext.type = 'button';
@@ -1886,7 +1815,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
             tryNext.addEventListener('click', function (e) {
                 e.stopPropagation();
                 serverDropdown.classList.remove('open');
-                failoverFrom(currentServer, 'You said it was not playing');
+                switchToNextServer();
             });
             serverDropdown.insertBefore(tryNext, serverDropdown.firstChild);
         }
