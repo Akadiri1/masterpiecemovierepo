@@ -5,7 +5,7 @@ Vagrantfile
 .env/config.php
 ngrok.exe
 .htaccess
-# Per-member recommendation cache (personal viewing data; rebuilt as needed)
-v1/cache/recs/
+# Cache directories (personal viewing data, API responses; rebuilt as needed)
+v1/cache/
 # Written by the Docker build to stamp each deploy; never committed
 .build-version

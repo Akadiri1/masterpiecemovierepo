@@ -48,7 +48,7 @@ if (function_exists('fetchTmdbApi')) {
     
     // --- MOVIE LOGIC ---
     if ($mediaType === 'movie') {
-        $details = fetchTmdbApi("movie/{$mediaId}", ['append_to_response' => 'videos,release_dates,recommendations,credits']);
+        $details = fetchTmdbApi("movie/{$mediaId}", ['append_to_response' => 'videos,release_dates,recommendations,credits,external_ids']);
         
         if ($details) {
             $videoTitle = $details['title'] ?? 'Movie';
@@ -71,7 +71,7 @@ if (function_exists('fetchTmdbApi')) {
     // --- TV SHOW LOGIC ---
     else {
         // 1. Fetch Show Details
-        $details = fetchTmdbApi("tv/{$mediaId}", ['append_to_response' => 'recommendations,credits']);
+        $details = fetchTmdbApi("tv/{$mediaId}", ['append_to_response' => 'recommendations,credits,external_ids']);
         
         if ($details) {
             $videoTitle = $details['name'] ?? 'TV Show';
@@ -79,7 +79,7 @@ if (function_exists('fetchTmdbApi')) {
             $videoSubTitle = "Season {$seasonNum} - Episode {$episodeNum}";
             
             // 2. Fetch Specific Episode to check Air Date
-            $epDetails = fetchTmdbApi("tv/{$mediaId}/season/{$seasonNum}/episode/{$episodeNum}", ['append_to_response' => 'videos,credits']);
+            $epDetails = fetchTmdbApi("tv/{$mediaId}/season/{$seasonNum}/episode/{$episodeNum}", ['append_to_response' => 'videos,credits,external_ids']);
             
             if ($epDetails) {
                 $airDate = $epDetails['air_date'] ?? '';
@@ -126,6 +126,7 @@ if (function_exists('fetchTmdbApi')) {
         }
     }
 }
+$imdbId = $details['external_ids']['imdb_id'] ?? ($epDetails['external_ids']['imdb_id'] ?? '');
 
 // ==========================================
 // 3b. WATCHLIST STATE AND DOWNLOADS
@@ -240,6 +241,14 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
   <link rel="stylesheet" href="assets/css/core/mobile-player.css?v=<?php echo time() + 2; ?>">
   <!-- Loaded blocking (not deferred) so the inline player script below can use it. -->
   <script src="assets/js/player/mobile-player.js?v=<?php echo time() + 2; ?>"></script>
+  <script>
+    window.currentImdbId = <?php echo json_encode($imdbId ?? ''); ?>;
+    window.currentTmdbId = <?php echo json_encode($mediaId); ?>;
+    window.currentMediaType = <?php echo json_encode($mediaType); ?>;
+    window.currentSeason = <?php echo json_encode($seasonNum); ?>;
+    window.currentEpisode = <?php echo json_encode($episodeNum); ?>;
+  </script>
+  <script src="assets/js/player/subtitles.js?v=<?php echo time(); ?>" defer></script>
   <link rel="stylesheet" href="assets/vendor/phosphor-icons/Fonts/regular/style.css">
   <link rel="stylesheet" href="assets/vendor/phosphor-icons/Fonts/fill/style.css">
   <!-- Posters and backdrops come from TMDB's image server: connect early. -->
@@ -249,6 +258,251 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
   <?php if ($whereToWatch !== null) echo whereToWatchStyles(); ?>
   <script src="/assets/js/skeleton.js?v=1" defer></script>
   <style>
+      /* ========================================================
+         UNIVERSAL SUBTITLE SYSTEM (ZenSubtitles)
+         ======================================================== */
+      .subtitle-overlay {
+          position: absolute;
+          bottom: 45px;
+          left: 5%;
+          right: 5%;
+          display: flex;
+          justify-content: center;
+          text-align: center;
+          pointer-events: none;
+          z-index: 25;
+          transition: bottom 0.2s ease;
+      }
+      .subtitle-text {
+          display: inline-block;
+          background: rgba(0, 0, 0, 0.78);
+          color: #ffffff;
+          padding: 5px 14px;
+          border-radius: 6px;
+          font-size: 20px;
+          line-height: 1.45;
+          font-weight: 600;
+          letter-spacing: 0.3px;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.8);
+          max-width: 90%;
+          word-break: break-word;
+          white-space: pre-line;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      }
+      :fullscreen .subtitle-overlay,
+      :-webkit-full-screen .subtitle-overlay {
+          bottom: 65px;
+      }
+      :fullscreen .subtitle-text,
+      :-webkit-full-screen .subtitle-text {
+          font-size: 26px;
+      }
+
+      /* Subtitle Modal */
+      .sub-modal-overlay {
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+          background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          display: flex; align-items: center; justify-content: center;
+          z-index: 999999;
+          animation: fadeIn 0.2s ease;
+      }
+      .sub-modal {
+          background: #101118;
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 16px;
+          width: 92%; max-width: 520px;
+          max-height: 90vh;
+          display: flex; flex-direction: column;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+          overflow: hidden;
+      }
+      .sub-modal-header {
+          background: rgba(255,255,255,0.03);
+          padding: 16px 20px;
+          display: flex; align-items: center; justify-content: space-between;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+      .sub-modal-header h3 {
+          margin: 0; font-size: 1.15rem; font-weight: 700; color: #fff;
+          display: flex; align-items: center;
+      }
+      .sub-modal-close {
+          background: transparent; border: none; color: #aaa; font-size: 1.5rem;
+          cursor: pointer; padding: 0; line-height: 1;
+      }
+      .sub-modal-close:hover { color: #fff; }
+
+      .sub-active-banner {
+          background: rgba(0, 224, 255, 0.08);
+          border-bottom: 1px solid rgba(0, 224, 255, 0.15);
+          padding: 10px 20px;
+          display: flex; align-items: center; justify-content: space-between;
+          font-size: 0.85rem;
+      }
+      .sub-active-info { display: flex; flex-direction: column; gap: 2px; }
+      .sub-active-status { color: #888; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+      .sub-active-name { color: #00e0ff; font-weight: 600; max-width: 320px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .btn-sub-turnoff {
+          background: rgba(229, 9, 20, 0.15); border: 1px solid rgba(229, 9, 20, 0.3);
+          color: #ff4757; font-size: 0.75rem; font-weight: 600; padding: 4px 10px;
+          border-radius: 6px; cursor: pointer; transition: 0.2s;
+      }
+      .btn-sub-turnoff:hover { background: rgba(229, 9, 20, 0.3); color: #fff; }
+
+      .sub-tabs-nav {
+          display: flex; background: rgba(0,0,0,0.3);
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+          padding: 6px 12px; gap: 8px;
+      }
+      .sub-tab-btn {
+          flex: 1; background: transparent; border: none; color: #888;
+          padding: 8px 10px; border-radius: 8px; font-size: 0.85rem;
+          font-weight: 600; cursor: pointer; transition: 0.2s;
+          display: flex; align-items: center; justify-content: center; gap: 6px;
+      }
+      .sub-tab-btn:hover { color: #ddd; background: rgba(255,255,255,0.03); }
+      .sub-tab-btn.active { color: #00e0ff; background: rgba(0, 224, 255, 0.12); }
+
+      .sub-modal-body {
+          padding: 18px 20px; overflow-y: auto; flex: 1;
+      }
+      .sub-filter-row {
+          display: flex; gap: 10px; margin-bottom: 15px;
+      }
+      .sub-select, .sub-search-input {
+          background: #181924; border: 1px solid rgba(255,255,255,0.1);
+          color: #fff; border-radius: 8px; padding: 8px 12px; font-size: 0.85rem;
+          outline: none;
+      }
+      .sub-select { flex: 0 0 140px; cursor: pointer; }
+      .sub-select option { background: #181924; color: #fff; }
+      .sub-search-input { flex: 1; }
+      .sub-search-input:focus, .sub-select:focus { border-color: #00e0ff; }
+
+      .sub-list-container {
+          min-height: 180px; max-height: 300px; overflow-y: auto;
+      }
+      .sub-loading, .sub-empty {
+          text-align: center; color: #888; padding: 40px 10px; font-size: 0.9rem;
+      }
+      .sub-item {
+          display: flex; align-items: center; justify-content: space-between;
+          background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+          border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;
+          transition: background 0.2s;
+      }
+      .sub-item:hover { background: rgba(255,255,255,0.05); }
+      .sub-item.active { border-color: #00e0ff; background: rgba(0, 224, 255, 0.05); }
+      .sub-item-meta { display: flex; flex-direction: column; max-width: 72%; gap: 3px; }
+      .sub-item-badge {
+          display: inline-block; width: fit-content;
+          background: rgba(0, 224, 255, 0.15); color: #00e0ff;
+          font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+          padding: 2px 6px; border-radius: 4px;
+      }
+      .sub-item-title {
+          font-size: 0.82rem; color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .btn-sub-apply {
+          background: #1e202f; border: 1px solid rgba(255,255,255,0.12);
+          color: #fff; font-size: 0.8rem; font-weight: 600; padding: 6px 12px;
+          border-radius: 6px; cursor: pointer; transition: 0.2s;
+          display: inline-flex; align-items: center; gap: 5px;
+      }
+      .btn-sub-apply:hover { background: #00e0ff; color: #000; border-color: #00e0ff; }
+      .sub-item.active .btn-sub-apply { background: #00e0ff; color: #000; }
+
+      .sub-dropzone {
+          border: 2px dashed rgba(255,255,255,0.15); border-radius: 12px;
+          padding: 35px 20px; text-align: center; cursor: pointer;
+          transition: 0.2s; background: rgba(255,255,255,0.01);
+      }
+      .sub-dropzone.drag-active, .sub-dropzone:hover {
+          border-color: #00e0ff; background: rgba(0, 224, 255, 0.04);
+      }
+      .sub-dropzone-icon { font-size: 2.2rem; color: #00e0ff; margin-bottom: 10px; }
+      .sub-dropzone h4 { color: #fff; font-size: 1rem; margin-bottom: 5px; }
+      .sub-dropzone p { color: #777; font-size: 0.8rem; margin-bottom: 15px; }
+
+      .sub-setting-group { margin-bottom: 18px; }
+      .sub-setting-label {
+          display: block; font-size: 0.85rem; font-weight: 600; color: #fff; margin-bottom: 6px;
+      }
+      .sub-setting-hint { font-size: 0.75rem; color: #888; margin-bottom: 10px; }
+      .sub-offset-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      .btn-offset {
+          background: #1b1d2a; border: 1px solid rgba(255,255,255,0.1);
+          color: #ddd; padding: 6px 10px; border-radius: 6px; font-size: 0.8rem;
+          font-weight: 600; cursor: pointer; transition: 0.2s;
+      }
+      .btn-offset:hover { background: rgba(255,255,255,0.1); color: #fff; }
+      .btn-offset-reset { background: rgba(229, 9, 20, 0.15); border-color: rgba(229, 9, 20, 0.3); color: #ff6b81; }
+      .sub-offset-display {
+          font-family: monospace; font-size: 0.95rem; font-weight: 700; color: #00e0ff;
+          min-width: 55px; text-align: center;
+      }
+      .sub-pill-group { display: flex; gap: 8px; flex-wrap: wrap; }
+      .sub-pill {
+          background: #181924; border: 1px solid rgba(255,255,255,0.08);
+          color: #aaa; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem;
+          font-weight: 600; cursor: pointer; transition: 0.2s;
+      }
+      .sub-pill:hover { color: #fff; border-color: rgba(255,255,255,0.2); }
+      .sub-pill.active { background: #00e0ff; color: #000; border-color: #00e0ff; font-weight: 700; }
+
+      /* Mini Subtitle Sync Bar (HUD for iframes / Server 3 Auto) */
+      .sub-mini-bar {
+          position: absolute;
+          top: 14px;
+          right: 14px;
+          background: rgba(14, 15, 22, 0.88);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(0, 224, 255, 0.35);
+          border-radius: 30px;
+          padding: 4px 10px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          z-index: 9999;
+          box-shadow: 0 6px 20px rgba(0,0,0,0.7);
+          transition: all 0.25s ease;
+      }
+      .sub-mini-bar:hover { opacity: 1; border-color: #00e0ff; }
+      .sub-mini-time {
+          font-family: monospace;
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #00e0ff;
+          padding: 3px 6px;
+          background: rgba(0,0,0,0.5);
+          border-radius: 4px;
+          cursor: pointer;
+          white-space: nowrap;
+      }
+      .sub-mini-time:hover { text-decoration: underline; background: rgba(0, 224, 255, 0.15); }
+      .sub-mini-actions { display: flex; align-items: center; gap: 4px; }
+      .btn-sub-mini {
+          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,0.12);
+          color: #fff;
+          padding: 3px 7px;
+          border-radius: 12px;
+          font-size: 0.72rem;
+          font-weight: 600;
+          cursor: pointer;
+          transition: 0.2s;
+          display: inline-flex; align-items: center; justify-content: center;
+      }
+      .btn-sub-mini:hover { background: #00e0ff; color: #000; border-color: #00e0ff; }
+      .btn-sub-mini-set { background: rgba(0, 224, 255, 0.15); border-color: rgba(0, 224, 255, 0.3); color: #00e0ff; }
+      .btn-sub-mini-close {
+          background: transparent; border: none; color: #888; font-size: 0.75rem;
+          cursor: pointer; padding: 2px 4px; line-height: 1;
+      }
+      .btn-sub-mini-close:hover { color: #fff; }
+
       /* Cinematic Mode */
       body.cinematic-active::before {
           content: "";
@@ -841,6 +1095,29 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                  <iframe id="playerIframe" src="<?php echo !$isDirectVideo ? $videoSrc : ''; ?>" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" style="width:100%; height:100%; border:none; display: <?php echo !$isDirectVideo ? 'block' : 'none'; ?>;"></iframe>
                  <video id="playerVideo" src="<?php echo $isDirectVideo ? htmlspecialchars($videoSrc) : ''; ?>" controls preload="metadata" style="width:100%; height:100%; background:#000; display: <?php echo $isDirectVideo ? 'block' : 'none'; ?>; border: none;" playsinline></video>
               <?php endif; ?>
+
+              <!-- Floating Subtitle Overlay (Active for iframe embeds & direct video) -->
+              <div id="subtitleOverlay" class="subtitle-overlay" style="display:none;">
+                  <span id="subtitleText" class="subtitle-text"></span>
+              </div>
+
+              <!-- Mini Subtitle Sync Bar (HUD for iframes / Server 3 Auto) -->
+              <div id="subMiniBar" class="sub-mini-bar" style="display:none;">
+                  <button type="button" class="btn-sub-mini" id="subMiniPlayPause" onclick="ZenSubtitles.togglePlayback()" title="Pause/Resume Subtitles">
+                      <i class="fa-solid fa-pause"></i>
+                  </button>
+                  <div class="sub-mini-time" id="subMiniTime" title="Current Subtitle Time (Click to edit/sync)" onclick="ZenSubtitles.promptSeekTime()">00:00</div>
+                  <div class="sub-mini-actions">
+                      <button type="button" class="btn-sub-mini" onclick="ZenSubtitles.seekRelative(-5)" title="Rewind 5s">-5s</button>
+                      <button type="button" class="btn-sub-mini" onclick="ZenSubtitles.seekRelative(5)" title="Forward 5s">+5s</button>
+                      <button type="button" class="btn-sub-mini" onclick="ZenSubtitles.adjustOffset(-0.5)" title="Nudge text -0.5s">-0.5s</button>
+                      <button type="button" class="btn-sub-mini" onclick="ZenSubtitles.adjustOffset(0.5)" title="Nudge text +0.5s">+0.5s</button>
+                      <button type="button" class="btn-sub-mini btn-sub-mini-set" onclick="ZenSubtitles.promptSeekTime()" title="Sync with Movie Time">
+                          <i class="fa-solid fa-clock"></i> Set Time
+                      </button>
+                  </div>
+                  <button type="button" class="btn-sub-mini-close" onclick="ZenSubtitles.toggleMiniBar()" title="Hide Bar">&times;</button>
+              </div>
         </div>
 
         <div class="bottom-controls-bar">
@@ -854,7 +1131,7 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                   <?php endif; ?>
              </div>
              
-             <div class="control-actions" style="--toolbar-cols: <?php echo 4 + ((!$isUpcoming && count($servers) > 1) ? 1 : 0) + ((!$isUpcoming && !empty($downloadLinks)) ? 1 : 0); ?>;">
+             <div class="control-actions" style="--toolbar-cols: <?php echo 6 + ((!$isUpcoming && count($servers) > 1) ? 1 : 0) + ((!$isUpcoming && !empty($downloadLinks)) ? 1 : 0); ?>;">
                   <?php if (!$isUpcoming && count($servers) > 1): ?>
                   <!-- Server Switcher Inline -->
                   <div style="position:relative;">
@@ -880,7 +1157,12 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
                   <a href="watch?id=<?php echo $mediaId; ?>&type=tv&season=<?php echo $seasonNum; ?>&episode=<?php echo ($episodeNum + 1); ?>" class="btn-action"><i class="ph ph-caret-right"></i></a>
                   <?php endif; ?>
                   
+                  <button class="btn-action" id="subtitlesBtn" title="Subtitles (CC)" onclick="openSubtitlesModal()" style="position:relative;">
+                      <i class="fa-solid fa-closed-captioning"></i>
+                      <span id="subActiveDot" style="display:none; position:absolute; top:6px; right:6px; width:7px; height:7px; background:#00e0ff; border-radius:50%; box-shadow:0 0 6px #00e0ff;"></span>
+                  </button>
                   <button class="btn-action" id="cinematicToggleBtn" title="Cinematic Mode" onclick="toggleCinematicMode()" style="color: #00e0ff;"><i class="ph-fill ph-moon"></i></button>
+                  <button class="btn-action" id="fullscreenToggleBtn" title="Fullscreen (with Subtitles)" onclick="ZenSubtitles.toggleFullscreen()"><i class="fa-solid fa-expand"></i></button>
                   <button class="btn-action" onclick="openZenFromWatch()" title="Ask ZEN AI" style="background: linear-gradient(135deg, #00e0ff, #7b2cbf); border: none; color: #fff; width: auto; padding: 0 15px; font-weight: 600; display: inline-flex; gap: 6px; align-items: center;">
                       <i class="ph-fill ph-sparkle"></i> <span class="d-none d-md-block">ZEN AI</span>
                   </button>
@@ -1033,6 +1315,124 @@ $baseDir = rtrim($baseDir, '/\\') . '/';
 
 <!-- Mobile Toggle Button (Floating) -->
 <button class="mobile-ep-fab" id="mobileEpToggle" style="display:none; position:fixed; bottom:20px; right:20px; width:50px; height:50px; border-radius:50%; background:#e50914; color:#fff; border:none; z-index:99; align-items:center; justify-content:center;"><i class="ph ph-list"></i></button>
+
+<!-- SUBTITLES MODAL -->
+<div class="sub-modal-overlay" id="subtitlesModal" style="display:none;">
+    <div class="sub-modal">
+        <div class="sub-modal-header">
+            <h3><i class="fa-solid fa-closed-captioning" style="color:#00e0ff; margin-right:8px;"></i> Subtitles & Audio</h3>
+            <button class="sub-modal-close" id="subModalClose" aria-label="Close">&times;</button>
+        </div>
+
+        <!-- Active Subtitle Indicator & Quick Actions -->
+        <div class="sub-active-banner">
+            <div class="sub-active-info">
+                <span class="sub-active-status" id="subActiveStatus">No subtitles active</span>
+                <span class="sub-active-name" id="subActiveName"></span>
+            </div>
+            <button type="button" class="btn-sub-turnoff" id="subTurnOffBtn" style="display:none;" onclick="ZenSubtitles.disable()">
+                <i class="fa-solid fa-power-off"></i> Turn Off
+            </button>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="sub-tabs-nav">
+            <button type="button" class="sub-tab-btn active" data-tab="auto">
+                <i class="fa-solid fa-globe"></i> OpenSubtitles
+            </button>
+            <button type="button" class="sub-tab-btn" data-tab="upload">
+                <i class="fa-solid fa-file-arrow-up"></i> Upload .SRT
+            </button>
+            <button type="button" class="sub-tab-btn" data-tab="sync">
+                <i class="fa-solid fa-sliders"></i> Sync & Style
+            </button>
+        </div>
+
+        <div class="sub-modal-body">
+            <!-- Tab 1: OpenSubtitles (Auto) -->
+            <div class="sub-tab-content active" id="subTabAuto">
+                <div class="sub-filter-row">
+                    <select id="subLangSelect" class="sub-select">
+                        <option value="all">All Languages</option>
+                        <option value="eng" selected>English</option>
+                        <option value="spa">Spanish</option>
+                        <option value="fre">French</option>
+                        <option value="ger">German</option>
+                        <option value="ita">Italian</option>
+                        <option value="por">Portuguese</option>
+                        <option value="pob">Portuguese (Brazil)</option>
+                        <option value="ara">Arabic</option>
+                        <option value="rus">Russian</option>
+                        <option value="hin">Hindi</option>
+                        <option value="jpn">Japanese</option>
+                        <option value="kor">Korean</option>
+                        <option value="chi">Chinese</option>
+                    </select>
+                    <input type="text" id="subSearchInput" class="sub-search-input" placeholder="Filter releases (e.g. 1080p, BluRay)...">
+                </div>
+
+                <div class="sub-list-container" id="subListContainer">
+                    <div class="sub-loading" id="subLoading">
+                        <i class="fa-solid fa-circle-notch fa-spin"></i> Searching OpenSubtitles for this title...
+                    </div>
+                    <div class="sub-list" id="subList" style="display:none;"></div>
+                    <div class="sub-empty" id="subEmpty" style="display:none;">No matching subtitles found for this language.</div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Upload Custom SRT / VTT -->
+            <div class="sub-tab-content" id="subTabUpload" style="display:none;">
+                <div class="sub-dropzone" id="subDropzone">
+                    <i class="fa-solid fa-cloud-arrow-up sub-dropzone-icon"></i>
+                    <h4>Choose a subtitle file</h4>
+                    <p>Drag and drop your <strong>.srt</strong> or <strong>.vtt</strong> file here</p>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="document.getElementById('subFileInput').click()">
+                        <i class="fa-solid fa-folder-open"></i> Browse from Device
+                    </button>
+                    <input type="file" id="subFileInput" accept=".srt,.vtt,text/vtt,application/x-subrip" style="display:none;">
+                </div>
+                <div class="sub-help-text mt-3">
+                    <small style="color:#aaa;"><i class="fa-solid fa-circle-info"></i> The file is parsed instantly in your browser. Works with any downloaded movie or series.</small>
+                </div>
+            </div>
+
+            <!-- Tab 3: Sync & Styling -->
+            <div class="sub-tab-content" id="subTabSync" style="display:none;">
+                <div class="sub-setting-group">
+                    <label class="sub-setting-label">Timing Offset (Sync Delay / Advance)</label>
+                    <p class="sub-setting-hint">If subtitles appear too early or too late, adjust timing:</p>
+                    <div class="sub-offset-controls">
+                        <button type="button" class="btn-offset" onclick="ZenSubtitles.adjustOffset(-1.0)">-1.0s</button>
+                        <button type="button" class="btn-offset" onclick="ZenSubtitles.adjustOffset(-0.5)">-0.5s</button>
+                        <span class="sub-offset-display" id="subOffsetVal">0.0s</span>
+                        <button type="button" class="btn-offset" onclick="ZenSubtitles.adjustOffset(0.5)">+0.5s</button>
+                        <button type="button" class="btn-offset" onclick="ZenSubtitles.adjustOffset(1.0)">+1.0s</button>
+                        <button type="button" class="btn-offset btn-offset-reset" onclick="ZenSubtitles.resetOffset()">Reset</button>
+                    </div>
+                </div>
+
+                <div class="sub-setting-group mt-3">
+                    <label class="sub-setting-label">Subtitle Font Size</label>
+                    <div class="sub-pill-group" id="subSizeGroup">
+                        <button type="button" class="sub-pill" data-size="16px">Small</button>
+                        <button type="button" class="sub-pill active" data-size="20px">Medium</button>
+                        <button type="button" class="sub-pill" data-size="25px">Large</button>
+                        <button type="button" class="sub-pill" data-size="30px">Extra</button>
+                    </div>
+                </div>
+
+                <div class="sub-setting-group mt-3">
+                    <label class="sub-setting-label">Subtitle Text Color</label>
+                    <div class="sub-pill-group" id="subColorGroup">
+                        <button type="button" class="sub-pill active" data-color="#ffffff">White</button>
+                        <button type="button" class="sub-pill" data-color="#ffeaa7">Yellow</button>
+                        <button type="button" class="sub-pill" data-color="#00e0ff">Cyan</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- DOWNLOAD MODAL -->
 <?php if (!$isUpcoming): ?>

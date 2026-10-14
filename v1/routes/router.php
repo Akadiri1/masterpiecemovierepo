@@ -358,6 +358,16 @@ if (count($uri) > 2) {
     include APP_PATH."/views/includes/ajax/zen-history.php";
     break;
 
+     case 'fetch-subtitles':
+     case 'fetch-subtitles?'.$query_string:
+    include APP_PATH."/views/includes/ajax/fetch-subtitles.php";
+    break;
+
+     case 'proxy-subtitle':
+     case 'proxy-subtitle?'.$query_string:
+    include APP_PATH."/views/includes/ajax/proxy-subtitle.php";
+    break;
+
      case 'user-dashboard':
     include APP_PATH."/views/user-dashboard.php";
     break;
